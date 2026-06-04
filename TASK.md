@@ -127,6 +127,8 @@ Rules:
 
 ```plain
 go-magnetar
+  bin/
+      go-magnetar - собранный бинарник (в .gitignore)
   cmd
     go-magnetar
       main.go
@@ -151,7 +153,18 @@ go-magnetar
         agent.go - реализация агента для чата (цикл - вопрос ответ)
       indexer
         indexer.go - реализация агента индексатора
+  Makefile - базовые команды сборки и разработки
   .gitignore
 ```
+
+## Makefile
+
+Проект содержит `Makefile` с базовыми командами:
+
+- `make build` — сборка бинарника в `bin/go-magnetar`
+- `make clean` — удаление папки `bin/`
+- `make run-agent` — запуск агента с дефолтным конфигом (`configs/config.yaml`)
+- `make lint` — запуск `go vet ./...`
+- `make tidy` — запуск `go mod tidy`
 
 
