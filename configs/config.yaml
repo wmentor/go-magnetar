@@ -1,0 +1,18 @@
+llm:
+  base_url: https://api.openai.com/v1
+  api_key: YOUR_API_KEY
+  model: gpt-4o
+  context: 128000
+
+rag:
+  llm:
+    base_url: https://api.openai.com/v1
+    api_key: YOUR_API_KEY
+    model: text-embedding-3-small
+    vector_size: 1536
+  qdrant:
+    connstr: http://localhost:6333
+    collection: documents
+
+log:
+  level: info
