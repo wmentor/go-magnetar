@@ -2,7 +2,6 @@ package rag
 
 import (
 	"context"
-	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"log/slog"
@@ -11,8 +10,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/qdrant/go-client/qdrant"
 	"github.com/sashabaranov/go-openai"
+
 	"github.com/wmentor/go-magnetar/internal/config"
 )
 
@@ -24,8 +25,8 @@ const (
 
 // RAGTools provides RAG operations as LLM tools.
 type RAGTools struct {
-	cfg         *config.Config
-	embedClient *openai.Client
+	cfg          *config.Config
+	embedClient  *openai.Client
 	qdrantClient *qdrant.Client
 }
 
@@ -150,7 +151,7 @@ func (r *RAGTools) embed(text string) ([]float32, error) {
 
 // RagSave saves a text fragment to Qdrant. Returns true on success.
 func (r *RAGTools) RagSave(content string) bool {
-	id := fmt.Sprintf("%x", sha256.Sum256([]byte(content)))
+	id := uuid.NewString()
 
 	vector, err := r.embed(content)
 	if err != nil {
@@ -160,20 +161,6 @@ func (r *RAGTools) RagSave(content string) bool {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-
-	// Check if document already exists.
-	points, err := r.qdrantClient.Get(ctx, &qdrant.GetPoints{
-		CollectionName: r.cfg.RAG.Qdrant.Collection,
-		Ids:            []*qdrant.PointId{qdrant.NewID(id)},
-	})
-	if err != nil {
-		slog.Error("rag_save: failed to check existing point", "id", id, "err", err)
-		return false
-	}
-
-	if len(points) > 0 {
-		slog.Warn("rag_save: document already exists, overwriting", "id", id)
-	}
 
 	waitUpsert := true
 	_, err = r.qdrantClient.Upsert(ctx, &qdrant.UpsertPoints{

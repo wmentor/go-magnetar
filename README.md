@@ -179,7 +179,7 @@ internal/
 indexer -f file.md
   └── LLM: "read and split into chunks"
         ├── tool: file_read(file.md)   -> file contents
-        ├── tool: rag_save(chunk_1)    -> sha256 -> embed -> qdrant.Upsert
+        ├── tool: rag_save(chunk_1)    -> uuid -> embed -> qdrant.Upsert
         ├── tool: rag_save(chunk_2)    -> ...
         └── "Saved N chunks"
 ```
@@ -216,7 +216,6 @@ Set `log.level: debug` in the config for verbose output.
 | [`github.com/qdrant/go-client`](https://github.com/qdrant/go-client) | Qdrant client (gRPC) |
 | [`github.com/knadh/koanf/v2`](https://github.com/knadh/koanf) | YAML config loading |
 | `log/slog` | Structured logging (stdlib) |
-| `crypto/sha256` | Chunk deduplication (stdlib) |
 
 ## License
 

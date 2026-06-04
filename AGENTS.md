@@ -75,11 +75,7 @@ log:
 
 ### Поведение при дублировании
 
-Каждый блок идентифицируется по `sha256` от его текста. Если блок с таким ID уже существует в Qdrant, он перезаписывается, в лог пишется предупреждение:
-
-```
-level=WARN msg="rag_save: document already exists, overwriting" id=<sha256>
-```
+Каждый блок идентифицируется по `UUID`.
 
 ### Инструменты индексатора
 
@@ -148,7 +144,7 @@ CLI --> IndexFile(filename)
                --> tool_call: file_read(filename)
                      --> os.ReadFile
                --> tool_call: rag_save(block1)
-                     --> sha256(block1) -> id
+                     --> uuid.NewString() -> id
                      --> embed(block1) -> vector
                      --> qdrant.Upsert(id, vector, payload{text: block1})
                --> tool_call: rag_save(block2) ...
@@ -191,4 +187,3 @@ CLI --> Run() --> REPL
 | `github.com/qdrant/go-client` | Клиент Qdrant (gRPC) |
 | `github.com/knadh/koanf/v2` | Загрузка YAML-конфига |
 | `log/slog` | Структурированное логирование (stdlib) |
-| `crypto/sha256` | Идентификация блоков (stdlib) |
