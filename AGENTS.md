@@ -204,4 +204,6 @@ CLI --> Run() --> REPL
 | `github.com/sashabaranov/go-openai` | LLM и embedding клиент |
 | `github.com/qdrant/go-client` | Клиент Qdrant (gRPC) |
 | `github.com/knadh/koanf/v2` | Загрузка YAML-конфига |
+| `github.com/lmittmann/tint` | Цветной slog handler |
+| `github.com/charmbracelet/glamour` | Рендеринг Markdown в терминале |
 | `log/slog` | Структурированное логирование (stdlib) |

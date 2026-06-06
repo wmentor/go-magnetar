@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/glamour"
 	"github.com/sashabaranov/go-openai"
 	"github.com/wmentor/go-magnetar/internal/agent/summarizer"
 	"github.com/wmentor/go-magnetar/internal/config"
@@ -34,6 +35,7 @@ type ChatAgent struct {
 	llm        *openai.Client
 	rag        *rag.RAGTools
 	summarizer *summarizer.Summarizer
+	renderer   *glamour.TermRenderer
 	messages   []openai.ChatCompletionMessage
 }
 
@@ -48,6 +50,14 @@ func New(cfg *config.Config) (*ChatAgent, error) {
 		return nil, fmt.Errorf("chat: failed to initialise RAG tools: %w", err)
 	}
 
+	renderer, err := glamour.NewTermRenderer(
+		glamour.WithAutoStyle(),
+		glamour.WithWordWrap(0),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("chat: failed to initialise markdown renderer: %w", err)
+	}
+
 	messages := []openai.ChatCompletionMessage{
 		{
 			Role:    openai.ChatMessageRoleSystem,
@@ -60,6 +70,7 @@ func New(cfg *config.Config) (*ChatAgent, error) {
 		llm:        llmClient,
 		rag:        ragTools,
 		summarizer: summarizer.New(cfg),
+		renderer:   renderer,
 		messages:   messages,
 	}, nil
 }
@@ -232,8 +243,14 @@ func (a *ChatAgent) Run() error {
 			continue
 		}
 
-		fmt.Println(answer)
-		fmt.Println()
+		rendered, err := a.renderer.Render(answer)
+		if err != nil {
+			// Fallback to plain text if rendering fails.
+			fmt.Println(answer)
+			fmt.Println()
+		} else {
+			fmt.Print(rendered)
+		}
 	}
 
 	if err := scanner.Err(); err != nil {

@@ -8,6 +8,7 @@ import (
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
+	"github.com/lmittmann/tint"
 )
 
 // LLMConfig holds settings for the main chat LLM.
@@ -80,6 +81,7 @@ func Load(path string) (*Config, error) {
 }
 
 // SetupLogger initialises the global slog logger based on the config level.
+// Output is written to stderr using tint for colourised, human-readable formatting.
 func SetupLogger(cfg *Config) {
 	var level slog.Level
 
@@ -94,6 +96,18 @@ func SetupLogger(cfg *Config) {
 		level = slog.LevelInfo
 	}
 
-	handler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: level})
+	handler := tint.NewHandler(os.Stderr, &tint.Options{
+		Level:   level,
+		NoColor: !isTerminal(os.Stderr),
+	})
 	slog.SetDefault(slog.New(handler))
+}
+
+// isTerminal reports whether f is connected to a terminal.
+func isTerminal(f *os.File) bool {
+	fi, err := f.Stat()
+	if err != nil {
+		return false
+	}
+	return (fi.Mode() & os.ModeCharDevice) != 0
 }

@@ -229,6 +229,8 @@ Set `log.level: debug` in the config for verbose output.
 | [`github.com/sashabaranov/go-openai`](https://github.com/sashabaranov/go-openai) | OpenAI API client (LLM + embeddings) |
 | [`github.com/qdrant/go-client`](https://github.com/qdrant/go-client) | Qdrant client (gRPC) |
 | [`github.com/knadh/koanf/v2`](https://github.com/knadh/koanf) | YAML config loading |
+| [`github.com/lmittmann/tint`](https://github.com/lmittmann/tint) | Colourised slog handler |
+| [`github.com/charmbracelet/glamour`](https://github.com/charmbracelet/glamour) | Markdown rendering in terminal |
 | `log/slog` | Structured logging (stdlib) |
 
 ## License
