@@ -6,7 +6,7 @@ A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines tw
 
 **Indexing** — the agent reads `.md` and `.txt` files, delegates chunking to the LLM (up to 500 tokens per block, preserving semantic boundaries), computes embedding vectors and stores the chunks in Qdrant. Each chunk is identified by the SHA-256 hash of its text.
 
-**Chat** — an interactive REPL with multi-turn conversation support. Before answering, the agent searches the knowledge base via vector similarity when needed. If no relevant information is found, it says so explicitly rather than making something up.
+**Chat** — an interactive REPL with multi-turn conversation support. Before answering, the agent searches the knowledge base via vector similarity when needed. If no relevant information is found, it says so explicitly rather than making something up. The conversation history is automatically managed to stay within the configured context window: when the history approaches the token threshold it is compacted by the built-in summarizer, which preserves recent turns verbatim and replaces older ones with a concise summary.
 
 ## Requirements
 
@@ -57,6 +57,10 @@ rag:
 
 log:
   level: info
+
+compact:
+  threshold: 0   # 0 = auto (80 % of llm.context)
+  save_tail: 6   # keep the last 6 messages verbatim
 ```
 
 ### 4. Index your documents
@@ -108,6 +112,8 @@ make build
 | `rag.qdrant.connstr` | Qdrant address, e.g. `http://localhost:6333` |
 | `rag.qdrant.collection` | Collection name (created automatically if absent) |
 | `log.level` | Log level: `debug`, `info`, `warn`, `error` |
+| `compact.threshold` | Token count that triggers history summarization. `0` means auto: 80 % of `llm.context` |
+| `compact.save_tail` | Number of most-recent messages kept verbatim during summarization. `< 1` summarizes everything |
 
 **Vector sizes for common embedding models:**
 
@@ -171,6 +177,7 @@ internal/
   agent/
     indexer/indexer.go           — indexer agent, tool-use loop
     chat/agent.go                — chat agent, REPL, tool-use loop
+    summarizer/summarizer.go     — history compaction agent
 ```
 
 ### Indexing flow
@@ -189,9 +196,16 @@ indexer -f file.md
 ```
 agent
   └── REPL: reads question from stdin
-        └── LLM: decides whether to search
-              ├── tool: rag_search(query)  -> embed -> qdrant.Query(top-5)
-              └── composes answer from retrieved chunks
+        └── ask(user_input)
+              ├── [if token threshold reached]
+              │     └── summarizer.Compact(history)
+              │           ├── keep system message
+              │           ├── keep last save_tail messages verbatim
+              │           └── LLM: summarize older messages -> one summary message
+              ├── trimMessages(history) -> fits within context window
+              └── LLM: decides whether to search
+                    ├── tool: rag_search(query)  -> embed -> qdrant.Query(top-5)
+                    └── composes answer from retrieved chunks
 ```
 
 ## Logging
@@ -200,10 +214,10 @@ All logs are written to `stderr`. Log levels:
 
 | Level | When |
 |---|---|
-| `DEBUG` | Tool name and arguments for every tool call |
-| `INFO` | Start/end of file indexing, collection creation, final LLM response |
+| `DEBUG` | Tool name and arguments for every tool call; number of messages trimmed/compacted |
+| `INFO` | Start/end of file indexing, collection creation, final LLM response; history compaction start |
 | `WARN` | Overwriting an already existing chunk in Qdrant |
-| `ERROR` | File read errors, embedding failures, Qdrant errors, LLM errors |
+| `ERROR` | File read errors, embedding failures, Qdrant errors, LLM errors; compaction failure (non-fatal) |
 
 Set `log.level: debug` in the config for verbose output.
 

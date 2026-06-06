@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/sashabaranov/go-openai"
+	"github.com/wmentor/go-magnetar/internal/agent/summarizer"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
 )
@@ -29,10 +30,11 @@ const charsPerToken = 4
 
 // ChatAgent is an interactive REPL-based chat agent backed by a RAG knowledge base.
 type ChatAgent struct {
-	cfg      *config.Config
-	llm      *openai.Client
-	rag      *rag.RAGTools
-	messages []openai.ChatCompletionMessage
+	cfg        *config.Config
+	llm        *openai.Client
+	rag        *rag.RAGTools
+	summarizer *summarizer.Summarizer
+	messages   []openai.ChatCompletionMessage
 }
 
 // New creates a new ChatAgent instance.
@@ -54,10 +56,11 @@ func New(cfg *config.Config) (*ChatAgent, error) {
 	}
 
 	return &ChatAgent{
-		cfg:      cfg,
-		llm:      llmClient,
-		rag:      ragTools,
-		messages: messages,
+		cfg:        cfg,
+		llm:        llmClient,
+		rag:        ragTools,
+		summarizer: summarizer.New(cfg),
+		messages:   messages,
 	}, nil
 }
 
@@ -125,12 +128,29 @@ func (a *ChatAgent) trimMessages(reservedOutputTokens int) []openai.ChatCompleti
 // Using 20 % of the configured context limit as a reasonable default.
 const reservedOutputFraction = 5 // 1/5 = 20 %
 
+// compactIfNeeded checks whether the message history has reached the compaction
+// threshold and, if so, replaces a.messages with a summarized version.
+func (a *ChatAgent) compactIfNeeded() {
+	if !a.summarizer.NeedsCompaction(a.messages) {
+		return
+	}
+	compacted, err := a.summarizer.Compact(a.messages)
+	if err != nil {
+		slog.Error("chat: history compaction failed, continuing with full history", "err", err)
+		return
+	}
+	a.messages = compacted
+}
+
 // ask sends the user input to the LLM, handles tool calls, and returns the final answer.
 func (a *ChatAgent) ask(userInput string) (string, error) {
 	a.messages = append(a.messages, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleUser,
 		Content: userInput,
 	})
+
+	// Compact history before sending to the LLM if the threshold is reached.
+	a.compactIfNeeded()
 
 	tools := []openai.Tool{
 		a.rag.DefinitionSearch(),

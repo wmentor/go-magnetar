@@ -16,3 +16,11 @@ rag:
 
 log:
   level: info
+
+compact:
+  # threshold: token count at which history summarization is triggered.
+  # If not set (or 0), defaults to 80 % of llm.context.
+  threshold: 0
+  # save_tail: number of most-recent messages to preserve unchanged during
+  # summarization. If less than 1, all non-system messages are summarized.
+  save_tail: 6

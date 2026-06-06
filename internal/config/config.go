@@ -43,11 +43,24 @@ type LogConfig struct {
 	Level string `koanf:"level"` // debug | info | warn | error
 }
 
+// CompactConfig controls the history-summarization behaviour of the chat agent.
+type CompactConfig struct {
+	// Threshold is the token count at which history summarization is triggered.
+	// If zero or negative, defaults to 80 % of LLM.Context.
+	Threshold int `koanf:"threshold"`
+
+	// SaveTail is the number of most-recent messages to preserve unchanged
+	// during summarization. If less than 1, all messages are passed to the
+	// summarizer.
+	SaveTail int `koanf:"save_tail"`
+}
+
 // Config is the root configuration structure.
 type Config struct {
-	LLM LLMConfig `koanf:"llm"`
-	RAG RAGConfig `koanf:"rag"`
-	Log LogConfig `koanf:"log"`
+	LLM     LLMConfig     `koanf:"llm"`
+	RAG     RAGConfig     `koanf:"rag"`
+	Log     LogConfig     `koanf:"log"`
+	Compact CompactConfig `koanf:"compact"`
 }
 
 // Load reads and parses a YAML config file at the given path.
