@@ -133,7 +133,7 @@ go-magnetar indexer -c <config> [-f <file>] [-d <directory>]
 
 | Flag | Description |
 |---|---|
-| `-c` | Path to the config file (required) |
+| `-c` | Path to the config file (default: `~/.go-magnetar.yaml`) |
 | `-f` | Path to a single `.md` or `.txt` file to index |
 | `-d` | Path to a directory — all `.md` and `.txt` files are processed recursively |
 
@@ -147,9 +147,22 @@ go-magnetar agent -c <config>
 
 | Flag | Description |
 |---|---|
-| `-c` | Path to the config file (required) |
+| `-c` | Path to the config file (default: `~/.go-magnetar.yaml`) |
 
 The REPL reads questions from stdin line by line. Press `Ctrl+D` to exit.
+
+#### Chat commands
+
+The following built-in commands are available at the `>` prompt:
+
+| Command | Aliases | Description |
+|---|---|---|
+| `/help` | `help` | Show the list of available chat commands |
+| `/exit` | `exit` | End the session and exit the program |
+| `/compact` | — | Immediately compress the conversation history via the summarizer, freeing up context space |
+| `/stat` | — | Print context statistics: messages, estimated tokens, bytes, LLM model name, RAG embedding model name and vector size |
+
+Commands are case-insensitive and are processed locally — they are never sent to the LLM.
 
 ## Makefile
 

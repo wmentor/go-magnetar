@@ -9,7 +9,7 @@ import (
 
 // Cmd is the CLI command for indexing files into RAG.
 type Cmd struct {
-	Config    string `short:"c" help:"Path to config file" required:""`
+	Config    string `short:"c" type:"path" default:"~/.go-magnetar.yaml" help:"Path to config file"`
 	File      string `short:"f" help:"File to index (.md or .txt)"`
 	Directory string `short:"d" help:"Directory to index (all .md and .txt files)"`
 }

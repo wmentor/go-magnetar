@@ -13,6 +13,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/docker/go-units"
 	"github.com/sashabaranov/go-openai"
 	"github.com/wmentor/go-magnetar/internal/agent/summarizer"
 	"github.com/wmentor/go-magnetar/internal/config"
@@ -294,6 +295,65 @@ func readInput() (string, bool, error) {
 	return strings.TrimSpace(final.input.Value()), final.quit, nil
 }
 
+// contextStats returns byte and estimated token counts for the current message history.
+func (a *ChatAgent) contextStats() (bytes int, tokens int) {
+	for _, m := range a.messages {
+		bytes += len(m.Role) + len(m.Content)
+		for _, tc := range m.ToolCalls {
+			bytes += len(tc.Function.Name) + len(tc.Function.Arguments)
+		}
+		tokens += estimateTokens(m)
+	}
+	return bytes, tokens
+}
+
+// helpText is the reference text shown by the /help command.
+const helpText = `Available chat commands:
+  /help            show this help message
+  /exit  exit      end the session and exit
+  /compact         compress conversation history via summarizer
+  /stat            show context statistics (messages, tokens, bytes, models)
+`
+
+// handleCommand processes a slash-command entered by the user.
+// It returns true if the input was a command (and was handled), false otherwise.
+// The second return value signals that the REPL should exit.
+func (a *ChatAgent) handleCommand(line string) (handled bool, exit bool) {
+	cmd := strings.ToLower(strings.TrimSpace(line))
+	switch cmd {
+	case "/help", "help":
+		fmt.Fprint(os.Stdout, helpText+"\n")
+		return true, false
+
+	case "/exit", "exit":
+		return true, true
+
+	case "/compact":
+		compacted, err := a.summarizer.Compact(a.messages)
+		if err != nil {
+			slog.Error("chat: manual compaction failed", "err", err)
+			fmt.Fprintln(os.Stdout, "Error: compaction failed — see logs for details.")
+		} else {
+			before := len(a.messages)
+			a.messages = compacted
+			after := len(a.messages)
+			fmt.Fprintf(os.Stdout, "Context compacted: %d → %d messages.\n\n", before, after)
+		}
+		return true, false
+
+	case "/stat":
+		b, tokens := a.contextStats()
+		fmt.Fprintf(os.Stdout,
+			"Context stats:\n  messages    : %d\n  tokens      : ~%d (estimated)\n  bytes       : %s\n  llm model   : %s\n  rag model   : %s\n  vector size : %d\n\n",
+			len(a.messages), tokens, units.HumanSize(float64(b)),
+			a.cfg.LLM.Model,
+			a.cfg.RAG.LLM.Model, a.cfg.RAG.LLM.VectorSize,
+		)
+		return true, false
+	}
+	return false, false
+}
+
 // Run starts the interactive REPL loop.
 func (a *ChatAgent) Run() error {
 	for {
@@ -309,6 +369,14 @@ func (a *ChatAgent) Run() error {
 			break
 		}
 		if line == "" {
+			continue
+		}
+
+		// Handle slash-commands before sending input to the LLM.
+		if handled, exit := a.handleCommand(line); handled {
+			if exit {
+				break
+			}
 			continue
 		}
 

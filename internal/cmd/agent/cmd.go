@@ -7,7 +7,7 @@ import (
 
 // Cmd is the CLI command for running the interactive chat agent.
 type Cmd struct {
-	Config string `short:"c" help:"Path to config file" required:""`
+	Config string `short:"c" type:"path" default:"~/.go-magnetar.yaml" help:"Path to config file"`
 }
 
 // Run executes the agent command.
