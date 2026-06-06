@@ -1,15 +1,18 @@
 package chat
 
 import (
-	"bufio"
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/charmbracelet/bubbles/textinput"
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/sashabaranov/go-openai"
 	"github.com/wmentor/go-magnetar/internal/agent/summarizer"
 	"github.com/wmentor/go-magnetar/internal/config"
@@ -218,43 +221,114 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 	}
 }
 
-// Run starts the interactive REPL loop, reading from stdin and writing to stdout.
+// inputModel is a minimal bubbletea model used solely to collect one line of
+// user input with a styled prompt. It quits on Enter (submitting the text) or
+// Ctrl+C / Ctrl+D (requesting an exit).
+type inputModel struct {
+	input  textinput.Model
+	done   bool
+	quit   bool
+}
+
+var (
+	promptStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("99")). // purple
+			Bold(true)
+	promptSymbol = promptStyle.Render("◆")
+
+	questionStyle = lipgloss.NewStyle().
+			Foreground(lipgloss.Color("99")).
+			BorderLeft(true).
+			BorderStyle(lipgloss.ThickBorder()).
+			BorderForeground(lipgloss.Color("99")).
+			PaddingLeft(1).
+			Faint(true)
+)
+
+func newInputModel() inputModel {
+	ti := textinput.New()
+	ti.Placeholder = "Ask anything..."
+	ti.PlaceholderStyle = lipgloss.NewStyle().Faint(true)
+	ti.Prompt = promptSymbol + " "
+	ti.Focus()
+	return inputModel{input: ti}
+}
+
+func (m inputModel) Init() tea.Cmd {
+	return textinput.Blink
+}
+
+func (m inputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.Type {
+		case tea.KeyEnter:
+			m.done = true
+			return m, tea.Quit
+		case tea.KeyCtrlC, tea.KeyCtrlD:
+			m.quit = true
+			return m, tea.Quit
+		}
+	}
+	var cmd tea.Cmd
+	m.input, cmd = m.input.Update(msg)
+	return m, cmd
+}
+
+func (m inputModel) View() string {
+	return m.input.View()
+}
+
+// readInput launches a bubbletea program to collect one line from the user.
+// Returns the trimmed input, a quit flag, and any error.
+func readInput() (string, bool, error) {
+	m := newInputModel()
+	p := tea.NewProgram(m, tea.WithOutput(os.Stderr))
+	result, err := p.Run()
+	if err != nil {
+		return "", false, err
+	}
+	final := result.(inputModel)
+	// Print a newline after the input line so subsequent output starts cleanly.
+	fmt.Fprintln(os.Stdout)
+	return strings.TrimSpace(final.input.Value()), final.quit, nil
+}
+
+// Run starts the interactive REPL loop.
 func (a *ChatAgent) Run() error {
-	scanner := bufio.NewScanner(os.Stdin)
-
 	for {
-		fmt.Print("> ")
-
-		if !scanner.Scan() {
-			// EOF or error.
-			fmt.Println()
+		line, quit, err := readInput()
+		if err != nil {
+			// Treat closed stdin / broken pipe as normal exit.
+			if err == io.EOF {
+				break
+			}
+			return fmt.Errorf("chat: input error: %w", err)
+		}
+		if quit {
 			break
 		}
-
-		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
 			continue
 		}
 
+		fmt.Fprintln(os.Stdout, questionStyle.Render(line))
+		fmt.Fprintln(os.Stdout)
+
 		answer, err := a.ask(line)
 		if err != nil {
 			slog.Error("chat: failed to get answer", "err", err)
-			fmt.Println("Error: failed to get response. Please try again.")
+			fmt.Fprintln(os.Stdout, "Error: failed to get response. Please try again.")
 			continue
 		}
 
 		rendered, err := a.renderer.Render(answer)
 		if err != nil {
-			// Fallback to plain text if rendering fails.
-			fmt.Println(answer)
-			fmt.Println()
+			fmt.Fprintln(os.Stdout, answer)
+			fmt.Fprintln(os.Stdout)
 		} else {
-			fmt.Print(rendered)
+			fmt.Fprint(os.Stdout, rendered)
 		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("chat: stdin read error: %w", err)
 	}
 
 	return nil
