@@ -1,4 +1,4 @@
-package html
+package markdown
 
 import (
 	"context"
@@ -12,34 +12,25 @@ import (
 	"github.com/wmentor/go-magnetar/internal/tools/generic"
 )
 
-const systemPrompt = `You are an HTML content preprocessor. Your task is to clean HTML pages by removing noise elements and convert the result to clean Markdown.
+const systemPrompt = `You are an editor who cleans Markdown text from clutter left after parsing web pages.
 
-Noise elements to remove:
-- Advertising blocks (ads, banners, pop-ups)
-- Navigation headers/footers
-- Related articles suggestions
-- Social media widgets
-- Cookie notices
-- Newsletter prompts
-- Duplicate content (repeated sections, too-short paragraphs)
-- Unnecessary whitespace and formatting
-- User comments
+REMOVE:
 
-Keep:
-- Main content (articles, blog posts, documentation)
-- Headings, paragraphs, lists, links, code blocks
-- Essential metadata (author, date, title if important)
+* Calls to subscribe, share, or leave a comment
+* "Read also", "Related articles" blocks
+* Navigation breadcrumbs
+* Ad inserts, promo blocks
+* Broken or meaningless links
+* Meta-information like "published N minutes ago"
 
-Output format:
-1. Extract the core content and structure
-2. Convert to clean Markdown
-3. Remove all inline styles
-4. Preserve important formatting (code, links, emphasis)
-5. Return only the cleaned Markdown text (no explanations, no prefix)
+KEEP:
 
-Do not add any commentary, only the cleaned Markdown content.
+* Headings, lists, tables, quotes
+* Code blocks
+* The semantic content of the article
+* Markdown formatting
 
-IMPORTANT: Return the text as-is without truncation. Preserve all main content and do not cut off sections.`
+Return ONLY the cleaned Markdown, with no comments or explanations.`
 
 // Preprocessor is an AI agent that cleans HTML pages and converts to Markdown.
 type Preprocessor struct {
@@ -118,9 +109,8 @@ func (p *Preprocessor) runAgentLoop(messages []openai.ChatCompletionMessage) (st
 	}
 }
 
-// ProcessHTML cleans an HTML file and returns Markdown
 func (p *Preprocessor) ProcessHTML(filename string) (string, error) {
-	slog.Debug("preprocessor: processing HTML file", "file", filename)
+	slog.Debug("preprocessor: processing markdown file", "file", filename)
 
 	htmlContent, ok := p.generic.FileRead(filename)
 	if !ok {
@@ -141,9 +131,8 @@ func (p *Preprocessor) ProcessHTML(filename string) (string, error) {
 	return p.runAgentLoop(messages)
 }
 
-// ProcessHTMLString takes HTML as string and returns cleaned Markdown
 func (p *Preprocessor) ProcessHTMLString(htmlStr string) (string, error) {
-	slog.Debug("preprocessor: processing HTML string")
+	slog.Debug("preprocessor: processing markdown string")
 
 	messages := []openai.ChatCompletionMessage{
 		{

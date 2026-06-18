@@ -14,24 +14,24 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"golang.org/x/net/html/charset"
 
-	"github.com/wmentor/go-magnetar/internal/agent/html"
+	sanitizer "github.com/wmentor/go-magnetar/internal/agent/markdown"
 	"github.com/wmentor/go-magnetar/internal/config"
 )
 
 const (
 	defaultTimeout = time.Minute
-	userAgent      = "magnetar web browser"
+	userAgent      = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36"
 )
 
 // WebTools provides web fetching operations as LLM tools.
 type WebTools struct {
 	cfg          *config.Config
-	preprocessor *html.Preprocessor
+	preprocessor *sanitizer.Preprocessor
 }
 
 // New creates a new WebTools instance.
 func New(cfg *config.Config) (*WebTools, error) {
-	preprocessor, err := html.New(cfg)
+	preprocessor, err := sanitizer.New(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("web: failed to create preprocessor: %w", err)
 	}
@@ -104,6 +104,21 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 
 	if contentType != "" && strings.Contains(strings.ToLower(contentType), "text/html") {
 		slog.Debug("webfetch: HTML detected, preprocessing", "url", url, "content_type", contentType)
+
+		content, err := CleanHTML(content)
+		if err != nil {
+			return "", fmt.Errorf("webfetch: URL %q clean html error: %w", url, err)
+		}
+
+		content, err = ProcessReadability(content, url)
+		if err != nil {
+			return "", fmt.Errorf("webfetch: URL %q error: %w", url, err)
+		}
+
+		content, err = HTMLToMarkdown(content)
+		if err != nil {
+			return "", fmt.Errorf("webfetch: URL %q html to markdown error: %w", url, err)
+		}
 
 		markdown, err := w.preprocessHTML(content)
 		if err != nil {
