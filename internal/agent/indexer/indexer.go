@@ -6,9 +6,12 @@ import (
 	"io/fs"
 	"log/slog"
 	"path/filepath"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/sashabaranov/go-openai"
+
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/tools/generic"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
@@ -23,6 +26,10 @@ When given a filename:
 4. Report how many blocks were saved.
 
 Do not summarize, paraphrase, or alter the content. Store the original text as-is.`
+
+var (
+	extRegExp = regexp.MustCompile(`^\.(md|txt)$`)
+)
 
 // Indexer is an AI agent that indexes files into the RAG knowledge base.
 type Indexer struct {
@@ -146,8 +153,8 @@ func (idx *Indexer) IndexDirectory(dir string) error {
 			return nil
 		}
 
-		ext := filepath.Ext(path)
-		if ext != ".md" && ext != ".txt" {
+		ext := strings.ToLower(filepath.Ext(path))
+		if !extRegExp.MatchString(ext) {
 			return nil
 		}
 
