@@ -18,15 +18,18 @@ import (
 	"github.com/wmentor/go-magnetar/internal/agent/summarizer"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
+	"github.com/wmentor/go-magnetar/internal/tools/web"
 )
 
 const systemPrompt = `You are a helpful assistant that answers questions strictly based on the knowledge base.
 
 Rules:
-- If you need information to answer a question, or need to verify or clarify what you already know, use the rag_search tool before responding.
-- Base your answers only on the information retrieved from rag_search. Do not invent, assume, or extrapolate facts.
-- If rag_search returns no relevant results, tell the user honestly that you don't have information on this topic.
-- You may call rag_search multiple times with different queries if needed.
+- Always try rag_search first for every question, even if you think you already know the answer.
+- If rag_search returns relevant results, base your answer exclusively on those results. Do not use web_fetch in this case.
+- You may call rag_search multiple times with different queries to gather all necessary information.
+- Only use web_fetch if rag_search returned no relevant results and the user explicitly needs up-to-date or external information.
+- Do not invent, assume, or extrapolate facts beyond what the tools return.
+- If neither rag_search nor web_fetch provides relevant information, tell the user honestly that you don't have information on this topic.
 - Be concise and precise.`
 
 // charsPerToken is a rough approximation used for context-window budget estimation.
@@ -38,6 +41,7 @@ type ChatAgent struct {
 	cfg        *config.Config
 	llm        *openai.Client
 	rag        *rag.RAGTools
+	web        *web.WebTools
 	summarizer *summarizer.Summarizer
 	renderer   *glamour.TermRenderer
 	messages   []openai.ChatCompletionMessage
@@ -52,6 +56,11 @@ func New(cfg *config.Config) (*ChatAgent, error) {
 	ragTools, err := rag.New(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("chat: failed to initialise RAG tools: %w", err)
+	}
+
+	webTools, err := web.New(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("chat: failed to initialise web tools: %w", err)
 	}
 
 	renderer, err := glamour.NewTermRenderer(
@@ -73,6 +82,7 @@ func New(cfg *config.Config) (*ChatAgent, error) {
 		cfg:        cfg,
 		llm:        llmClient,
 		rag:        ragTools,
+		web:        webTools,
 		summarizer: summarizer.New(cfg),
 		renderer:   renderer,
 		messages:   messages,
@@ -169,6 +179,7 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 
 	tools := []openai.Tool{
 		a.rag.DefinitionSearch(),
+		a.web.Definition(),
 	}
 
 	for {
@@ -205,7 +216,15 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 
 				slog.Debug("chat: tool call", "tool", name, "args", args)
 
-				result := a.rag.Dispatch(name, args)
+				var result string
+				switch name {
+				case "rag_search":
+					result = a.rag.Dispatch(name, args)
+				case "web_fetch":
+					result = a.web.Dispatch(name, args)
+				default:
+					result = "error: unknown tool " + name
+				}
 
 				a.messages = append(a.messages, openai.ChatCompletionMessage{
 					Role:       openai.ChatMessageRoleTool,
@@ -309,10 +328,14 @@ func (a *ChatAgent) contextStats() (bytes int, tokens int) {
 
 // helpText is the reference text shown by the /help command.
 const helpText = `Available chat commands:
-  /help            show this help message
-  /exit  exit      end the session and exit
-  /compact         compress conversation history via summarizer
-  /stat            show context statistics (messages, tokens, bytes, models)
+   /help            show this help message
+   /exit  exit      end the session and exit
+   /compact         compress conversation history via summarizer
+   /stat            show context statistics (messages, tokens, bytes, models)
+
+The assistant can use the following tools:
+   rag_search       search the knowledge base for information
+   web_fetch        fetch and preprocess web pages for up-to-date information
 `
 
 // handleCommand processes a slash-command entered by the user.

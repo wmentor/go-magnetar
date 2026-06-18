@@ -44,6 +44,12 @@ rag:
     api_key: YOUR_API_KEY
     model: text-embedding-3-small        # embedding-модель
     vector_size: 1536                    # размерность векторов модели
+  chunk:
+    size: 512                            # максимальный размер чанка в рунах (умолч. 512)
+    overlap: 64                          # перекрытие между соседними чанками в рунах (умолч. 64)
+  search:
+    limit: 10                            # максимальное число результатов на запрос (умолч. 10)
+    threshold: 0.40                      # минимальный порог cosine similarity 0–1 (умолч. 0.40)
   qdrant:
     connstr: http://localhost:6333       # адрес Qdrant (REST-порт; gRPC 6334 используется автоматически)
     collection: documents                # имя коллекции (создаётся автоматически)
@@ -59,6 +65,20 @@ compact:
 > `vector_size` должен совпадать с размерностью выбранной embedding-модели.
 > Для `text-embedding-3-small` — 1536, для `text-embedding-ada-002` — 1536, для `text-embedding-3-large` — 3072.
 
+### Параметры `rag.chunk`
+
+| Параметр | Умолч. | Описание |
+|---|---|---|
+| `rag.chunk.size` | `512` | Максимальный размер чанка в Unicode-рунах |
+| `rag.chunk.overlap` | `64` | Перекрытие между соседними чанками в рунах (~12.5 %) |
+
+### Параметры `rag.search`
+
+| Параметр | Умолч. | Описание |
+|---|---|---|
+| `rag.search.limit` | `10` | Максимальное число результатов, возвращаемых Qdrant на один запрос |
+| `rag.search.threshold` | `0.40` | Минимальный cosine similarity; результаты ниже порога отбрасываются |
+
 ### Параметры `compact`
 
 | Параметр | Описание |
@@ -68,7 +88,7 @@ compact:
 
 ## Агент-индексатор
 
-Читает файлы `.md` и `.txt`, разбивает на логические блоки (до 500 токенов) и сохраняет в Qdrant. Разбивку и сохранение выполняет LLM через tool-use loop.
+Читает файлы `.md` и `.txt` или веб-страницы (по URL), разбивает содержимое на перекрывающиеся чанки с учётом границ абзацев и Markdown-заголовков, вычисляет embedding-векторы и сохраняет в Qdrant. Каждый чанк идентифицируется детерминированным UUID v5, вычисленным из содержимого, — повторная индексация одного файла не создаёт дублей.
 
 ### Индексировать один файл
 
@@ -84,16 +104,24 @@ compact:
 
 Все файлы `.md` и `.txt` будут обработаны. При ошибке отдельного файла — в stderr пишется `slog.Error` и обработка продолжается.
 
+### Индексировать URL
+
+```bash
+./bin/go-magnetar indexer -c my-config.yaml -u https://example.com/article
+```
+
+HTML-страница очищается от рекламы, навигации и прочего шума, конвертируется в Markdown и разбивается на чанки так же, как локальные файлы.
+
 ### Поведение при дублировании
 
-Каждый блок идентифицируется по `UUID`.
+ID каждого чанка — UUID v5, вычисленный из его текста (`uuid.NewSHA1`). Повторный вызов `rag_save` с тем же содержимым выполняет `Upsert` по тому же ID — существующая точка перезаписывается, а не дублируется.
 
 ### Инструменты индексатора
 
 | Инструмент | Сигнатура | Описание |
 |---|---|---|
-| `file_read` | `(filename: string) -> string` | Читает содержимое файла |
 | `rag_save` | `(content: string) -> bool` | Сохраняет фрагмент в Qdrant |
+| `web_fetch` | `(url: string) -> string` | Загружает и очищает веб-страницу, возвращает Markdown |
 
 ## Чат-агент
 
@@ -130,17 +158,18 @@ make run-agent
 
 Команды обрабатываются в методе `handleCommand` (`internal/agent/chat/agent.go`) до отправки ввода в LLM; в историю сообщений не добавляются. Сравнение регистронезависимое.
 
-Текст справки хранится в константе `helpText` того же файла — что упрощает его поддержку при добавлении новых команд. Данные для `/stat` берутся напрямую из `a.cfg`: `cfg.LLM.Model`, `cfg.RAG.LLM.Model`, `cfg.RAG.LLM.VectorSize`.
+Текст справки хранится в константе `helpText` того же файла. Данные для `/stat` берутся напрямую из `a.cfg`: `cfg.LLM.Model`, `cfg.RAG.LLM.Model`, `cfg.RAG.LLM.VectorSize`.
 
 ### Стратегия поиска
 
-Агент сам решает, когда обращаться к `rag_search`. Критерий — нужна новая информация или нужно уточнить уже имеющуюся. Агент не выдумывает: если `rag_search` не вернул релевантных результатов, он сообщает об этом явно.
+Агент **всегда** сначала обращается к `rag_search`, даже если считает, что уже знает ответ. Если `rag_search` вернул релевантные результаты — ответ формируется исключительно на их основе, `web_fetch` не вызывается. `web_fetch` используется только как fallback: когда `rag_search` не нашёл ничего релевантного и пользователю нужна внешняя или актуальная информация. Если ни один инструмент не дал результата — агент сообщает об этом явно.
 
 ### Инструменты чат-агента
 
 | Инструмент | Сигнатура | Описание |
 |---|---|---|
-| `rag_search` | `(query: string) -> string` | Возвращает топ-5 релевантных фрагментов из Qdrant |
+| `rag_search` | `(query: string) -> string` | Возвращает топ-N релевантных фрагментов из Qdrant (N задаётся `rag.search.limit`) |
+| `web_fetch` | `(url: string) -> string` | Загружает и очищает веб-страницу (fallback, если RAG не дал результата) |
 
 ## Архитектура
 
@@ -148,32 +177,43 @@ make run-agent
 cmd/go-magnetar/main.go          — entrypoint
 internal/
   config/config.go               — загрузка YAML-конфига, инициализация slog
+  chunk/chunk.go                 — разбивка текста на чанки (UTF-8, границы абзацев/заголовков)
   cmd/
     cmd.go                       — root CLI (kong)
     indexer/cmd.go               — подкоманда indexer
     agent/cmd.go                 — подкоманда agent
   tools/
-    generic/generic.go           — инструмент file_read
     rag/rag.go                   — инструменты rag_save, rag_search; подключение к Qdrant
+    web/fetch.go                 — инструмент web_fetch; загрузка и очистка HTML
   agent/
-    indexer/indexer.go           — агент-индексатор, tool-use loop
+    indexer/indexer.go           — агент-индексатор
     chat/agent.go                — чат-агент, REPL, tool-use loop
     summarizer/summarizer.go     — агент сжатия истории
 ```
 
-### Поток данных: индексация
+### Поток данных: индексация файла
 
 ```
 CLI --> IndexFile(filename)
-         --> LLM (system prompt + "index file: X")
-               --> tool_call: file_read(filename)
-                     --> os.ReadFile
-               --> tool_call: rag_save(block1)
-                     --> uuid.NewString() -> id
-                     --> embed(block1) -> vector
-                     --> qdrant.Upsert(id, vector, payload{text: block1})
-               --> tool_call: rag_save(block2) ...
-               --> finish: "Saved N blocks"
+         --> os.ReadFile(filename)
+         --> chunk.Split(content, cfg)
+               --> splitParagraphs   — границы абзацев и Markdown-заголовков
+               --> greedy pack       — жадная упаковка до MaxSize рун
+               --> forceSplit        — для абзацев длиннее MaxSize
+         --> for each chunk:
+               --> rag.RagSave(chunk)
+                     --> contentUUID(chunk) -> UUID v5 (детерминированный)
+                     --> embed(chunk)        -> []float32
+                     --> qdrant.Upsert(id, vector, payload{text: chunk})
+```
+
+### Поток данных: индексация URL
+
+```
+CLI --> IndexURL(url)
+         --> web.WebFetch(url)       — загрузка + очистка HTML -> Markdown
+         --> chunk.Split(content, cfg)
+         --> (далее как для файла)
 ```
 
 ### Поток данных: чат
@@ -189,12 +229,26 @@ CLI --> Run() --> REPL
                --> trimMessages(history) — обрезка до размера контекстного окна
                --> LLM (system prompt + history + user_input)
                      --> tool_call: rag_search(query)
-                           --> embed(query) -> vector
-                           --> qdrant.Query(vector, limit=5)
-                           --> return top-5 texts
-                     --> LLM формирует ответ на основе результатов
+                           --> embed(query) -> []float32
+                           --> qdrant.Query(vector, limit=N, score_threshold=T)
+                           --> return top-N texts
+                     --> [если rag_search вернул результаты]
+                           --> LLM формирует ответ, web_fetch не вызывается
+                     --> [если rag_search пустой]
+                           --> tool_call: web_fetch(url) -> Markdown
+                           --> LLM формирует ответ
                --> вывод ответа в stdout
 ```
+
+## Разбивка на чанки (`internal/chunk`)
+
+Пакет `internal/chunk` реализует разбивку, оптимизированную для RAG:
+
+- **Границы абзацев** — разбивка по пустым строкам (`\n\n`).
+- **Markdown-заголовки** — каждый ATX-заголовок (`# … ######`) начинает новый чанк, чтобы заголовок раздела оставался вместе со своим содержимым.
+- **Выравнивание по границам слов** — точки разбивки и перекрытия выравниваются по границам слов; слова никогда не обрезаются посередине.
+- **UTF-8 safe** — весь учёт размеров ведётся в Unicode-рунах, а не байтах. Кириллица, CJK, эмодзи работают корректно.
+- **Нормализация переносов строк** — `\r\n` и `\r` приводятся к `\n` перед обработкой.
 
 ## Логирование
 
@@ -202,9 +256,9 @@ CLI --> Run() --> REPL
 
 | Уровень | Когда |
 |---|---|
-| `DEBUG` | Детали вызовов инструментов (имя, аргументы); число обрезанных/сжатых сообщений |
-| `INFO` | Начало/конец индексации файла, создание коллекции, финальный ответ LLM; запуск сжатия истории |
-| `WARN` | Перезапись существующего документа в Qdrant |
+| `DEBUG` | Детали вызовов инструментов (имя, аргументы); score и превью результатов поиска; число обрезанных/сжатых сообщений |
+| `INFO` | Начало/конец индексации файла, создание коллекции, запуск сжатия истории |
+| `WARN` | Перезапись существующего чанка в Qdrant |
 | `ERROR` | Ошибки чтения файлов, сбои embedding/Qdrant, ошибки LLM; сбой сжатия (не фатальный) |
 
 Для подробного вывода установить `log.level: debug` в конфиге.
@@ -216,6 +270,7 @@ CLI --> Run() --> REPL
 | `github.com/alecthomas/kong` | CLI-парсер |
 | `github.com/sashabaranov/go-openai` | LLM и embedding клиент |
 | `github.com/qdrant/go-client` | Клиент Qdrant (gRPC) |
+| `github.com/google/uuid` | UUID v5 для детерминированных ID чанков |
 | `github.com/knadh/koanf/v2` | Загрузка YAML-конфига |
 | `github.com/lmittmann/tint` | Цветной slog handler |
 | `github.com/charmbracelet/glamour` | Рендеринг Markdown в терминале |

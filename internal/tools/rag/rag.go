@@ -17,9 +17,16 @@ import (
 	"github.com/wmentor/go-magnetar/internal/config"
 )
 
+// contentUUID derives a deterministic UUID v5 from the text content.
+// Using uuid.NameSpaceDNS as the namespace gives a stable, collision-resistant
+// identifier: identical content always maps to the same UUID, so upserting the
+// same chunk twice is idempotent (Qdrant overwrites the existing point).
+func contentUUID(content string) string {
+	return uuid.NewSHA1(uuid.NameSpaceDNS, []byte(content)).String()
+}
+
 const (
 	payloadTextField = "text"
-	searchLimit      = 5
 	defaultGRPCPort  = 6334
 )
 
@@ -150,8 +157,12 @@ func (r *RAGTools) embed(text string) ([]float32, error) {
 }
 
 // RagSave saves a text fragment to Qdrant. Returns true on success.
+//
+// The point ID is a deterministic UUID v5 derived from the content, making
+// saves idempotent: re-indexing the same text overwrites the existing point
+// instead of creating a duplicate entry.
 func (r *RAGTools) RagSave(content string) bool {
-	id := uuid.NewString()
+	id := contentUUID(content)
 
 	vector, err := r.embed(content)
 	if err != nil {
@@ -181,10 +192,15 @@ func (r *RAGTools) RagSave(content string) bool {
 		return false
 	}
 
+	slog.Debug("rag_save: saved", "id", id)
 	return true
 }
 
 // RagSearch searches the knowledge base and returns relevant text fragments.
+//
+// Results with a cosine-similarity score below cfg.RAG.Search.Threshold are
+// discarded so that the LLM receives only semantically relevant context rather
+// than the nearest neighbour regardless of actual distance.
 func (r *RAGTools) RagSearch(query string) string {
 	vector, err := r.embed(query)
 	if err != nil {
@@ -195,12 +211,14 @@ func (r *RAGTools) RagSearch(query string) string {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	limit := uint64(searchLimit)
+	limit := uint64(r.cfg.RAG.Search.Limit)
 	withPayload := true
+	scoreThreshold := r.cfg.RAG.Search.Threshold
 	results, err := r.qdrantClient.Query(ctx, &qdrant.QueryPoints{
 		CollectionName: r.cfg.RAG.Qdrant.Collection,
 		Query:          qdrant.NewQuery(vector...),
 		Limit:          &limit,
+		ScoreThreshold: &scoreThreshold,
 		WithPayload:    &qdrant.WithPayloadSelector{SelectorOptions: &qdrant.WithPayloadSelector_Enable{Enable: withPayload}},
 	})
 	if err != nil {
@@ -214,12 +232,23 @@ func (r *RAGTools) RagSearch(query string) string {
 			if val, ok := payload[payloadTextField]; ok {
 				if sv := val.GetStringValue(); sv != "" {
 					parts = append(parts, sv)
+					slog.Debug("rag_search: result", "score", point.GetScore(), "preview", preview(sv, 60))
 				}
 			}
 		}
 	}
 
+	slog.Debug("rag_search: done", "query", preview(query, 60), "results", len(parts))
 	return strings.Join(parts, "\n\n---\n\n")
+}
+
+// preview returns the first n runes of s followed by "…" if s was truncated.
+func preview(s string, n int) string {
+	runes := []rune(s)
+	if len(runes) <= n {
+		return s
+	}
+	return string(runes[:n]) + "…"
 }
 
 // DefinitionSave returns the OpenAI tool schema for rag_save.
