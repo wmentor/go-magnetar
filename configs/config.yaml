@@ -10,6 +10,11 @@ rag:
     api_key: YOUR_API_KEY
     model: text-embedding-3-small
     vector_size: 1536
+  chunk:
+    # size: maximum size of a chunk in characters (default: 450)
+    size: 512
+    # overlap: number of characters that overlap between adjacent chunks (default: 50)
+    overlap: 128
   qdrant:
     connstr: http://localhost:6333
     collection: documents

@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/knadh/koanf/parsers/yaml"
+	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 	"github.com/lmittmann/tint"
@@ -33,10 +34,17 @@ type QdrantConfig struct {
 	Collection string `koanf:"collection"`
 }
 
-// RAGConfig combines embedding model and Qdrant settings.
+// ChunkConfig holds chunking parameters for indexing.
+type ChunkConfig struct {
+	Size    int `koanf:"size"`
+	Overlap int `koanf:"overlap"`
+}
+
+// RAGConfig combines embedding model, chunking and Qdrant settings.
 type RAGConfig struct {
 	LLM    EmbeddingConfig `koanf:"llm"`
 	Qdrant QdrantConfig    `koanf:"qdrant"`
+	Chunk  ChunkConfig     `koanf:"chunk"`
 }
 
 // LogConfig holds logging settings.
@@ -64,9 +72,20 @@ type Config struct {
 	Compact CompactConfig `koanf:"compact"`
 }
 
+// defaults holds default config values that are applied before the
+// YAML file is loaded, so the user doesn't need to set them.
+var defaults = map[string]any{
+	"rag.chunk.size":    512,
+	"rag.chunk.overlap": 128,
+}
+
 // Load reads and parses a YAML config file at the given path.
 func Load(path string) (*Config, error) {
 	k := koanf.New(".")
+
+	if err := k.Load(confmap.Provider(defaults, "."), nil); err != nil {
+		return nil, fmt.Errorf("config: failed to load defaults: %w", err)
+	}
 
 	if err := k.Load(file.Provider(path), yaml.Parser()); err != nil {
 		return nil, fmt.Errorf("config: failed to load %q: %w", path, err)
