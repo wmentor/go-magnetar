@@ -11,10 +11,15 @@ rag:
     model: text-embedding-3-small
     vector_size: 1536
   chunk:
-    # size: maximum size of a chunk in characters (default: 450)
+    # size: maximum size of a chunk in runes (default: 512)
     size: 512
-    # overlap: number of characters that overlap between adjacent chunks (default: 50)
-    overlap: 128
+    # overlap: number of runes that overlap between adjacent chunks (default: 64)
+    overlap: 64
+  search:
+    # limit: maximum number of results returned per query (default: 10)
+    limit: 10
+    # threshold: minimum cosine-similarity score 0–1 (default: 0.40)
+    threshold: 0.40
   qdrant:
     connstr: http://localhost:6333
     collection: documents

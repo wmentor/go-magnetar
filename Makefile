@@ -14,3 +14,7 @@ lint:
 
 tidy:
 	go mod tidy
+
+test:
+	go clean -testcache
+	go test -race ./... -cover

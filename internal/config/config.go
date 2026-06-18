@@ -40,11 +40,18 @@ type ChunkConfig struct {
 	Overlap int `koanf:"overlap"`
 }
 
-// RAGConfig combines embedding model, chunking and Qdrant settings.
+// SearchConfig holds retrieval parameters for RAG search.
+type SearchConfig struct {
+	Limit     int     `koanf:"limit"`     // maximum number of results to return
+	Threshold float32 `koanf:"threshold"` // minimum cosine-similarity score (0–1)
+}
+
+// RAGConfig combines embedding model, chunking, search and Qdrant settings.
 type RAGConfig struct {
 	LLM    EmbeddingConfig `koanf:"llm"`
 	Qdrant QdrantConfig    `koanf:"qdrant"`
 	Chunk  ChunkConfig     `koanf:"chunk"`
+	Search SearchConfig    `koanf:"search"`
 }
 
 // LogConfig holds logging settings.
@@ -75,8 +82,10 @@ type Config struct {
 // defaults holds default config values that are applied before the
 // YAML file is loaded, so the user doesn't need to set them.
 var defaults = map[string]any{
-	"rag.chunk.size":    512,
-	"rag.chunk.overlap": 128,
+	"rag.chunk.size":      512,  // runes; matches DefaultConfig in internal/chunk
+	"rag.chunk.overlap":   64,   // runes; ~12.5% overlap is the RAG sweet-spot
+	"rag.search.limit":    10,   // top-N results per query
+	"rag.search.threshold": 0.40, // minimum cosine-similarity score
 }
 
 // Load reads and parses a YAML config file at the given path.

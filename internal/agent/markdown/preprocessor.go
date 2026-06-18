@@ -12,6 +12,10 @@ import (
 	"github.com/wmentor/go-magnetar/internal/tools/generic"
 )
 
+const (
+	agentLoopTimeout = time.Minute * 15
+)
+
 const systemPrompt = `You are an editor who cleans Markdown text from clutter left after parsing web pages.
 
 REMOVE:
@@ -60,7 +64,7 @@ func (p *Preprocessor) runAgentLoop(messages []openai.ChatCompletionMessage) (st
 	}
 
 	for {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), agentLoopTimeout)
 		resp, err := p.llm.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 			Model:     p.cfg.LLM.Model,
 			Messages:  messages,
