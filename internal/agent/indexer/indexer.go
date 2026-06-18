@@ -15,12 +15,19 @@ import (
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/tools/generic"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
+	"github.com/wmentor/go-magnetar/internal/tools/web"
 )
 
 const systemPrompt = `You are a document indexing agent. Your task is to process text files and store their content in a knowledge base.
 
 When given a filename:
 1. Read the file using the file_read tool.
+2. Split the content into logical blocks, each no more than 500 tokens. Preserve semantic boundaries — split by paragraphs, sections, or logical units, not in the middle of a sentence or idea.
+3. Save each block to the RAG using the rag_save tool.
+4. Report how many blocks were saved.
+
+When given a URL:
+1. Fetch the web page using the web_fetch tool.
 2. Split the content into logical blocks, each no more than 500 tokens. Preserve semantic boundaries — split by paragraphs, sections, or logical units, not in the middle of a sentence or idea.
 3. Save each block to the RAG using the rag_save tool.
 4. Report how many blocks were saved.
@@ -37,6 +44,7 @@ type Indexer struct {
 	llm     *openai.Client
 	generic *generic.GenericTools
 	rag     *rag.RAGTools
+	web     *web.WebTools
 }
 
 // New creates a new Indexer instance.
@@ -50,11 +58,17 @@ func New(cfg *config.Config) (*Indexer, error) {
 		return nil, fmt.Errorf("indexer: failed to initialise RAG tools: %w", err)
 	}
 
+	webTools, err := web.New(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("indexer: failed to initialise web tools: %w", err)
+	}
+
 	return &Indexer{
 		cfg:     cfg,
 		llm:     llmClient,
 		generic: generic.New(cfg),
 		rag:     ragTools,
+		web:     webTools,
 	}, nil
 }
 
@@ -63,6 +77,7 @@ func (idx *Indexer) runAgentLoop(messages []openai.ChatCompletionMessage) error 
 	tools := []openai.Tool{
 		idx.generic.Definition(),
 		idx.rag.DefinitionSave(),
+		idx.web.Definition(),
 	}
 
 	for {
@@ -101,6 +116,8 @@ func (idx *Indexer) runAgentLoop(messages []openai.ChatCompletionMessage) error 
 					result = idx.generic.Dispatch(name, args)
 				case "rag_save":
 					result = idx.rag.Dispatch(name, args)
+				case "web_fetch":
+					result = idx.web.Dispatch(name, args)
 				default:
 					result = "error: unknown tool " + name
 				}
@@ -133,6 +150,24 @@ func (idx *Indexer) IndexFile(filename string) error {
 		{
 			Role:    openai.ChatMessageRoleUser,
 			Content: fmt.Sprintf("Please index the file: %s", filename),
+		},
+	}
+
+	return idx.runAgentLoop(messages)
+}
+
+// IndexURL indexes content from a URL into the RAG knowledge base.
+func (idx *Indexer) IndexURL(url string) error {
+	slog.Info("indexer: indexing URL", "url", url)
+
+	messages := []openai.ChatCompletionMessage{
+		{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: systemPrompt,
+		},
+		{
+			Role:    openai.ChatMessageRoleUser,
+			Content: fmt.Sprintf("Please index the web page: %s", url),
 		},
 	}
 

@@ -1,12 +1,14 @@
 # go-magnetar
 
-A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines two agents: an **indexer** that splits documents into semantic chunks and stores them in a vector database, and a **chat agent** that answers questions strictly based on the indexed data — no hallucinations, no guessing.
+A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines three agents: an **indexer** that splits documents into semantic chunks and stores them in a vector database, a **chat agent** that answers questions strictly based on the indexed data — no hallucinations, no guessing, and an **HTML preprocessor** that cleans web pages and converts them to clean Markdown.
 
 ## How it works
 
-**Indexing** — the agent reads `.md` and `.txt` files, delegates chunking to the LLM (up to 500 tokens per block, preserving semantic boundaries), computes embedding vectors and stores the chunks in Qdrant. Each chunk is identified by the SHA-256 hash of its text.
+**Indexing** — the agent reads `.md`, `.txt` files, or web pages (via URLs), delegates chunking to the LLM (up to 500 tokens per block, preserving semantic boundaries), computes embedding vectors and stores the chunks in Qdrant. Each chunk is identified by the SHA-256 hash of its text. For URLs, HTML pages are first preprocessed to remove ads, navigation, and other noise elements before being converted to clean Markdown and split into chunks.
 
 **Chat** — an interactive REPL with multi-turn conversation support. Before answering, the agent searches the knowledge base via vector similarity when needed. If no relevant information is found, it says so explicitly rather than making something up. The conversation history is automatically managed to stay within the configured context window: when the history approaches the token threshold it is compacted by the built-in summarizer, which preserves recent turns verbatim and replaces older ones with a concise summary.
+
+**HTML Preprocessing** — the preprocessor cleans HTML pages by removing advertising blocks, navigation headers/footers, related articles, social media widgets, cookie notices, and other noise elements, then converts the result to clean Markdown. The cleaned content is suitable for indexing or direct use.
 
 ## Requirements
 
@@ -71,6 +73,9 @@ compact:
 
 # Entire directory (recursive)
 ./bin/go-magnetar indexer -c my-config.yaml -d docs/
+
+# From URL
+./bin/go-magnetar indexer -c my-config.yaml -u https://example.com/article
 ```
 
 ### 5. Ask questions
@@ -128,7 +133,7 @@ make build
 ### `indexer` — index documents
 
 ```
-go-magnetar indexer -c <config> [-f <file>] [-d <directory>]
+go-magnetar indexer -c <config> [-f <file>] [-d <directory>] [-u <url>]
 ```
 
 | Flag | Description |
@@ -136,8 +141,9 @@ go-magnetar indexer -c <config> [-f <file>] [-d <directory>]
 | `-c` | Path to the config file (default: `~/.go-magnetar.yaml`) |
 | `-f` | Path to a single `.md` or `.txt` file to index |
 | `-d` | Path to a directory — all `.md` and `.txt` files are processed recursively |
+| `-u` | URL to fetch and index |
 
-At least one of `-f` or `-d` is required. If a single file fails during directory indexing, the error is logged and processing continues.
+At least one of `-f`, `-d`, or `-u` is required. If a single file fails during directory indexing, the error is logged and processing continues.
 
 ### `agent` — interactive chat
 
@@ -187,10 +193,12 @@ internal/
   tools/
     generic/generic.go           — file_read tool
     rag/rag.go                   — rag_save and rag_search tools
+    web/fetch.go                 — web_fetch tool (HTML preprocessing, URL fetching)
   agent/
     indexer/indexer.go           — indexer agent, tool-use loop
     chat/agent.go                — chat agent, REPL, tool-use loop
     summarizer/summarizer.go     — history compaction agent
+    html/preprocessor.go         — HTML preprocessor agent
 ```
 
 ### Indexing flow
@@ -199,6 +207,13 @@ internal/
 indexer -f file.md
   └── LLM: "read and split into chunks"
         ├── tool: file_read(file.md)   -> file contents
+        ├── tool: rag_save(chunk_1)    -> uuid -> embed -> qdrant.Upsert
+        ├── tool: rag_save(chunk_2)    -> ...
+        └── "Saved N chunks"
+
+indexer -u url
+  └── LLM: "fetch and split into chunks"
+        ├── tool: web_fetch(url)       -> cleaned Markdown
         ├── tool: rag_save(chunk_1)    -> uuid -> embed -> qdrant.Upsert
         ├── tool: rag_save(chunk_2)    -> ...
         └── "Saved N chunks"

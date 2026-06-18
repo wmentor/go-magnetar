@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/sashabaranov/go-openai"
@@ -17,7 +18,10 @@ import (
 	"github.com/wmentor/go-magnetar/internal/config"
 )
 
-const defaultTimeout = time.Minute
+const (
+	defaultTimeout = time.Minute
+	userAgent      = "magnetar web browser"
+)
 
 // WebTools provides web fetching operations as LLM tools.
 type WebTools struct {
@@ -38,8 +42,8 @@ func New(cfg *config.Config) (*WebTools, error) {
 	}, nil
 }
 
-// fetchURL retrieves the HTML content from a URL.
-func (w *WebTools) fetchURL(url string) (string, error) {
+// fetchURLWithMediaType retrieves content from a URL and returns (body, content_type, error).
+func (w *WebTools) fetchURLWithMediaType(url string) (string, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
@@ -55,57 +59,64 @@ func (w *WebTools) fetchURL(url string) (string, error) {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return "", fmt.Errorf("web: failed to create request for %q: %w", url, err)
+		return "", "", fmt.Errorf("web: failed to create request for %q: %w", url, err)
 	}
+
+	req.Header.Set("User-Agent", userAgent)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("web: failed to fetch URL %q: %w", url, err)
+		return "", "", fmt.Errorf("web: failed to fetch URL %q: %w", url, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("web: URL %q returned status %d", url, resp.StatusCode)
+		return "", "", fmt.Errorf("web: URL %q returned status %d", url, resp.StatusCode)
 	}
 
-	utf8, err1 := charset.NewReader(resp.Body, resp.Header.Get("Content-Type"))
+	contentType := resp.Header.Get("Content-Type")
+	utf8, err1 := charset.NewReader(resp.Body, contentType)
 	if err1 != nil {
-		return "", fmt.Errorf("web: decode URL %q error: %w", url, err1)
+		return "", "", fmt.Errorf("web: decode URL %q error: %w", url, err1)
 	}
 
 	body, err := io.ReadAll(utf8)
 	if err != nil {
-		return "", fmt.Errorf("web: failed to read response body: %w", err)
+		return "", "", fmt.Errorf("web: failed to read response body: %w", err)
 	}
 
-	return string(body), nil
+	return string(body), contentType, nil
 }
 
-// preprocessHTML preprocesses HTML content using the preprocessor agent.
 func (w *WebTools) preprocessHTML(htmlStr string) (string, error) {
 	return w.preprocessor.ProcessHTMLString(htmlStr)
 }
 
-// WebFetch fetches a web page, preprocesses it, and returns the cleaned Markdown content.
+// WebFetch fetches a web page, preprocesses it (if HTML), and returns the cleaned content.
 func (w *WebTools) WebFetch(url string) (string, error) {
-	slog.Info("webfetch: fetching URL", "url", url)
+	slog.Debug("webfetch: fetching URL", "url", url)
 
-	htmlContent, err := w.fetchURL(url)
+	content, contentType, err := w.fetchURLWithMediaType(url)
 	if err != nil {
 		slog.Error("webfetch: failed to fetch URL", "url", url, "err", err)
 		return "", fmt.Errorf("webfetch: failed to fetch URL %q", url)
 	}
 
-	slog.Debug("webfetch: HTML fetched, preprocessing", "url", url)
+	if contentType != "" && strings.Contains(strings.ToLower(contentType), "text/html") {
+		slog.Debug("webfetch: HTML detected, preprocessing", "url", url, "content_type", contentType)
 
-	markdown, err := w.preprocessHTML(htmlContent)
-	if err != nil {
-		slog.Error("webfetch: preprocessing failed", "url", url, "err", err)
-		return "", fmt.Errorf("webfetch: preprocessing failed for URL %q", url)
+		markdown, err := w.preprocessHTML(content)
+		if err != nil {
+			slog.Error("webfetch: preprocessing failed", "url", url, "err", err)
+			return "", fmt.Errorf("webfetch: preprocessing failed for URL %q", url)
+		}
+
+		slog.Debug("webfetch: done", "url", url)
+		return markdown, nil
 	}
 
-	slog.Info("webfetch: done", "url", url)
-	return markdown, nil
+	slog.Debug("webfetch: done (non-HTML content)", "url", url, "content_type", contentType)
+	return content, nil
 }
 
 // Definition returns the OpenAI tool schema for web_fetch.

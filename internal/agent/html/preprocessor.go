@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"strings"
 	"time"
 
 	"github.com/sashabaranov/go-openai"
-	"golang.org/x/net/html"
 
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/tools/generic"
@@ -25,6 +23,7 @@ Noise elements to remove:
 - Newsletter prompts
 - Duplicate content (repeated sections, too-short paragraphs)
 - Unnecessary whitespace and formatting
+- User comments
 
 Keep:
 - Main content (articles, blog posts, documentation)
@@ -38,7 +37,9 @@ Output format:
 4. Preserve important formatting (code, links, emphasis)
 5. Return only the cleaned Markdown text (no explanations, no prefix)
 
-Do not add any commentary, only the cleaned Markdown content.`
+Do not add any commentary, only the cleaned Markdown content.
+
+IMPORTANT: Return the text as-is without truncation. Preserve all main content and do not cut off sections.`
 
 // Preprocessor is an AI agent that cleans HTML pages and converts to Markdown.
 type Preprocessor struct {
@@ -58,99 +59,6 @@ func New(cfg *config.Config) (*Preprocessor, error) {
 		llm:     llmClient,
 		generic: generic.New(cfg),
 	}, nil
-}
-
-// sanitizeHTML removes common noise patterns from HTML
-func sanitizeHTML(htmlStr string) string {
-	var buf strings.Builder
-	buf.Grow(len(htmlStr))
-
-	tokenizer := html.NewTokenizer(strings.NewReader(htmlStr))
-	inAdBlock := false
-	noiseKeywords := []string{"ad", "advertisement", "promo", "banner", "cookie", "subscribe", "newsletter", "related", "suggested", "footer", "nav", "sidebar"}
-
-	for {
-		tt := tokenizer.Next()
-
-		switch tt {
-		case html.ErrorToken:
-			return buf.String()
-
-		case html.StartTagToken, html.SelfClosingTagToken:
-			token := tokenizer.Token()
-
-			if isNoiseTag(token, noiseKeywords) {
-				inAdBlock = true
-				continue
-			}
-
-			if token.Data == "script" || token.Data == "style" {
-				skipTag(tokenizer, token.Data)
-				continue
-			}
-
-			if !inAdBlock {
-				buf.WriteString(token.String())
-			}
-
-		case html.EndTagToken:
-			token := tokenizer.Token()
-
-			if isNoiseTag(token, noiseKeywords) {
-				inAdBlock = false
-				continue
-			}
-
-			if !inAdBlock {
-				buf.WriteString(token.String())
-			}
-
-		case html.TextToken:
-			text := tokenizer.Token().Data
-			if !inAdBlock && strings.TrimSpace(text) != "" {
-				buf.WriteString(text)
-			}
-
-		case html.CommentToken:
-		case html.DoctypeToken:
-		}
-	}
-}
-
-func isNoiseTag(token html.Token, keywords []string) bool {
-	for _, attr := range token.Attr {
-		for _, kw := range keywords {
-			if strings.Contains(strings.ToLower(attr.Val), kw) {
-				return true
-			}
-			if strings.Contains(strings.ToLower(attr.Key), kw) {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func skipTag(tokenizer *html.Tokenizer, tag string) {
-	depth := 0
-	for {
-		tt := tokenizer.Next()
-		switch tt {
-		case html.ErrorToken:
-			return
-		case html.StartTagToken, html.SelfClosingTagToken:
-			if tokenizer.Token().Data == tag {
-				depth++
-			}
-		case html.EndTagToken:
-			if tokenizer.Token().Data == tag {
-				if depth == 0 {
-					return
-				}
-				depth--
-			}
-		}
-	}
 }
 
 // runAgentLoop executes the tool-use agentic loop until the model stops calling tools.
@@ -205,21 +113,19 @@ func (p *Preprocessor) runAgentLoop(messages []openai.ChatCompletionMessage) (st
 			continue
 		}
 
-		slog.Info("preprocessor: done", "response", choice.Message.Content)
+		slog.Debug("preprocessor: done", "response", choice.Message.Content)
 		return choice.Message.Content, nil
 	}
 }
 
 // ProcessHTML cleans an HTML file and returns Markdown
 func (p *Preprocessor) ProcessHTML(filename string) (string, error) {
-	slog.Info("preprocessor: processing HTML file", "file", filename)
+	slog.Debug("preprocessor: processing HTML file", "file", filename)
 
 	htmlContent, ok := p.generic.FileRead(filename)
 	if !ok {
 		return "", fmt.Errorf("preprocessor: failed to read file %s", filename)
 	}
-
-	sanitizedHTML := sanitizeHTML(htmlContent)
 
 	messages := []openai.ChatCompletionMessage{
 		{
@@ -228,7 +134,7 @@ func (p *Preprocessor) ProcessHTML(filename string) (string, error) {
 		},
 		{
 			Role:    openai.ChatMessageRoleUser,
-			Content: fmt.Sprintf("Please clean this HTML and convert to Markdown:\n\n%s", sanitizedHTML),
+			Content: fmt.Sprintf("Please clean this HTML and convert to Markdown:\n\n%s", htmlContent),
 		},
 	}
 
@@ -237,9 +143,7 @@ func (p *Preprocessor) ProcessHTML(filename string) (string, error) {
 
 // ProcessHTMLString takes HTML as string and returns cleaned Markdown
 func (p *Preprocessor) ProcessHTMLString(htmlStr string) (string, error) {
-	slog.Info("preprocessor: processing HTML string")
-
-	sanitizedHTML := sanitizeHTML(htmlStr)
+	slog.Debug("preprocessor: processing HTML string")
 
 	messages := []openai.ChatCompletionMessage{
 		{
@@ -248,7 +152,7 @@ func (p *Preprocessor) ProcessHTMLString(htmlStr string) (string, error) {
 		},
 		{
 			Role:    openai.ChatMessageRoleUser,
-			Content: fmt.Sprintf("Please clean this HTML and convert to Markdown:\n\n%s", sanitizedHTML),
+			Content: fmt.Sprintf("Please clean this HTML and convert to Markdown:\n\n%s", htmlStr),
 		},
 	}
 
