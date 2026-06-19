@@ -2,6 +2,7 @@ package indexer
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/wmentor/go-magnetar/internal/agent/indexer"
 	"github.com/wmentor/go-magnetar/internal/config"
@@ -21,6 +22,12 @@ func (cmd *Cmd) Run() error {
 		return fmt.Errorf("--file, --directory, or --url is required")
 	}
 
+	root, err := os.OpenRoot("/")
+	if err != nil {
+		return fmt.Errorf("open root error: %w", err)
+	}
+	defer root.Close()
+
 	cfg, err := config.Load(cmd.Config)
 	if err != nil {
 		return err
@@ -28,7 +35,7 @@ func (cmd *Cmd) Run() error {
 
 	config.SetupLogger(cfg)
 
-	idx, err := indexer.New(cfg)
+	idx, err := indexer.New(cfg, root)
 	if err != nil {
 		return err
 	}

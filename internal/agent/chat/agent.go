@@ -15,8 +15,10 @@ import (
 	"github.com/charmbracelet/lipgloss"
 	"github.com/docker/go-units"
 	"github.com/sashabaranov/go-openai"
+
 	"github.com/wmentor/go-magnetar/internal/agent/summarizer"
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/tools/generic"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
 	"github.com/wmentor/go-magnetar/internal/tools/web"
 )
@@ -42,23 +44,27 @@ type ChatAgent struct {
 	llm        *openai.Client
 	rag        *rag.RAGTools
 	web        *web.WebTools
+	generic    *generic.GenericTools
 	summarizer *summarizer.Summarizer
 	renderer   *glamour.TermRenderer
 	messages   []openai.ChatCompletionMessage
+	root       *os.Root
 }
 
 // New creates a new ChatAgent instance.
-func New(cfg *config.Config) (*ChatAgent, error) {
+func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
 	llmCfg := openai.DefaultConfig(cfg.LLM.APIKey)
 	llmCfg.BaseURL = cfg.LLM.BaseURL
 	llmClient := openai.NewClientWithConfig(llmCfg)
+
+	genTools := generic.New(cfg, root)
 
 	ragTools, err := rag.New(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("chat: failed to initialise RAG tools: %w", err)
 	}
 
-	webTools, err := web.New(cfg)
+	webTools, err := web.New(cfg, root)
 	if err != nil {
 		return nil, fmt.Errorf("chat: failed to initialise web tools: %w", err)
 	}
@@ -81,6 +87,7 @@ func New(cfg *config.Config) (*ChatAgent, error) {
 	return &ChatAgent{
 		cfg:        cfg,
 		llm:        llmClient,
+		generic:    genTools,
 		rag:        ragTools,
 		web:        webTools,
 		summarizer: summarizer.New(cfg),
@@ -178,6 +185,7 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 	a.compactIfNeeded()
 
 	tools := []openai.Tool{
+		a.generic.Definition(),
 		a.rag.DefinitionSearch(),
 		a.web.Definition(),
 	}
@@ -222,6 +230,8 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 					result = a.rag.Dispatch(name, args)
 				case "web_fetch":
 					result = a.web.Dispatch(name, args)
+				case "file_read":
+					result = a.generic.Dispatch(name, args)
 				default:
 					result = "error: unknown tool " + name
 				}
@@ -245,9 +255,9 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 // user input with a styled prompt. It quits on Enter (submitting the text) or
 // Ctrl+C / Ctrl+D (requesting an exit).
 type inputModel struct {
-	input  textinput.Model
-	done   bool
-	quit   bool
+	input textinput.Model
+	done  bool
+	quit  bool
 }
 
 var (

@@ -6,22 +6,24 @@ import (
 	"os"
 
 	"github.com/sashabaranov/go-openai"
+
 	"github.com/wmentor/go-magnetar/internal/config"
 )
 
 // GenericTools provides basic file system operations as LLM tools.
 type GenericTools struct {
-	cfg *config.Config
+	cfg  *config.Config
+	root *os.Root
 }
 
 // New creates a new GenericTools instance.
-func New(cfg *config.Config) *GenericTools {
-	return &GenericTools{cfg: cfg}
+func New(cfg *config.Config, root *os.Root) *GenericTools {
+	return &GenericTools{cfg: cfg, root: root}
 }
 
 // FileRead reads a file and returns its content and a success flag.
 func (g *GenericTools) FileRead(filename string) (string, bool) {
-	data, err := os.ReadFile(filename)
+	data, err := g.root.ReadFile(filename)
 	if err != nil {
 		slog.Error("file_read: failed to read file", "file", filename, "err", err)
 		return "", false

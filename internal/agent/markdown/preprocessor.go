@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/sashabaranov/go-openai"
@@ -44,7 +45,7 @@ type Preprocessor struct {
 }
 
 // New creates a new Preprocessor instance.
-func New(cfg *config.Config) (*Preprocessor, error) {
+func New(cfg *config.Config, root *os.Root) (*Preprocessor, error) {
 	llmCfg := openai.DefaultConfig(cfg.LLM.APIKey)
 	llmCfg.BaseURL = cfg.LLM.BaseURL
 	llmClient := openai.NewClientWithConfig(llmCfg)
@@ -52,7 +53,7 @@ func New(cfg *config.Config) (*Preprocessor, error) {
 	return &Preprocessor{
 		cfg:     cfg,
 		llm:     llmClient,
-		generic: generic.New(cfg),
+		generic: generic.New(cfg, root),
 	}, nil
 }
 

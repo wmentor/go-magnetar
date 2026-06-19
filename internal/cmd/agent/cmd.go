@@ -1,6 +1,9 @@
 package agent
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/wmentor/go-magnetar/internal/agent/chat"
 	"github.com/wmentor/go-magnetar/internal/config"
 )
@@ -17,9 +20,20 @@ func (cmd *Cmd) Run() error {
 		return err
 	}
 
+	workDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("get work dir error: %w", err)
+	}
+
+	root, err := os.OpenRoot(workDir)
+	if err != nil {
+		return fmt.Errorf("open work dir error: %w", err)
+	}
+	defer root.Close()
+
 	config.SetupLogger(cfg)
 
-	agent, err := chat.New(cfg)
+	agent, err := chat.New(cfg, root)
 	if err != nil {
 		return err
 	}

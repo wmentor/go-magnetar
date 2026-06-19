@@ -8,6 +8,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -30,8 +31,8 @@ type WebTools struct {
 }
 
 // New creates a new WebTools instance.
-func New(cfg *config.Config) (*WebTools, error) {
-	preprocessor, err := sanitizer.New(cfg)
+func New(cfg *config.Config, root *os.Root) (*WebTools, error) {
+	preprocessor, err := sanitizer.New(cfg, root)
 	if err != nil {
 		return nil, fmt.Errorf("web: failed to create preprocessor: %w", err)
 	}

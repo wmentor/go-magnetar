@@ -26,13 +26,13 @@ type Indexer struct {
 }
 
 // New creates a new Indexer instance.
-func New(cfg *config.Config) (*Indexer, error) {
+func New(cfg *config.Config, root *os.Root) (*Indexer, error) {
 	ragTools, err := rag.New(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("indexer: failed to initialise RAG tools: %w", err)
 	}
 
-	webTools, err := web.New(cfg)
+	webTools, err := web.New(cfg, root)
 	if err != nil {
 		return nil, fmt.Errorf("indexer: failed to initialise web tools: %w", err)
 	}
