@@ -74,7 +74,7 @@ func (g *GenericTools) FileList(opts *FileListOptions) []string {
 				ext := filepath.Ext(p)
 				matched := false
 				for _, e := range opts.Extensions {
-					if strings.EqualFold(ext, e) {
+					if strings.EqualFold(ext, e) || strings.EqualFold(ext, "."+e) {
 						matched = true
 						break
 					}
