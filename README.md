@@ -174,6 +174,7 @@ The REPL reads questions from stdin. Press `Ctrl+D` to exit.
 | `/help` | `help` | Show the list of available chat commands |
 | `/exit` | `exit` | End the session and exit the program |
 | `/compact` | — | Immediately compress the conversation history via the summarizer |
+| `/new` | — | Start a new session and clear conversation history |
 | `/stat` | — | Print context statistics: messages, estimated tokens, bytes, LLM model, RAG model, vector size |
 
 Commands are case-insensitive and processed locally — never sent to the LLM.

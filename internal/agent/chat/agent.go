@@ -339,14 +339,15 @@ func (a *ChatAgent) contextStats() (bytes int, tokens int) {
 
 // helpText is the reference text shown by the /help command.
 const helpText = `Available chat commands:
-   /help            show this help message
-   /exit  exit      end the session and exit
-   /compact         compress conversation history via summarizer
-   /stat            show context statistics (messages, tokens, bytes, models)
+    /help            show this help message
+    /exit  exit      end the session and exit
+    /compact         compress conversation history via summarizer
+    /new             start a new session and clear context
+    /stat            show context statistics (messages, tokens, bytes, models)
 
 The assistant can use the following tools:
-   rag_search       search the knowledge base for information
-   web_fetch        fetch and preprocess web pages for up-to-date information
+    rag_search       search the knowledge base for information
+    web_fetch        fetch and preprocess web pages for up-to-date information
 `
 
 // handleCommand processes a slash-command entered by the user.
@@ -373,6 +374,17 @@ func (a *ChatAgent) handleCommand(line string) (handled bool, exit bool) {
 			after := len(a.messages)
 			fmt.Fprintf(os.Stdout, "Context compacted: %d → %d messages.\n\n", before, after)
 		}
+		return true, false
+
+	case "/new":
+		slog.Info("chat: starting new session, clearing context")
+		a.messages = []openai.ChatCompletionMessage{
+			{
+				Role:    openai.ChatMessageRoleSystem,
+				Content: systemPrompt,
+			},
+		}
+		fmt.Fprintln(os.Stdout, "New session started. Context cleared.\n")
 		return true, false
 
 	case "/stat":
