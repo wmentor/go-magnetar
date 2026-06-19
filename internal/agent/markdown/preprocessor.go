@@ -61,7 +61,7 @@ func New(cfg *config.Config, root *os.Root) (*Preprocessor, error) {
 // Returns the final answer content.
 func (p *Preprocessor) runAgentLoop(messages []openai.ChatCompletionMessage) (string, error) {
 	tools := []openai.Tool{
-		p.generic.Definition(),
+		p.generic.DefinitionFileRead(),
 	}
 
 	for {

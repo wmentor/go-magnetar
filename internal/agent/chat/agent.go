@@ -185,7 +185,8 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 	a.compactIfNeeded()
 
 	tools := []openai.Tool{
-		a.generic.Definition(),
+		a.generic.DefinitionFileRead(),
+		a.generic.DefinitionFileList(),
 		a.rag.DefinitionSearch(),
 		a.web.Definition(),
 	}
@@ -230,7 +231,7 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 					result = a.rag.Dispatch(name, args)
 				case "web_fetch":
 					result = a.web.Dispatch(name, args)
-				case "file_read":
+				case "file_list", "file_read":
 					result = a.generic.Dispatch(name, args)
 				default:
 					result = "error: unknown tool " + name
