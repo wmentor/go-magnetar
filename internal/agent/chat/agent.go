@@ -38,6 +38,8 @@ Rules:
 // OpenAI models average ~4 UTF-8 characters per token.
 const charsPerToken = 4
 
+const agentsFile = "AGENTS.md"
+
 // ChatAgent is an interactive REPL-based chat agent backed by a RAG knowledge base.
 type ChatAgent struct {
 	cfg        *config.Config
@@ -77,10 +79,21 @@ func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
 		return nil, fmt.Errorf("chat: failed to initialise markdown renderer: %w", err)
 	}
 
+	systemContent := systemPrompt
+	if root != nil {
+		if _, err = root.Stat(agentsFile); err == nil {
+			agentsContent, ok := genTools.FileRead(agentsFile)
+			if ok {
+				systemContent = systemPrompt + "\n\n# Project context (from AGENTS.md)\n\n" + agentsContent
+				slog.Info("agents: loaded AGENTS.md into system prompt")
+			}
+		}
+	}
+
 	messages := []openai.ChatCompletionMessage{
 		{
 			Role:    openai.ChatMessageRoleSystem,
-			Content: systemPrompt,
+			Content: systemContent,
 		},
 	}
 
@@ -188,6 +201,7 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 		a.generic.DefinitionFileRead(),
 		a.generic.DefinitionFileList(),
 		a.generic.DefinitionFileWrite(),
+		a.generic.DefinitionFileExists(),
 		a.rag.DefinitionSearch(),
 		a.web.Definition(),
 	}
@@ -226,17 +240,17 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 
 				slog.Debug("chat: tool call", "tool", name, "args", args)
 
-			var result string
-			switch name {
-			case "rag_search":
-				result = a.rag.Dispatch(name, args)
-			case "web_fetch":
-				result = a.web.Dispatch(name, args)
-			case "file_list", "file_read", "file_write":
-				result = a.generic.Dispatch(name, args)
-			default:
-				result = "error: unknown tool " + name
-			}
+				var result string
+				switch name {
+				case "rag_search":
+					result = a.rag.Dispatch(name, args)
+				case "web_fetch":
+					result = a.web.Dispatch(name, args)
+				case "file_list", "file_read", "file_write", "file_exists":
+					result = a.generic.Dispatch(name, args)
+				default:
+					result = "error: unknown tool " + name
+				}
 
 				a.messages = append(a.messages, openai.ChatCompletionMessage{
 					Role:       openai.ChatMessageRoleTool,
@@ -350,6 +364,7 @@ The assistant can use the following tools:
     file_read        read the contents of a file by its path
     file_list        list all files in the current directory tree
     file_write       write content to a file
+    file_exists      check if a file exists
     rag_search       search the knowledge base for information
     web_fetch        fetch and preprocess web pages for up-to-date information
 `

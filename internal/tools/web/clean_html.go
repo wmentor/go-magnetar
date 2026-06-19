@@ -12,7 +12,8 @@ import (
 var junkTags = []string{
 	"script", "style", "noscript", "iframe",
 	"nav", "header", "footer", "aside",
-	"button", "svg", "canvas",
+	"button", "svg", "canvas", "input",
+	"textarea",
 	// "form",
 }
 
