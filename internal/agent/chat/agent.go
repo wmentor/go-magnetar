@@ -187,6 +187,7 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 	tools := []openai.Tool{
 		a.generic.DefinitionFileRead(),
 		a.generic.DefinitionFileList(),
+		a.generic.DefinitionFileWrite(),
 		a.rag.DefinitionSearch(),
 		a.web.Definition(),
 	}
@@ -225,17 +226,17 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 
 				slog.Debug("chat: tool call", "tool", name, "args", args)
 
-				var result string
-				switch name {
-				case "rag_search":
-					result = a.rag.Dispatch(name, args)
-				case "web_fetch":
-					result = a.web.Dispatch(name, args)
-				case "file_list", "file_read":
-					result = a.generic.Dispatch(name, args)
-				default:
-					result = "error: unknown tool " + name
-				}
+			var result string
+			switch name {
+			case "rag_search":
+				result = a.rag.Dispatch(name, args)
+			case "web_fetch":
+				result = a.web.Dispatch(name, args)
+			case "file_list", "file_read", "file_write":
+				result = a.generic.Dispatch(name, args)
+			default:
+				result = "error: unknown tool " + name
+			}
 
 				a.messages = append(a.messages, openai.ChatCompletionMessage{
 					Role:       openai.ChatMessageRoleTool,
@@ -346,6 +347,9 @@ const helpText = `Available chat commands:
     /stat            show context statistics (messages, tokens, bytes, models)
 
 The assistant can use the following tools:
+    file_read        read the contents of a file by its path
+    file_list        list all files in the current directory tree
+    file_write       write content to a file
     rag_search       search the knowledge base for information
     web_fetch        fetch and preprocess web pages for up-to-date information
 `
@@ -384,7 +388,7 @@ func (a *ChatAgent) handleCommand(line string) (handled bool, exit bool) {
 				Content: systemPrompt,
 			},
 		}
-		fmt.Fprintln(os.Stdout, "New session started. Context cleared.\n")
+		fmt.Fprintln(os.Stdout, "New session started. Context cleared.")
 		return true, false
 
 	case "/stat":

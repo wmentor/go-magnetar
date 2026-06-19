@@ -169,6 +169,9 @@ make run-agent
 
 | Инструмент | Сигнатура | Описание |
 |---|---|---|
+| `file_read` | `(filename: string) -> string` | Считывает содержимое файла из файловой системы |
+| `file_list` | `(options: object) -> []string` | Рекурсивно перечисляет файлы в текущей директории |
+| `file_write` | `(filename: string, content: string) -> bool` | Записывает контент в файл в файловой системе |
 | `rag_search` | `(query: string) -> string` | Возвращает топ-N релевантных фрагментов из Qdrant (N задаётся `rag.search.limit`) |
 | `web_fetch` | `(url: string) -> string` | Загружает и очищает веб-страницу (fallback, если RAG не дал результата) |
 
@@ -186,6 +189,7 @@ internal/
   tools/
     rag/rag.go                   — инструменты rag_save, rag_search; подключение к Qdrant
     web/fetch.go                 — инструмент web_fetch; загрузка и очистка HTML
+    generic/generic.go           — инструменты file_read, file_list, file_write
   agent/
     indexer/indexer.go           — агент-индексатор
     chat/agent.go                — чат-агент, REPL, tool-use loop

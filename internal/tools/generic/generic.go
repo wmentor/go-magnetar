@@ -41,6 +41,17 @@ func (g *GenericTools) FileRead(filename string) (string, bool) {
 	return string(data), true
 }
 
+// FileWrite writes content to a file and returns a success flag.
+func (g *GenericTools) FileWrite(filename string, content string) bool {
+	err := g.root.WriteFile(filename, []byte(content), 0644)
+	if err != nil {
+		slog.Error("file_write: failed to write file", "file", filename, "err", err)
+		return false
+	}
+	slog.Info("file_write: file written successfully", "file", filename)
+	return true
+}
+
 // FileList returns a list of files in the current directory recursively,
 // filtered by name and/or extension.
 func (g *GenericTools) FileList(opts *FileListOptions) []string {
@@ -131,6 +142,31 @@ func (g *GenericTools) DefinitionFileRead() openai.Tool {
 	}
 }
 
+// DefinitionFileWrite returns the OpenAI tool schema for file_write.
+func (g *GenericTools) DefinitionFileWrite() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "file_write",
+			Description: "Write content to a file",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"filename": map[string]any{
+						"type":        "string",
+						"description": "Path where to write the file",
+					},
+					"content": map[string]any{
+						"type":        "string",
+						"description": "Content to write to the file",
+					},
+				},
+				"required": []string{"filename", "content"},
+			},
+		},
+	}
+}
+
 // DefinitionFileList returns the OpenAI tool schema for file_list.
 func (g *GenericTools) DefinitionFileList() openai.Tool {
 	return openai.Tool{
@@ -190,6 +226,20 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 		}
 		results := g.FileList(params.Options)
 		return strings.Join(results, "\n")
+
+	case "file_write":
+		var params struct {
+			Filename string `json:"filename"`
+			Content  string `json:"content"`
+		}
+		if err := json.Unmarshal([]byte(args), &params); err != nil {
+			slog.Error("file_write: failed to parse args", "args", args, "err", err)
+			return "error: failed to parse arguments"
+		}
+		if ok := g.FileWrite(params.Filename, params.Content); !ok {
+			return "error: failed to write file"
+		}
+		return "File written successfully."
 
 	default:
 		return "error: unknown tool " + name

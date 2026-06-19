@@ -203,6 +203,7 @@ internal/
   tools/
     rag/rag.go                   — rag_save and rag_search tools; Qdrant connection
     web/fetch.go                 — web_fetch tool (HTML preprocessing, URL fetching)
+    generic/generic.go           — file_read, file_list, file_write tools
   agent/
     indexer/indexer.go           — indexer agent
     chat/agent.go                — chat agent, REPL, tool-use loop
