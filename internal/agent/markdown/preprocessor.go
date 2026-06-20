@@ -60,9 +60,7 @@ func New(cfg *config.Config, root *os.Root) (*Preprocessor, error) {
 // runAgentLoop executes the tool-use agentic loop until the model stops calling tools.
 // Returns the final answer content.
 func (p *Preprocessor) runAgentLoop(messages []openai.ChatCompletionMessage) (string, error) {
-	tools := []openai.Tool{
-		p.generic.DefinitionFileRead(),
-	}
+	tools := []openai.Tool{}
 
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), agentLoopTimeout)

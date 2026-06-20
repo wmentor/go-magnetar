@@ -121,14 +121,14 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 			return "", fmt.Errorf("webfetch: URL %q html to markdown error: %w", url, err)
 		}
 
-		markdown, err := w.preprocessHTML(content)
-		if err != nil {
-			slog.Error("webfetch: preprocessing failed", "url", url, "err", err)
-			return "", fmt.Errorf("webfetch: preprocessing failed for URL %q", url)
-		}
-
+		/*		content, err = w.preprocessHTML(content)
+				if err != nil {
+					slog.Error("webfetch: preprocessing failed", "url", url, "err", err)
+					return "", fmt.Errorf("webfetch: preprocessing failed for URL %q", url)
+				}
+		*/
 		slog.Debug("webfetch: done", "url", url)
-		return markdown, nil
+		return content, nil
 	}
 
 	slog.Debug("webfetch: done (non-HTML content)", "url", url, "content_type", contentType)
