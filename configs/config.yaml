@@ -34,3 +34,9 @@ compact:
   # save_tail: number of most-recent messages to preserve unchanged during
   # summarization. If less than 1, all non-system messages are summarized.
   save_tail: 6
+
+webfetch:
+  base_url: https://api.openai.com/v1
+  api_key: YOUR_API_KEY
+  model: gpt-4o
+  context: 128000

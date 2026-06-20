@@ -278,17 +278,17 @@ type inputModel struct {
 
 var (
 	promptStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("99")). // purple
+			Foreground(lipgloss.Color("69")). // blue
 			Bold(true)
 	promptSymbol = promptStyle.Render("◆")
 
 	questionStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("99")).
+			Foreground(lipgloss.Color("69")).
 			BorderLeft(true).
 			BorderStyle(lipgloss.ThickBorder()).
-			BorderForeground(lipgloss.Color("99")).
+			BorderForeground(lipgloss.Color("69")).
 			PaddingLeft(1).
-			Faint(true)
+			Faint(false)
 )
 
 func newInputModel() inputModel {

@@ -40,6 +40,14 @@ type ChunkConfig struct {
 	Overlap int `koanf:"overlap"`
 }
 
+// WebFetchConfig holds settings for web fetch preprocessing.
+type WebFetchConfig struct {
+	BaseURL string `koanf:"base_url"`
+	APIKey  string `koanf:"api_key"`
+	Model   string `koanf:"model"`
+	Context int    `koanf:"context"`
+}
+
 // SearchConfig holds retrieval parameters for RAG search.
 type SearchConfig struct {
 	Limit     int     `koanf:"limit"`     // maximum number of results to return
@@ -73,20 +81,21 @@ type CompactConfig struct {
 
 // Config is the root configuration structure.
 type Config struct {
-	LLM     LLMConfig     `koanf:"llm"`
-	RAG     RAGConfig     `koanf:"rag"`
-	Log     LogConfig     `koanf:"log"`
-	Compact CompactConfig `koanf:"compact"`
+	LLM      LLMConfig      `koanf:"llm"`
+	RAG      RAGConfig      `koanf:"rag"`
+	Log      LogConfig      `koanf:"log"`
+	Compact  CompactConfig  `koanf:"compact"`
+	WebFetch WebFetchConfig `koanf:"webfetch"`
 }
 
 // defaults holds default config values that are applied before the
 // YAML file is loaded, so the user doesn't need to set them.
-var defaults = map[string]any{
-	"rag.chunk.size":      512,  // runes; matches DefaultConfig in internal/chunk
-	"rag.chunk.overlap":   64,   // runes; ~12.5% overlap is the RAG sweet-spot
-	"rag.search.limit":    10,   // top-N results per query
-	"rag.search.threshold": 0.40, // minimum cosine-similarity score
-}
+	var defaults = map[string]any{
+		"rag.chunk.size":       512,  // runes; matches DefaultConfig in internal/chunk
+		"rag.chunk.overlap":    64,   // runes; ~12.5% overlap is the RAG sweet-spot
+		"rag.search.limit":     10,   // top-N results per query
+		"rag.search.threshold": 0.40, // minimum cosine-similarity score
+	}
 
 // Load reads and parses a YAML config file at the given path.
 func Load(path string) (*Config, error) {

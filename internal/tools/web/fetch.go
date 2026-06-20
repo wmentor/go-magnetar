@@ -32,9 +32,13 @@ type WebTools struct {
 
 // New creates a new WebTools instance.
 func New(cfg *config.Config, root *os.Root) (*WebTools, error) {
-	preprocessor, err := sanitizer.New(cfg, root)
-	if err != nil {
-		return nil, fmt.Errorf("web: failed to create preprocessor: %w", err)
+	var preprocessor *sanitizer.Preprocessor
+	if cfg.WebFetch.BaseURL != "" {
+		p, err := sanitizer.New(cfg, root)
+		if err != nil {
+			return nil, fmt.Errorf("web: failed to create preprocessor: %w", err)
+		}
+		preprocessor = p
 	}
 
 	return &WebTools{
@@ -89,8 +93,11 @@ func (w *WebTools) fetchURLWithMediaType(url string) (string, string, error) {
 	return string(body), contentType, nil
 }
 
-func (w *WebTools) preprocessHTML(htmlStr string) (string, error) {
-	return w.preprocessor.ProcessHTMLString(htmlStr)
+func (w *WebTools) preprocessMarkdown(markdownStr string) (string, error) {
+	if w.preprocessor == nil {
+		return markdownStr, nil
+	}
+	return w.preprocessor.ProcessMDString(markdownStr)
 }
 
 // WebFetch fetches a web page, preprocesses it (if HTML), and returns the cleaned content.
@@ -121,12 +128,12 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 			return "", fmt.Errorf("webfetch: URL %q html to markdown error: %w", url, err)
 		}
 
-		/*		content, err = w.preprocessHTML(content)
-				if err != nil {
-					slog.Error("webfetch: preprocessing failed", "url", url, "err", err)
-					return "", fmt.Errorf("webfetch: preprocessing failed for URL %q", url)
-				}
-		*/
+		content, err = w.preprocessMarkdown(content)
+		if err != nil {
+			slog.Error("webfetch: preprocessing failed", "url", url, "err", err)
+			return "", fmt.Errorf("webfetch: preprocessing failed for URL %q", url)
+		}
+
 		slog.Debug("webfetch: done", "url", url)
 		return content, nil
 	}

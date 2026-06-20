@@ -37,7 +37,7 @@ KEEP:
 
 Return ONLY the cleaned Markdown, with no comments or explanations.`
 
-// Preprocessor is an AI agent that cleans HTML pages and converts to Markdown.
+// Preprocessor is an AI agent that cleans Markdown text from clutter.
 type Preprocessor struct {
 	cfg     *config.Config
 	llm     *openai.Client
@@ -46,8 +46,12 @@ type Preprocessor struct {
 
 // New creates a new Preprocessor instance.
 func New(cfg *config.Config, root *os.Root) (*Preprocessor, error) {
-	llmCfg := openai.DefaultConfig(cfg.LLM.APIKey)
-	llmCfg.BaseURL = cfg.LLM.BaseURL
+	if cfg.WebFetch.BaseURL == "" {
+		return nil, nil
+	}
+
+	llmCfg := openai.DefaultConfig(cfg.WebFetch.APIKey)
+	llmCfg.BaseURL = cfg.WebFetch.BaseURL
 	llmClient := openai.NewClientWithConfig(llmCfg)
 
 	return &Preprocessor{
@@ -65,10 +69,10 @@ func (p *Preprocessor) runAgentLoop(messages []openai.ChatCompletionMessage) (st
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), agentLoopTimeout)
 		resp, err := p.llm.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-			Model:     p.cfg.LLM.Model,
+			Model:     p.cfg.WebFetch.Model,
 			Messages:  messages,
 			Tools:     tools,
-			MaxTokens: p.cfg.LLM.Context,
+			MaxTokens: p.cfg.WebFetch.Context,
 		})
 		cancel()
 
@@ -112,10 +116,10 @@ func (p *Preprocessor) runAgentLoop(messages []openai.ChatCompletionMessage) (st
 	}
 }
 
-func (p *Preprocessor) ProcessHTML(filename string) (string, error) {
+func (p *Preprocessor) ProcessMD(filename string) (string, error) {
 	slog.Debug("preprocessor: processing markdown file", "file", filename)
 
-	htmlContent, ok := p.generic.FileRead(filename)
+	markdownContent, ok := p.generic.FileRead(filename)
 	if !ok {
 		return "", fmt.Errorf("preprocessor: failed to read file %s", filename)
 	}
@@ -127,14 +131,14 @@ func (p *Preprocessor) ProcessHTML(filename string) (string, error) {
 		},
 		{
 			Role:    openai.ChatMessageRoleUser,
-			Content: fmt.Sprintf("Please clean this HTML and convert to Markdown:\n\n%s", htmlContent),
+			Content: fmt.Sprintf("Please clean this Markdown:\n\n%s", markdownContent),
 		},
 	}
 
 	return p.runAgentLoop(messages)
 }
 
-func (p *Preprocessor) ProcessHTMLString(htmlStr string) (string, error) {
+func (p *Preprocessor) ProcessMDString(markdownStr string) (string, error) {
 	slog.Debug("preprocessor: processing markdown string")
 
 	messages := []openai.ChatCompletionMessage{
@@ -144,7 +148,7 @@ func (p *Preprocessor) ProcessHTMLString(htmlStr string) (string, error) {
 		},
 		{
 			Role:    openai.ChatMessageRoleUser,
-			Content: fmt.Sprintf("Please clean this HTML and convert to Markdown:\n\n%s", htmlStr),
+			Content: fmt.Sprintf("Please clean this Markdown:\n\n%s", markdownStr),
 		},
 	}
 

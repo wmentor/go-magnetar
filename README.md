@@ -8,13 +8,13 @@ A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines tw
 
 **Chat** — an interactive REPL with multi-turn conversation support. The agent always tries `rag_search` first; if the knowledge base returns relevant results, the answer is based exclusively on those results. `web_fetch` is used only as a fallback when the knowledge base has no relevant information and the user needs external or up-to-date data. If neither source has an answer, the agent says so explicitly. Conversation history is automatically managed to stay within the configured context window: when history approaches the token threshold it is compacted by the built-in summarizer, which replaces older turns with a concise summary while keeping the most recent ones verbatim.
 
-**HTML Preprocessing** — web pages fetched via `web_fetch` are cleaned of ads, navigation, cookie banners, and other noise before being converted to Markdown and indexed or returned to the agent.
+**HTML Preprocessing** — when `webfetch.*` parameters are configured, web pages fetched via `web_fetch` are cleaned of ads, navigation, cookie banners, and other noise using an AI agent before being converted to Markdown and indexed or returned to the agent.
 
 ## Requirements
 
 - Go 1.26.4+
 - [Qdrant](https://qdrant.tech/) — vector database
-- An API key for any OpenAI-compatible provider (for both the LLM and the embedding model)
+- An API key for any OpenAI-compatible provider (for the chat model, embedding model, and optionally for web page preprocessing)
 
 ## Quick start
 
@@ -69,6 +69,12 @@ log:
 compact:
   threshold: 0   # 0 = auto (80 % of llm.context)
   save_tail: 6   # keep the last 6 messages verbatim
+
+webfetch:
+  base_url: https://api.openai.com/v1
+  api_key: sk-...
+  model: gpt-4o
+  context: 128000
 ```
 
 ### 4. Index your documents
@@ -129,6 +135,10 @@ make build
 | `log.level` | `info` | Log level: `debug`, `info`, `warn`, `error` |
 | `compact.threshold` | `0` | Token count that triggers history summarization. `0` = auto: 80 % of `llm.context` |
 | `compact.save_tail` | `6` | Number of most-recent messages kept verbatim during summarization |
+| `webfetch.base_url` | — | Endpoint of the OpenAI-compatible API for web page preprocessing model |
+| `webfetch.api_key` | — | API key for web page preprocessing model |
+| `webfetch.model` | — | Model name for web page preprocessing (e.g. `gpt-4o`) |
+| `webfetch.context` | — | Token limit of the model's context window for web preprocessing |
 
 **Vector sizes for common embedding models:**
 
