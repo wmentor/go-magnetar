@@ -171,6 +171,10 @@ Exit — `Ctrl+D` (EOF) or `/exit` command. Empty lines are ignored.
 
 Commands are processed locally in the `handleCommand` method (`internal/agent/chat/agent.go`) before user input is sent to the LLM; they are not added to the message history. Comparison is case-insensitive.
 
+### Command history
+
+The chat agent maintains command history in `~/.go-magnetar-history.json`. Use **↑/↓** arrows to navigate through previous commands. History is persisted across sessions and limited to 200 entries.
+
 The help text is stored in the `helpText` constant in the same file. Data for `/stat` is taken directly from `a.cfg`: `cfg.LLM.Model`, `cfg.RAG.LLM.Model`, `cfg.RAG.LLM.VectorSize`.
 
 ### Search strategy

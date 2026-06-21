@@ -144,6 +144,10 @@ The REPL reads questions from stdin. Press `Ctrl+D` to exit.
 | `/new` | — | Start a new session and clear conversation history |
 | `/stat` | — | Print context statistics |
 
+#### Command history
+
+Use **↑/↓** arrows to navigate through previously entered commands. History is persisted in `~/.go-magnetar-history.json` and limited to 200 entries.
+
 ### Chat tools
 
 | Tool | Description |

@@ -113,6 +113,10 @@ cd go-magnetar
 make build
 ```
 
+## Command history
+
+The chat agent maintains command history in `~/.go-magnetar-history.json`. Use **↑/↓** arrows to navigate through previous commands. History is persisted across sessions and limited to 200 entries.
+
 ## Configuration reference
 
 | Parameter | Default | Description |
@@ -187,6 +191,14 @@ The REPL reads questions from stdin. Press `Ctrl+D` to exit.
 | `/stat` | — | Print context statistics: messages, estimated tokens, bytes, LLM model, RAG model, vector size |
 
 Commands are case-insensitive and processed locally — never sent to the LLM.
+
+### Command history
+
+The REPL supports command history navigation with arrow keys:
+- **↑** — previous command
+- **↓** — next command
+
+History is persistently stored in `~/.go-magnetar-history.json` and limited to 200 entries. On startup, history is loaded and available for navigation; no command is pre-filled in the input field.
 
 ## Makefile
 

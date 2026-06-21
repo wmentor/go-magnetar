@@ -2,10 +2,12 @@ package chat
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -282,15 +284,6 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 	}
 }
 
-// inputModel is a minimal bubbletea model used solely to collect one line of
-// user input with a styled prompt. It quits on Enter (submitting the text) or
-// Ctrl+C / Ctrl+D (requesting an exit).
-type inputModel struct {
-	input textinput.Model
-	done  bool
-	quit  bool
-}
-
 var (
 	promptStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("69")). // blue
@@ -304,7 +297,76 @@ var (
 			BorderForeground(lipgloss.Color("69")).
 			PaddingLeft(1).
 			Faint(false)
+
+	history      []string
+	historyIndex int
+
+	historyFile   = func() string {
+		home, _ := os.UserHomeDir()
+		return filepath.Join(home, ".go-magnetar-history.json")
+	}()
+	historySizeLimit = 200
 )
+
+func loadHistory() {
+	data, err := os.ReadFile(historyFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			history = nil
+			historyIndex = 0
+			return
+		}
+		slog.Debug("chat: failed to load history file", "err", err)
+		history = nil
+		historyIndex = 0
+		return
+	}
+	if len(data) == 0 {
+		history = nil
+		historyIndex = 0
+		return
+	}
+	if err := json.Unmarshal(data, &history); err != nil {
+		slog.Debug("chat: failed to parse history file", "err", err)
+		history = nil
+		historyIndex = 0
+		return
+	}
+	if len(history) > historySizeLimit {
+		history = history[len(history)-historySizeLimit:]
+	}
+	historyIndex = len(history)
+}
+
+func saveHistory() error {
+	if len(history) == 0 {
+		return os.Remove(historyFile)
+	}
+	if len(history) > historySizeLimit {
+		history = history[len(history)-historySizeLimit:]
+	}
+	data, err := json.Marshal(history)
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(historyFile, data, 0600)
+}
+
+// inputModel is a minimal bubbletea model used solely to collect one line of
+// user input with a styled prompt. It quits on Enter (submitting the text) or
+// Ctrl+C / Ctrl+D (requesting an exit).
+type inputModel struct {
+	input textinput.Model
+	done  bool
+	quit  bool
+}
+
+var _ = promptStyle
+var _ = promptSymbol
+var _ = questionStyle
+var _ = history
+var _ = historyIndex
+var _ = historyFile
 
 func newInputModel() inputModel {
 	ti := textinput.New()
@@ -319,16 +381,44 @@ func (m inputModel) Init() tea.Cmd {
 	return textinput.Blink
 }
 
-func (m inputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+func (m *inputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.Type {
 		case tea.KeyEnter:
 			m.done = true
+			text := m.input.Value()
+			if text != "" {
+				history = append(history, text)
+				historyIndex = len(history)
+				if err := saveHistory(); err != nil {
+					slog.Debug("chat: failed to save history", "err", err)
+				}
+			}
 			return m, tea.Quit
 		case tea.KeyCtrlC, tea.KeyCtrlD:
 			m.quit = true
+			if err := saveHistory(); err != nil {
+				slog.Debug("chat: failed to save history on Ctrl+C", "err", err)
+			}
 			return m, tea.Quit
+		case tea.KeyUp:
+			if len(history) > 0 && historyIndex > 0 {
+				historyIndex--
+				m.input.SetValue(history[historyIndex])
+				m.input.CursorEnd()
+			}
+			return m, nil
+		case tea.KeyDown:
+			if historyIndex < len(history)-1 {
+				historyIndex++
+				m.input.SetValue(history[historyIndex])
+				m.input.CursorEnd()
+			} else if historyIndex == len(history)-1 {
+				historyIndex = len(history)
+				m.input.SetValue("")
+			}
+			return m, nil
 		}
 	}
 	var cmd tea.Cmd
@@ -336,20 +426,22 @@ func (m inputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, cmd
 }
 
-func (m inputModel) View() string {
+func (m *inputModel) View() string {
 	return m.input.View()
 }
+
+var _ = history
 
 // readInput launches a bubbletea program to collect one line from the user.
 // Returns the trimmed input, a quit flag, and any error.
 func readInput() (string, bool, error) {
 	m := newInputModel()
-	p := tea.NewProgram(m, tea.WithOutput(os.Stderr))
+	p := tea.NewProgram(&m, tea.WithOutput(os.Stderr))
 	result, err := p.Run()
 	if err != nil {
 		return "", false, err
 	}
-	final := result.(inputModel)
+	final := result.(*inputModel)
 	// Print a newline after the input line so subsequent output starts cleanly.
 	fmt.Fprintln(os.Stdout)
 	return strings.TrimSpace(final.input.Value()), final.quit, nil
@@ -382,6 +474,9 @@ The assistant can use the following tools:
     file_exists      check if a file exists
     rag_search       search the knowledge base for information
     web_fetch        fetch and preprocess web pages for up-to-date information
+
+Keyboard shortcuts:
+    ↑/↓              navigate command history
 `
 
 // handleCommand processes a slash-command entered by the user.
@@ -436,6 +531,7 @@ func (a *ChatAgent) handleCommand(line string) (handled bool, exit bool) {
 
 // Run starts the interactive REPL loop.
 func (a *ChatAgent) Run() error {
+	loadHistory()
 	for {
 		line, quit, err := readInput()
 		if err != nil {

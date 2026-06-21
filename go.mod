@@ -3,6 +3,9 @@ module github.com/wmentor/go-magnetar
 go 1.26.4
 
 require (
+	codeberg.org/readeck/go-readability/v2 v2.1.2
+	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.2
+	github.com/PuerkitoBio/goquery v1.12.0
 	github.com/alecthomas/kong v1.15.0
 	github.com/charmbracelet/bubbles v1.0.0
 	github.com/charmbracelet/bubbletea v1.3.10
@@ -11,6 +14,7 @@ require (
 	github.com/docker/go-units v0.5.0
 	github.com/google/uuid v1.6.0
 	github.com/knadh/koanf/parsers/yaml v1.1.0
+	github.com/knadh/koanf/providers/confmap v1.0.0
 	github.com/knadh/koanf/providers/file v1.2.1
 	github.com/knadh/koanf/v2 v2.3.5
 	github.com/lmittmann/tint v1.1.3
@@ -20,10 +24,7 @@ require (
 )
 
 require (
-	codeberg.org/readeck/go-readability/v2 v2.1.2 // indirect
 	github.com/JohannesKaufmann/dom v0.3.1 // indirect
-	github.com/JohannesKaufmann/html-to-markdown/v2 v2.5.2 // indirect
-	github.com/PuerkitoBio/goquery v1.12.0 // indirect
 	github.com/alecthomas/chroma/v2 v2.20.0 // indirect
 	github.com/andybalholm/cascadia v1.3.4 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
@@ -46,7 +47,6 @@ require (
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/itlightning/dateparse v0.2.1 // indirect
 	github.com/knadh/koanf/maps v0.1.2 // indirect
-	github.com/knadh/koanf/providers/confmap v1.0.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.0 // indirect
 	github.com/mattn/go-isatty v0.0.22 // indirect
 	github.com/mattn/go-localereader v0.0.1 // indirect
