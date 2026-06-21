@@ -5,6 +5,37 @@ All notable changes to go-magnetar will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.0.2] - 2026-06-21
+
+### Added
+
+- **Command History Navigation**
+  - Arrow key navigation (↑/↓) through command history
+  - Persistent history storage in `~/.go-magnetar-history.json`
+  - History limited to 200 entries (oldest removed when exceeded)
+  - History loaded on startup (no auto-fill of last command)
+
+### Changed
+
+- **CLI Flags**
+  - Removed `-u` short flag for URL (keep `--url` only)
+  - Changed `-m` flag for message prepend to long form `--message` only
+
+- **Indexer**
+  - Removed directory indexing mode (`-d` flag)
+  - Indexing now only supports single files (`-f`) and URLs (`--url`)
+
+- **Configuration**
+  - Added `webfetch.*` configuration block for HTML preprocessing
+  - New `webfetch` parameters: `base_url`, `api_key`, `model`, `context`
+
+### Fixed
+
+- **Documentation**
+  - Translated all documentation to English
+  - Added English-only documentation requirement to AGENTS.md
+  - Updated user manual with full configuration reference
+
 ## [0.0.1] - 2026-06-20
 
 ### Added
@@ -83,6 +114,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Configurable result limit
   - Search preview in debug logs
   - Score reporting for debugging
+
+- **Search Tool Call Limit**
+  - Maximum 10 tool calls per request (rag_search + web_fetch)
+  - Prevents infinite loops by limiting search attempts
+  - Returns error message to LLM when limit is exceeded
 
 - **CLI Infrastructure**
   - `kong`-based CLI parser
