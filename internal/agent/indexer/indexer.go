@@ -38,7 +38,7 @@ func New(cfg *config.Config, root *os.Root) (*Indexer, error) {
 }
 
 // IndexFile indexes a single file into the RAG knowledge base.
-func (idx *Indexer) IndexFile(filename string) error {
+func (idx *Indexer) IndexFile(filename string, msg string) error {
 	slog.Info("indexer: indexing file", "file", filename)
 
 	data, err := os.ReadFile(filename)
@@ -46,11 +46,11 @@ func (idx *Indexer) IndexFile(filename string) error {
 		return fmt.Errorf("indexer: failed to read file %q: %w", filename, err)
 	}
 
-	return idx.chunkAndSave(string(data))
+	return idx.chunkAndSave(string(data), msg)
 }
 
 // IndexURL fetches content from a URL, chunks it, and stores it in the RAG knowledge base.
-func (idx *Indexer) IndexURL(rawURL string) error {
+func (idx *Indexer) IndexURL(rawURL string, msg string) error {
 	slog.Info("indexer: indexing URL", "url", rawURL)
 
 	content, err := idx.web.WebFetch(rawURL)
@@ -58,11 +58,11 @@ func (idx *Indexer) IndexURL(rawURL string) error {
 		return fmt.Errorf("indexer: failed to fetch URL %q: %w", rawURL, err)
 	}
 
-	return idx.chunkAndSave(content)
+	return idx.chunkAndSave(content, msg)
 }
 
 // chunkAndSave splits content into overlapping chunks and saves each one to RAG.
-func (idx *Indexer) chunkAndSave(content string) error {
+func (idx *Indexer) chunkAndSave(content string, msg string) error {
 	cfg := chunk.Config{
 		MaxSize: idx.cfg.RAG.Chunk.Size,
 		Overlap: idx.cfg.RAG.Chunk.Overlap,
@@ -71,7 +71,7 @@ func (idx *Indexer) chunkAndSave(content string) error {
 	saved := 0
 
 	for i, c := range chunks {
-		if idx.rag.RagSave(c) {
+		if idx.rag.RagSave(c, msg) {
 			saved++
 		}
 		slog.Debug("indexer: chunk saved", "chunk", i+1, "size", len(c))

@@ -150,7 +150,7 @@ make build
 ### `indexer` — index documents
 
 ```
-go-magnetar indexer -c <config> [-f <file>] [--url <url>]
+go-magnetar indexer -c <config> [-f <file>] [--url <url>] [-m <message>]
 ```
 
 | Flag | Description |
@@ -158,6 +158,7 @@ go-magnetar indexer -c <config> [-f <file>] [--url <url>]
 | `-c` | Path to the config file |
 | `-f` | Path to a single `.md` or `.txt` file to index |
 | `--url` | URL to fetch and index |
+| `-m` | Message to prepend to each chunk for improved search |
 
 Specify either `-f` or `--url`. If a file fails to read, an error is logged.
 
@@ -219,16 +220,17 @@ internal/
 ### Indexing flow
 
 ```
-indexer -f file.md
+indexer -f file.md [-m <message>]
   └── os.ReadFile(file.md)
         └── chunk.Split(content)       — paragraph/heading-aware, word-boundary snapping
               └── for each chunk:
-                    └── rag.RagSave(chunk)
+                    └── rag.RagSave(chunk, prepend)
+                          ├── prepend + "\n" + chunk (if prepend set)
                           ├── contentUUID(chunk) -> UUID v5 (deterministic, idempotent)
                           ├── embed(chunk)        -> []float32
                           └── qdrant.Upsert(id, vector, payload{text: chunk})
 
-indexer --url https://example.com
+indexer --url https://example.com [-m <message>]
   └── web.WebFetch(url)               — fetch + HTML cleanup -> Markdown
         └── chunk.Split(content)
               └── (same as above)

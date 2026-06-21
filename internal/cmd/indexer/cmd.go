@@ -10,9 +10,10 @@ import (
 
 // Cmd is the CLI command for indexing files into RAG.
 type Cmd struct {
-	Config string `short:"c" type:"path" default:"~/.go-magnetar.yaml" help:"Path to config file"`
-	File   string `short:"f" help:"File to index (.md or .txt)"`
-	URL    string `help:"URL to index"`
+	Config  string `short:"c" type:"path" default:"~/.go-magnetar.yaml" help:"Path to config file"`
+	File    string `short:"f" help:"File to index (.md or .txt)"`
+	URL     string `help:"URL to index"`
+	Message string `short:"m" help:"Message to prepend to each chunk for improved search"`
 }
 
 // Run executes the indexer command.
@@ -40,8 +41,8 @@ func (cmd *Cmd) Run() error {
 	}
 
 	if cmd.File != "" {
-		return idx.IndexFile(cmd.File)
+		return idx.IndexFile(cmd.File, cmd.Message)
 	}
 
-	return idx.IndexURL(cmd.URL)
+	return idx.IndexURL(cmd.URL, cmd.Message)
 }

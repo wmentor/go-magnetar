@@ -114,6 +114,14 @@ Reads `.md` and `.txt` files or web pages (by URL), splits content into overlapp
 ./bin/go-magnetar indexer -c my-config.yaml --url https://example.com/article
 ```
 
+### Prepend message to chunks
+
+```bash
+./bin/go-magnetar indexer -c my-config.yaml -f path/to/document.md -m "Custom context or metadata"
+```
+
+The `-m` option prepends the specified message to each chunk for improved search quality.
+
 > If the `webfetch` block is configured in the config, the HTML page is cleaned of ads, navigation, and other noise by an AI agent before conversion to Markdown and indexing.
 
 ### Duplicate handling
@@ -124,7 +132,7 @@ Each chunk's ID is UUID v5 derived from its text (`uuid.NewSHA1`). Repeated call
 
 | Tool | Signature | Description |
 |---|---|---|
-| `rag_save` | `(content: string) -> bool` | Saves a fragment to Qdrant |
+| `rag_save` | `(content: string, prepend: string) -> bool` | Saves a fragment to Qdrant with optional message prepended to each chunk |
 | `web_fetch` | `(url: string) -> string` | Fetches and cleans a web page, returns Markdown |
 
 ## Chat Agent
@@ -203,14 +211,15 @@ internal/
 ### Data flow: file indexing
 
 ```
-CLI --> IndexFile(filename)
+CLI --> IndexFile(filename) [-m <message>]
          --> os.ReadFile(filename)
          --> chunk.Split(content, cfg)
                --> splitParagraphs   — paragraph and Markdown heading boundaries
                --> greedy pack       — greedy packing up to MaxSize runes
                --> forceSplit        — for paragraphs longer than MaxSize
          --> for each chunk:
-               --> rag.RagSave(chunk)
+               --> rag.RagSave(chunk, prepend)
+                     --> prepend + "\n" + chunk (if prepend set)
                      --> contentUUID(chunk) -> UUID v5 (deterministic)
                      --> embed(chunk)        -> []float32
                      --> qdrant.Upsert(id, vector, payload{text: chunk})

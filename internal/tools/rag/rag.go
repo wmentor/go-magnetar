@@ -161,7 +161,11 @@ func (r *RAGTools) embed(text string) ([]float32, error) {
 // The point ID is a deterministic UUID v5 derived from the content, making
 // saves idempotent: re-indexing the same text overwrites the existing point
 // instead of creating a duplicate entry.
-func (r *RAGTools) RagSave(content string) bool {
+func (r *RAGTools) RagSave(content string, prepend string) bool {
+	if prepend != "" {
+		content = prepend + "\n" + content
+	}
+
 	id := contentUUID(content)
 
 	vector, err := r.embed(content)
@@ -265,6 +269,10 @@ func (r *RAGTools) DefinitionSave() openai.Tool {
 						"type":        "string",
 						"description": "Text fragment to save",
 					},
+					"prepend": map[string]any{
+						"type":        "string",
+						"description": "Optional message to prepend to each chunk for improved search",
+					},
 				},
 				"required": []string{"content"},
 			},
@@ -304,7 +312,7 @@ func (r *RAGTools) Dispatch(name string, args string) string {
 			slog.Error("rag_save: failed to parse args", "args", args, "err", err)
 			return "error: failed to parse arguments"
 		}
-		ok := r.RagSave(params.Content)
+		ok := r.RagSave(params.Content, "")
 		if !ok {
 			return "error: failed to save to RAG"
 		}

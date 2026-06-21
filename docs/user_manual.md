@@ -110,7 +110,7 @@ It supports two commands: indexer and agent...
 ### `indexer` — document indexing
 
 ```
-go-magnetar indexer -c <config> [-f <file>] [--url <url>]
+go-magnetar indexer -c <config> [-f <file>] [--url <url>] [-m <message>]
 ```
 
 | Flag | Description |
@@ -118,6 +118,7 @@ go-magnetar indexer -c <config> [-f <file>] [--url <url>]
 | `-c` | Path to config file |
 | `-f` | Path to a single `.md` or `.txt` file to index |
 | `--url` | URL to fetch and index |
+| `-m` | Message to prepend to each chunk for improved search |
 
 Specify either `-f` or `--url`. If a file fails to read, an error will be logged.
 
