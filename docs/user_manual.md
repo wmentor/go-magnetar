@@ -83,11 +83,8 @@ webfetch:
 # Single file
 ./bin/go-magnetar indexer -c my-config.yaml -f docs/guide.md
 
-# Entire directory (recursive)
-./bin/go-magnetar indexer -c my-config.yaml -d docs/
-
 # From URL
-./bin/go-magnetar indexer -c my-config.yaml -u https://example.com/article
+./bin/go-magnetar indexer -c my-config.yaml --url https://example.com/article
 ```
 
 > If the `webfetch` block is configured in the config, web pages are cleaned of ads and navigation using an AI agent before being converted to Markdown and indexed.
@@ -113,17 +110,16 @@ It supports two commands: indexer and agent...
 ### `indexer` — document indexing
 
 ```
-go-magnetar indexer -c <config> [-f <file>] [-d <directory>] [-u <url>]
+go-magnetar indexer -c <config> [-f <file>] [--url <url>]
 ```
 
 | Flag | Description |
 |---|---|
 | `-c` | Path to config file |
 | `-f` | Path to a single `.md` or `.txt` file to index |
-| `-d` | Path to a directory — all `.md` and `.txt` files are processed recursively |
-| `-u` | URL to fetch and index |
+| `--url` | URL to fetch and index |
 
-Specify either `-f`, `-d`, or `-u`. If a single file fails during directory indexing, the error will be logged and processing continues.
+Specify either `-f` or `--url`. If a file fails to read, an error will be logged.
 
 ### `agent` — interactive chat
 

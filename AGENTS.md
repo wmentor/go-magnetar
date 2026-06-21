@@ -108,18 +108,10 @@ Reads `.md` and `.txt` files or web pages (by URL), splits content into overlapp
 ./bin/go-magnetar indexer -c my-config.yaml -f path/to/document.md
 ```
 
-### Index a directory recursively
-
-```bash
-./bin/go-magnetar indexer -c my-config.yaml -d path/to/docs/
-```
-
-All `.md` and `.txt` files will be processed. If a single file fails, an `slog.Error` is written to stderr and processing continues.
-
 ### Index a URL
 
 ```bash
-./bin/go-magnetar indexer -c my-config.yaml -u https://example.com/article
+./bin/go-magnetar indexer -c my-config.yaml --url https://example.com/article
 ```
 
 > If the `webfetch` block is configured in the config, the HTML page is cleaned of ads, navigation, and other noise by an AI agent before conversion to Markdown and indexing.

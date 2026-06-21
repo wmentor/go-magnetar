@@ -83,11 +83,8 @@ webfetch:
 # Single file
 ./bin/go-magnetar indexer -c my-config.yaml -f docs/guide.md
 
-# Entire directory (recursive)
-./bin/go-magnetar indexer -c my-config.yaml -d docs/
-
 # From URL
-./bin/go-magnetar indexer -c my-config.yaml -u https://example.com/article
+./bin/go-magnetar indexer -c my-config.yaml --url https://example.com/article
 ```
 
 ### 5. Ask questions
@@ -153,17 +150,16 @@ make build
 ### `indexer` — index documents
 
 ```
-go-magnetar indexer -c <config> [-f <file>] [-d <directory>] [-u <url>]
+go-magnetar indexer -c <config> [-f <file>] [--url <url>]
 ```
 
 | Flag | Description |
 |---|---|
 | `-c` | Path to the config file |
 | `-f` | Path to a single `.md` or `.txt` file to index |
-| `-d` | Path to a directory — all `.md` and `.txt` files are processed recursively |
-| `-u` | URL to fetch and index |
+| `--url` | URL to fetch and index |
 
-At least one of `-f`, `-d`, or `-u` is required. If a single file fails during directory indexing, the error is logged and processing continues.
+Specify either `-f` or `--url`. If a file fails to read, an error is logged.
 
 ### `agent` — interactive chat
 
@@ -232,7 +228,7 @@ indexer -f file.md
                           ├── embed(chunk)        -> []float32
                           └── qdrant.Upsert(id, vector, payload{text: chunk})
 
-indexer -u https://example.com
+indexer --url https://example.com
   └── web.WebFetch(url)               — fetch + HTML cleanup -> Markdown
         └── chunk.Split(content)
               └── (same as above)
