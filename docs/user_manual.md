@@ -154,6 +154,10 @@ The REPL reads questions from stdin. Press `Ctrl+D` to exit.
 | `rag_search` | Returns relevant fragments from indexed data |
 | `web_fetch` | Fetches web pages (used only if RAG returns no results) |
 
+### Search tool call limit
+
+To prevent infinite loops, each user request is limited to a maximum number of search-related tool calls (`rag_search` + `web_fetch`). By default, the limit is 10 calls per request. When the limit is exceeded, an error message is sent to the LLM and no more search tools are invoked for that request.
+
 ## Configuration
 
 | Parameter | Default | Description |

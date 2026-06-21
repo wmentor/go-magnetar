@@ -187,6 +187,9 @@ func (a *ChatAgent) compactIfNeeded() {
 	a.messages = compacted
 }
 
+// maxSearchToolCalls is the maximum number of search-related tool calls (rag_search + web_fetch) per user request.
+const maxSearchToolCalls = 10
+
 // ask sends the user input to the LLM, handles tool calls, and returns the final answer.
 func (a *ChatAgent) ask(userInput string) (string, error) {
 	a.messages = append(a.messages, openai.ChatCompletionMessage{
@@ -205,6 +208,8 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 		a.rag.DefinitionSearch(),
 		a.web.Definition(),
 	}
+
+	toolCallCount := 0
 
 	for {
 		reserved := 0
@@ -243,9 +248,19 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 				var result string
 				switch name {
 				case "rag_search":
-					result = a.rag.Dispatch(name, args)
+					toolCallCount++
+					if toolCallCount > maxSearchToolCalls {
+						result = fmt.Sprintf("error: reached maximum number of search tool calls (%d)", maxSearchToolCalls)
+					} else {
+						result = a.rag.Dispatch(name, args)
+					}
 				case "web_fetch":
-					result = a.web.Dispatch(name, args)
+					toolCallCount++
+					if toolCallCount > maxSearchToolCalls {
+						result = fmt.Sprintf("error: reached maximum number of search tool calls (%d)", maxSearchToolCalls)
+					} else {
+						result = a.web.Dispatch(name, args)
+					}
 				case "file_list", "file_read", "file_write", "file_exists":
 					result = a.generic.Dispatch(name, args)
 				default:
