@@ -183,3 +183,25 @@ func (w *WebTools) Dispatch(name string, args string) string {
 		return "error: unknown tool " + name
 	}
 }
+
+// StaticDefinition returns the OpenAI tool schema for web_fetch without
+// requiring an initialised WebTools instance. Used by the plugin for lazy init.
+func StaticDefinition() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "web_fetch",
+			Description: "Fetch a web page and return clean Markdown content",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"url": map[string]any{
+						"type":        "string",
+						"description": "URL of the web page to fetch",
+					},
+				},
+				"required": []string{"url"},
+			},
+		},
+	}
+}

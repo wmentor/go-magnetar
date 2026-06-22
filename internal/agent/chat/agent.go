@@ -3,6 +3,7 @@ package chat
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -15,14 +16,12 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/docker/go-units"
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/wmentor/go-magnetar/internal/agent/summarizer"
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/tools/generic"
-	"github.com/wmentor/go-magnetar/internal/tools/rag"
-	"github.com/wmentor/go-magnetar/internal/tools/web"
 )
 
 const systemPrompt = `You are a helpful assistant that answers questions strictly based on the knowledge base.
@@ -46,9 +45,6 @@ const agentsFile = "AGENTS.md"
 type ChatAgent struct {
 	cfg        *config.Config
 	llm        *openai.Client
-	rag        *rag.RAGTools
-	web        *web.WebTools
-	generic    *generic.GenericTools
 	summarizer *summarizer.Summarizer
 	renderer   *glamour.TermRenderer
 	messages   []openai.ChatCompletionMessage
@@ -61,18 +57,6 @@ func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
 	llmCfg.BaseURL = cfg.LLM.BaseURL
 	llmClient := openai.NewClientWithConfig(llmCfg)
 
-	genTools := generic.New(cfg, root)
-
-	ragTools, err := rag.New(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("chat: failed to initialise RAG tools: %w", err)
-	}
-
-	webTools, err := web.New(cfg, root)
-	if err != nil {
-		return nil, fmt.Errorf("chat: failed to initialise web tools: %w", err)
-	}
-
 	renderer, err := glamour.NewTermRenderer(
 		glamour.WithAutoStyle(),
 		glamour.WithWordWrap(0),
@@ -83,9 +67,9 @@ func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
 
 	systemContent := systemPrompt
 	if root != nil {
-		if _, err = root.Stat(agentsFile); err == nil {
-			agentsContent, ok := genTools.FileRead(agentsFile)
-			if ok {
+		genTools := generic.New(cfg, root)
+		if _, statErr := root.Stat(agentsFile); statErr == nil {
+			if agentsContent, ok := genTools.FileRead(agentsFile); ok {
 				systemContent = systemPrompt + "\n\n# Project context (from AGENTS.md)\n\n" + agentsContent
 				slog.Info("agents: loaded AGENTS.md into system prompt")
 			}
@@ -102,17 +86,57 @@ func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
 	return &ChatAgent{
 		cfg:        cfg,
 		llm:        llmClient,
-		generic:    genTools,
-		rag:        ragTools,
-		web:        webTools,
 		summarizer: summarizer.New(cfg),
 		renderer:   renderer,
 		messages:   messages,
+		root:       root,
 	}, nil
 }
 
+// --- AgentHandle implementation ---
+
+// agentHandle is a private adapter that exposes ChatAgent internals to chat
+// command plugins through the plugin.AgentHandle interface.
+type agentHandle struct {
+	a *ChatAgent
+}
+
+func (h *agentHandle) Messages() []openai.ChatCompletionMessage {
+	out := make([]openai.ChatCompletionMessage, len(h.a.messages))
+	copy(out, h.a.messages)
+	return out
+}
+
+func (h *agentHandle) SetMessages(msgs []openai.ChatCompletionMessage) {
+	h.a.messages = msgs
+}
+
+func (h *agentHandle) Config() *config.Config {
+	return h.a.cfg
+}
+
+func (h *agentHandle) Compact() error {
+	compacted, err := h.a.summarizer.Compact(h.a.messages)
+	if err != nil {
+		return err
+	}
+	h.a.messages = compacted
+	return nil
+}
+
+func (h *agentHandle) Reset() {
+	slog.Info("chat: starting new session, clearing context")
+	h.a.messages = []openai.ChatCompletionMessage{
+		{
+			Role:    openai.ChatMessageRoleSystem,
+			Content: h.a.messages[0].Content, // preserve the current system prompt
+		},
+	}
+}
+
+// --- Token / context helpers ---
+
 // estimateTokens returns a rough token count for a single message.
-// It sums the lengths of Role and Content and divides by charsPerToken.
 func estimateTokens(m openai.ChatCompletionMessage) int {
 	chars := len(m.Role) + len(m.Content)
 	for _, tc := range m.ToolCalls {
@@ -126,11 +150,8 @@ func estimateTokens(m openai.ChatCompletionMessage) int {
 }
 
 // trimMessages returns a copy of a.messages that fits within the context window.
-// It always keeps the system message (index 0) and then fills from the most recent
-// messages backwards, leaving reservedOutputTokens tokens for the model reply.
 func (a *ChatAgent) trimMessages(reservedOutputTokens int) []openai.ChatCompletionMessage {
 	if a.cfg.LLM.Context <= 0 {
-		// No limit configured — return as-is.
 		return a.messages
 	}
 
@@ -142,7 +163,6 @@ func (a *ChatAgent) trimMessages(reservedOutputTokens int) []openai.ChatCompleti
 	system := a.messages[0]
 	budget -= estimateTokens(system)
 
-	// Walk from the newest message backwards and collect what fits.
 	tail := a.messages[1:]
 	keep := make([]openai.ChatCompletionMessage, 0, len(tail))
 	for i := len(tail) - 1; i >= 0; i-- {
@@ -154,7 +174,6 @@ func (a *ChatAgent) trimMessages(reservedOutputTokens int) []openai.ChatCompleti
 		keep = append(keep, tail[i])
 	}
 
-	// Reverse keep so messages are in chronological order.
 	for l, r := 0, len(keep)-1; l < r; l, r = l+1, r-1 {
 		keep[l], keep[r] = keep[r], keep[l]
 	}
@@ -171,9 +190,8 @@ func (a *ChatAgent) trimMessages(reservedOutputTokens int) []openai.ChatCompleti
 	return trimmed
 }
 
-// reservedOutputTokens is the share of the context budget reserved for the model's reply.
-// Using 20 % of the configured context limit as a reasonable default.
-const reservedOutputFraction = 5 // 1/5 = 20 %
+// reservedOutputFraction is the share of context budget reserved for the model reply (20%).
+const reservedOutputFraction = 5
 
 // compactIfNeeded checks whether the message history has reached the compaction
 // threshold and, if so, replaces a.messages with a summarized version.
@@ -189,7 +207,7 @@ func (a *ChatAgent) compactIfNeeded() {
 	a.messages = compacted
 }
 
-// maxSearchToolCalls is the maximum number of search-related tool calls (rag_search + web_fetch) per user request.
+// maxSearchToolCalls is the maximum number of search-related tool calls per user request.
 const maxSearchToolCalls = 10
 
 // ask sends the user input to the LLM, handles tool calls, and returns the final answer.
@@ -199,16 +217,16 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 		Content: userInput,
 	})
 
-	// Compact history before sending to the LLM if the threshold is reached.
 	a.compactIfNeeded()
 
-	tools := []openai.Tool{
-		a.generic.DefinitionFileRead(),
-		a.generic.DefinitionFileList(),
-		a.generic.DefinitionFileWrite(),
-		a.generic.DefinitionFileExists(),
-		a.rag.DefinitionSearch(),
-		a.web.Definition(),
+	// Build tool list and dispatch map from registered plugins.
+	llmTools := plugin.LLMTools()
+	tools := make([]openai.Tool, 0, len(llmTools))
+	toolMap := make(map[string]plugin.LLMTool, len(llmTools))
+	for _, t := range llmTools {
+		def := t.Definition()
+		tools = append(tools, def)
+		toolMap[def.Function.Name] = t
 	}
 
 	toolCallCount := 0
@@ -237,7 +255,6 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 		}
 
 		choice := resp.Choices[0]
-		// Append assistant message to history.
 		a.messages = append(a.messages, choice.Message)
 
 		if choice.FinishReason == openai.FinishReasonToolCalls {
@@ -248,25 +265,30 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 				slog.Debug("chat: tool call", "tool", name, "args", args)
 
 				var result string
-				switch name {
-				case "rag_search":
-					toolCallCount++
-					if toolCallCount > maxSearchToolCalls {
-						result = fmt.Sprintf("error: reached maximum number of search tool calls (%d)", maxSearchToolCalls)
-					} else {
-						result = a.rag.Dispatch(name, args)
-					}
-				case "web_fetch":
-					toolCallCount++
-					if toolCallCount > maxSearchToolCalls {
-						result = fmt.Sprintf("error: reached maximum number of search tool calls (%d)", maxSearchToolCalls)
-					} else {
-						result = a.web.Dispatch(name, args)
-					}
-				case "file_list", "file_read", "file_write", "file_exists":
-					result = a.generic.Dispatch(name, args)
-				default:
+				t, ok := toolMap[name]
+				if !ok {
 					result = "error: unknown tool " + name
+				} else {
+					if t.IsSearchTool {
+						toolCallCount++
+						if toolCallCount > maxSearchToolCalls {
+							result = fmt.Sprintf("error: reached maximum number of search tool calls (%d)", maxSearchToolCalls)
+						} else {
+							r, err := t.Execute(context.Background(), args)
+							if err != nil {
+								result = "error: " + err.Error()
+							} else {
+								result = r
+							}
+						}
+					} else {
+						r, err := t.Execute(context.Background(), args)
+						if err != nil {
+							result = "error: " + err.Error()
+						} else {
+							result = r
+						}
+					}
 				}
 
 				a.messages = append(a.messages, openai.ChatCompletionMessage{
@@ -275,18 +297,18 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 					ToolCallID: toolCall.ID,
 				})
 			}
-			// Continue the loop with tool results.
 			continue
 		}
 
-		// Final answer.
 		return choice.Message.Content, nil
 	}
 }
 
+// --- Input / REPL ---
+
 var (
 	promptStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("69")). // blue
+			Foreground(lipgloss.Color("69")).
 			Bold(true)
 	promptSymbol = promptStyle.Render("◆")
 
@@ -301,7 +323,7 @@ var (
 	history      []string
 	historyIndex int
 
-	historyFile   = func() string {
+	historyFile = func() string {
 		home, _ := os.UserHomeDir()
 		return filepath.Join(home, ".go-magnetar-history.json")
 	}()
@@ -353,8 +375,7 @@ func saveHistory() error {
 }
 
 // inputModel is a minimal bubbletea model used solely to collect one line of
-// user input with a styled prompt. It quits on Enter (submitting the text) or
-// Ctrl+C / Ctrl+D (requesting an exit).
+// user input with a styled prompt.
 type inputModel struct {
 	input textinput.Model
 	done  bool
@@ -433,7 +454,6 @@ func (m *inputModel) View() string {
 var _ = history
 
 // readInput launches a bubbletea program to collect one line from the user.
-// Returns the trimmed input, a quit flag, and any error.
 func readInput() (string, bool, error) {
 	m := newInputModel()
 	p := tea.NewProgram(&m, tea.WithOutput(os.Stderr))
@@ -442,91 +462,51 @@ func readInput() (string, bool, error) {
 		return "", false, err
 	}
 	final := result.(*inputModel)
-	// Print a newline after the input line so subsequent output starts cleanly.
 	fmt.Fprintln(os.Stdout)
 	return strings.TrimSpace(final.input.Value()), final.quit, nil
 }
 
-// contextStats returns byte and estimated token counts for the current message history.
-func (a *ChatAgent) contextStats() (bytes int, tokens int) {
-	for _, m := range a.messages {
-		bytes += len(m.Role) + len(m.Content)
-		for _, tc := range m.ToolCalls {
-			bytes += len(tc.Function.Name) + len(tc.Function.Arguments)
-		}
-		tokens += estimateTokens(m)
-	}
-	return bytes, tokens
-}
-
-// helpText is the reference text shown by the /help command.
-const helpText = `Available chat commands:
-    /help            show this help message
-    /exit  exit      end the session and exit
-    /compact         compress conversation history via summarizer
-    /new             start a new session and clear context
-    /stat            show context statistics (messages, tokens, bytes, models)
-
-The assistant can use the following tools:
-    file_read        read the contents of a file by its path
-    file_list        list all files in the current directory tree
-    file_write       write content to a file
-    file_exists      check if a file exists
-    rag_search       search the knowledge base for information
-    web_fetch        fetch and preprocess web pages for up-to-date information
-
-Keyboard shortcuts:
-    ↑/↓              navigate command history
-`
-
 // handleCommand processes a slash-command entered by the user.
-// It returns true if the input was a command (and was handled), false otherwise.
-// The second return value signals that the REPL should exit.
+// Returns (handled, exit).
 func (a *ChatAgent) handleCommand(line string) (handled bool, exit bool) {
-	cmd := strings.ToLower(strings.TrimSpace(line))
-	switch cmd {
-	case "/help", "help":
-		fmt.Fprint(os.Stdout, helpText+"\n")
-		return true, false
+	// Strip leading "/" and split into name + args.
+	trimmed := strings.TrimPrefix(strings.TrimSpace(line), "/")
+	parts := strings.SplitN(trimmed, " ", 2)
+	name := strings.ToLower(parts[0])
+	args := ""
+	if len(parts) == 2 {
+		args = strings.TrimSpace(parts[1])
+	}
 
-	case "/exit", "exit":
-		return true, true
+	handle := &agentHandle{a: a}
 
-	case "/compact":
-		compacted, err := a.summarizer.Compact(a.messages)
-		if err != nil {
-			slog.Error("chat: manual compaction failed", "err", err)
-			fmt.Fprintln(os.Stdout, "Error: compaction failed — see logs for details.")
-		} else {
-			before := len(a.messages)
-			a.messages = compacted
-			after := len(a.messages)
-			fmt.Fprintf(os.Stdout, "Context compacted: %d → %d messages.\n\n", before, after)
+	for _, cmd := range plugin.ChatCommands() {
+		if matchCommand(name, cmd) {
+			err := cmd.Execute(context.Background(), handle, args)
+			if err != nil {
+				if errors.Is(err, plugin.ErrExit) {
+					return true, true
+				}
+				slog.Error("chat: command error", "cmd", cmd.Name, "err", err)
+			}
+			return true, false
 		}
-		return true, false
-
-	case "/new":
-		slog.Info("chat: starting new session, clearing context")
-		a.messages = []openai.ChatCompletionMessage{
-			{
-				Role:    openai.ChatMessageRoleSystem,
-				Content: systemPrompt,
-			},
-		}
-		fmt.Fprintln(os.Stdout, "New session started. Context cleared.")
-		return true, false
-
-	case "/stat":
-		b, tokens := a.contextStats()
-		fmt.Fprintf(os.Stdout,
-			"Context stats:\n  messages    : %d\n  tokens      : ~%d (estimated)\n  bytes       : %s\n  llm model   : %s\n  rag model   : %s\n  vector size : %d\n\n",
-			len(a.messages), tokens, units.HumanSize(float64(b)),
-			a.cfg.LLM.Model,
-			a.cfg.RAG.LLM.Model, a.cfg.RAG.LLM.VectorSize,
-		)
-		return true, false
 	}
 	return false, false
+}
+
+// matchCommand reports whether name matches cmd.Name or any of its aliases
+// (case-insensitive).
+func matchCommand(name string, cmd plugin.ChatCommand) bool {
+	if strings.EqualFold(name, cmd.Name) {
+		return true
+	}
+	for _, alias := range cmd.Aliases {
+		if strings.EqualFold(name, alias) {
+			return true
+		}
+	}
+	return false
 }
 
 // Run starts the interactive REPL loop.
@@ -535,7 +515,6 @@ func (a *ChatAgent) Run() error {
 	for {
 		line, quit, err := readInput()
 		if err != nil {
-			// Treat closed stdin / broken pipe as normal exit.
 			if err == io.EOF {
 				break
 			}
@@ -548,7 +527,6 @@ func (a *ChatAgent) Run() error {
 			continue
 		}
 
-		// Handle slash-commands before sending input to the LLM.
 		if handled, exit := a.handleCommand(line); handled {
 			if exit {
 				break

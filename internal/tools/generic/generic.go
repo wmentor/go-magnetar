@@ -31,6 +31,11 @@ func New(cfg *config.Config, root *os.Root) *GenericTools {
 	return &GenericTools{cfg: cfg, root: root}
 }
 
+// Root returns the sandboxed filesystem root used by this instance.
+func (g *GenericTools) Root() *os.Root {
+	return g.root
+}
+
 // FileRead reads a file and returns its content and a success flag.
 func (g *GenericTools) FileRead(filename string) (string, bool) {
 	data, err := g.root.ReadFile(filename)
@@ -288,5 +293,102 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 
 	default:
 		return "error: unknown tool " + name
+	}
+}
+
+// Static tool definitions — return schemas without requiring a GenericTools instance.
+
+func StaticDefinitionFileRead() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "file_read",
+			Description: "Read the contents of a file by its path",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"filename": map[string]any{
+						"type":        "string",
+						"description": "Path to the file to read",
+					},
+				},
+				"required": []string{"filename"},
+			},
+		},
+	}
+}
+
+func StaticDefinitionFileWrite() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "file_write",
+			Description: "Write content to a file",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"filename": map[string]any{
+						"type":        "string",
+						"description": "Path where to write the file",
+					},
+					"content": map[string]any{
+						"type":        "string",
+						"description": "Content to write to the file",
+					},
+				},
+				"required": []string{"filename", "content"},
+			},
+		},
+	}
+}
+
+func StaticDefinitionFileExists() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "file_exists",
+			Description: "Check if a file exists",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"filename": map[string]any{
+						"type":        "string",
+						"description": "Path to the file to check",
+					},
+				},
+				"required": []string{"filename"},
+			},
+		},
+	}
+}
+
+func StaticDefinitionFileList() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "file_list",
+			Description: "List all files in the current directory tree",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"options": map[string]any{
+						"type":        "object",
+						"description": "Optional filtering criteria",
+						"properties": map[string]any{
+							"extensions": map[string]any{
+								"type":        "array",
+								"items":       map[string]any{"type": "string"},
+								"description": "File extensions to include (e.g., ['.md', '.txt'])",
+							},
+							"names": map[string]any{
+								"type":        "array",
+								"items":       map[string]any{"type": "string"},
+								"description": "File names to include (exact matches)",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 }

@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"math"
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -34,6 +36,7 @@ const (
 type RAGTools struct {
 	cfg          *config.Config
 	embedClient  *openai.Client
+	llmClient    *openai.Client // used for query expansion (multi-query)
 	qdrantClient *qdrant.Client
 }
 
@@ -43,6 +46,11 @@ func New(cfg *config.Config) (*RAGTools, error) {
 	embedCfg := openai.DefaultConfig(cfg.RAG.LLM.APIKey)
 	embedCfg.BaseURL = cfg.RAG.LLM.BaseURL
 	embedClient := openai.NewClientWithConfig(embedCfg)
+
+	// Build LLM client for query expansion (reuses main LLM config).
+	llmCfg := openai.DefaultConfig(cfg.LLM.APIKey)
+	llmCfg.BaseURL = cfg.LLM.BaseURL
+	llmClient := openai.NewClientWithConfig(llmCfg)
 
 	// Parse connstr to extract host and port for gRPC.
 	host, port, err := parseConnStr(cfg.RAG.Qdrant.ConnStr)
@@ -63,6 +71,7 @@ func New(cfg *config.Config) (*RAGTools, error) {
 	rt := &RAGTools{
 		cfg:          cfg,
 		embedClient:  embedClient,
+		llmClient:    llmClient,
 		qdrantClient: qdrantClient,
 	}
 
@@ -156,6 +165,183 @@ func (r *RAGTools) embed(text string) ([]float32, error) {
 	return resp.Data[0].Embedding, nil
 }
 
+// expandQuery asks the LLM to produce n alternative phrasings of the query.
+// Returns the reformulations (not including the original query).
+// On any error it logs a warning and returns nil so the caller falls back to
+// single-query mode gracefully.
+func (r *RAGTools) expandQuery(ctx context.Context, query string, n int) []string {
+	if n <= 0 {
+		return nil
+	}
+
+	prompt := fmt.Sprintf(
+		"Generate %d alternative phrasings of the following search query. "+
+			"Output only the phrasings, one per line, with no numbering or extra text.\n\nQuery: %s",
+		n, query,
+	)
+
+	reqCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	resp, err := r.llmClient.CreateChatCompletion(reqCtx, openai.ChatCompletionRequest{
+		Model: r.cfg.LLM.Model,
+		Messages: []openai.ChatCompletionMessage{
+			{Role: openai.ChatMessageRoleUser, Content: prompt},
+		},
+	})
+	if err != nil {
+		slog.Warn("rag: query expansion failed, falling back to single query", "err", err)
+		return nil
+	}
+
+	if len(resp.Choices) == 0 {
+		return nil
+	}
+
+	var result []string
+	for _, line := range strings.Split(resp.Choices[0].Message.Content, "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			result = append(result, line)
+		}
+	}
+	slog.Debug("rag: query expansion", "original", preview(query, 60), "variants", len(result))
+	return result
+}
+
+// searchResult holds one Qdrant result point with its vector for deduplication.
+type searchResult struct {
+	id     string
+	score  float32
+	text   string
+	vector []float32
+}
+
+// searchOne executes a single embedding + Qdrant query and returns raw results.
+func (r *RAGTools) searchOne(ctx context.Context, query string) ([]searchResult, error) {
+	vector, err := r.embed(query)
+	if err != nil {
+		return nil, err
+	}
+
+	qCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
+	limit := uint64(r.cfg.RAG.Search.Limit)
+	withPayload := true
+	scoreThreshold := r.cfg.RAG.Search.Threshold
+	points, err := r.qdrantClient.Query(qCtx, &qdrant.QueryPoints{
+		CollectionName: r.cfg.RAG.Qdrant.Collection,
+		Query:          qdrant.NewQuery(vector...),
+		Limit:          &limit,
+		ScoreThreshold: &scoreThreshold,
+		WithPayload:    &qdrant.WithPayloadSelector{SelectorOptions: &qdrant.WithPayloadSelector_Enable{Enable: withPayload}},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	var out []searchResult
+	for _, p := range points {
+		if payload := p.GetPayload(); payload != nil {
+			if val, ok := payload[payloadTextField]; ok {
+				if sv := val.GetStringValue(); sv != "" {
+					out = append(out, searchResult{
+						id:     p.GetId().GetUuid(),
+						score:  p.GetScore(),
+						text:   sv,
+						vector: vector, // reuse query vector for inter-result dedup
+					})
+				}
+			}
+		}
+	}
+	return out, nil
+}
+
+// cosineSimilarity computes the cosine similarity between two unit-normalised
+// vectors. Qdrant returns cosine-distance results, so vectors from different
+// queries may not be unit-normalised — we normalise here.
+func cosineSimilarity(a, b []float32) float32 {
+	if len(a) != len(b) {
+		return 0
+	}
+	var dot, normA, normB float64
+	for i := range a {
+		dot += float64(a[i]) * float64(b[i])
+		normA += float64(a[i]) * float64(a[i])
+		normB += float64(b[i]) * float64(b[i])
+	}
+	if normA == 0 || normB == 0 {
+		return 0
+	}
+	return float32(dot / (math.Sqrt(normA) * math.Sqrt(normB)))
+}
+
+// dedup removes near-duplicate chunks from results.
+// Two chunks are considered near-duplicates when their text embeddings have a
+// cosine similarity above cfg.RAG.Search.DedupThreshold. When a pair is found,
+// the chunk with the lower score is dropped.
+// Embeddings for each unique chunk are computed lazily and cached within the call.
+func (r *RAGTools) dedup(results []searchResult) []searchResult {
+	threshold := r.cfg.RAG.Search.DedupThreshold
+	if threshold <= 0 || len(results) <= 1 {
+		return results
+	}
+
+	// Compute embeddings for each chunk text (in parallel).
+	embeddings := make([][]float32, len(results))
+	var mu sync.Mutex
+	var wg sync.WaitGroup
+
+	for i, res := range results {
+		wg.Add(1)
+		go func(idx int, text string) {
+			defer wg.Done()
+			vec, err := r.embed(text)
+			if err != nil {
+				slog.Debug("rag: dedup embed failed, skipping", "err", err)
+				return
+			}
+			mu.Lock()
+			embeddings[idx] = vec
+			mu.Unlock()
+		}(i, res.text)
+	}
+	wg.Wait()
+
+	// Greedy suppression: keep the first (highest-score) chunk, drop any later
+	// chunk whose embedding similarity to a kept chunk exceeds the threshold.
+	dropped := make([]bool, len(results))
+	for i := 0; i < len(results); i++ {
+		if dropped[i] || embeddings[i] == nil {
+			continue
+		}
+		for j := i + 1; j < len(results); j++ {
+			if dropped[j] || embeddings[j] == nil {
+				continue
+			}
+			sim := cosineSimilarity(embeddings[i], embeddings[j])
+			if sim >= threshold {
+				slog.Debug("rag: dedup suppressed near-duplicate",
+					"sim", fmt.Sprintf("%.3f", sim),
+					"kept", preview(results[i].text, 40),
+					"dropped", preview(results[j].text, 40),
+				)
+				dropped[j] = true
+			}
+		}
+	}
+
+	out := results[:0]
+	for i, r := range results {
+		if !dropped[i] {
+			out = append(out, r)
+		}
+	}
+	return out
+}
+
 // RagSave saves a text fragment to Qdrant. Returns true on success.
 //
 // The point ID is a deterministic UUID v5 derived from the content, making
@@ -202,48 +388,94 @@ func (r *RAGTools) RagSave(content string, prepend string) bool {
 
 // RagSearch searches the knowledge base and returns relevant text fragments.
 //
-// Results with a cosine-similarity score below cfg.RAG.Search.Threshold are
-// discarded so that the LLM receives only semantically relevant context rather
-// than the nearest neighbour regardless of actual distance.
+// When cfg.RAG.Search.MultiQuery > 0 the original query is expanded into
+// multiple phrasings via the LLM; each phrasing is searched independently and
+// results are merged by keeping the best (highest) score per unique chunk ID.
+//
+// When cfg.RAG.Search.DedupThreshold > 0 near-duplicate chunks (cosine
+// similarity above the threshold) are suppressed before returning results.
 func (r *RAGTools) RagSearch(query string) string {
-	vector, err := r.embed(query)
-	if err != nil {
-		slog.Error("rag_search: embedding failed", "err", err)
-		return ""
+	ctx := context.Background()
+
+	// --- Step 1: build the list of queries to run ---
+	queries := []string{query}
+	if r.cfg.RAG.Search.MultiQuery > 0 {
+		extras := r.expandQuery(ctx, query, r.cfg.RAG.Search.MultiQuery)
+		queries = append(queries, extras...)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
+	// --- Step 2: run all queries in parallel ---
+	type queryResult struct {
+		results []searchResult
+		err     error
+	}
+	ch := make(chan queryResult, len(queries))
 
-	limit := uint64(r.cfg.RAG.Search.Limit)
-	withPayload := true
-	scoreThreshold := r.cfg.RAG.Search.Threshold
-	results, err := r.qdrantClient.Query(ctx, &qdrant.QueryPoints{
-		CollectionName: r.cfg.RAG.Qdrant.Collection,
-		Query:          qdrant.NewQuery(vector...),
-		Limit:          &limit,
-		ScoreThreshold: &scoreThreshold,
-		WithPayload:    &qdrant.WithPayloadSelector{SelectorOptions: &qdrant.WithPayloadSelector_Enable{Enable: withPayload}},
-	})
-	if err != nil {
-		slog.Error("rag_search: query failed", "err", err)
-		return ""
+	for _, q := range queries {
+		go func(q string) {
+			res, err := r.searchOne(ctx, q)
+			ch <- queryResult{res, err}
+		}(q)
 	}
 
-	var parts []string
-	for _, point := range results {
-		if payload := point.GetPayload(); payload != nil {
-			if val, ok := payload[payloadTextField]; ok {
-				if sv := val.GetStringValue(); sv != "" {
-					parts = append(parts, sv)
-					slog.Debug("rag_search: result", "score", point.GetScore(), "preview", preview(sv, 60))
-				}
+	// --- Step 3: merge results, keeping best score per unique chunk ID ---
+	bestByID := make(map[string]searchResult)
+	for range queries {
+		qr := <-ch
+		if qr.err != nil {
+			slog.Error("rag_search: query failed", "err", qr.err)
+			continue
+		}
+		for _, res := range qr.results {
+			if existing, ok := bestByID[res.id]; !ok || res.score > existing.score {
+				bestByID[res.id] = res
 			}
 		}
 	}
 
-	slog.Debug("rag_search: done", "query", preview(query, 60), "results", len(parts))
+	if len(bestByID) == 0 {
+		slog.Debug("rag_search: no results", "query", preview(query, 60))
+		return ""
+	}
+
+	// Convert map to slice sorted by descending score.
+	merged := make([]searchResult, 0, len(bestByID))
+	for _, r := range bestByID {
+		merged = append(merged, r)
+	}
+	sortByScore(merged)
+
+	// Trim to configured limit (each sub-query can return up to Limit results,
+	// so the merged set may be larger).
+	if limit := r.cfg.RAG.Search.Limit; limit > 0 && len(merged) > limit {
+		merged = merged[:limit]
+	}
+
+	// --- Step 4: deduplicate near-identical chunks ---
+	if r.cfg.RAG.Search.DedupThreshold > 0 {
+		merged = r.dedup(merged)
+	}
+
+	// --- Step 5: format output ---
+	parts := make([]string, 0, len(merged))
+	for _, res := range merged {
+		parts = append(parts, res.text)
+		slog.Debug("rag_search: result", "score", res.score, "preview", preview(res.text, 60))
+	}
+
+	slog.Debug("rag_search: done", "query", preview(query, 60),
+		"queries", len(queries), "results", len(parts))
 	return strings.Join(parts, "\n\n---\n\n")
+}
+
+// sortByScore sorts results in descending order of score (insertion sort —
+// result sets are small so allocation of a sort.Interface is not worth it).
+func sortByScore(results []searchResult) {
+	for i := 1; i < len(results); i++ {
+		for j := i; j > 0 && results[j].score > results[j-1].score; j-- {
+			results[j], results[j-1] = results[j-1], results[j]
+		}
+	}
 }
 
 // preview returns the first n runes of s followed by "…" if s was truncated.
@@ -334,5 +566,27 @@ func (r *RAGTools) Dispatch(name string, args string) string {
 
 	default:
 		return "error: unknown tool " + name
+	}
+}
+
+// StaticDefinitionSearch returns the OpenAI tool schema for rag_search without
+// requiring an initialised RAGTools instance. Used by the plugin for lazy init.
+func StaticDefinitionSearch() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "rag_search",
+			Description: "Search the knowledge base for relevant information",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"query": map[string]any{
+						"type":        "string",
+						"description": "Search query",
+					},
+				},
+				"required": []string{"query"},
+			},
+		},
 	}
 }
