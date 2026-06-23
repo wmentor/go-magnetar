@@ -527,15 +527,15 @@ func (a *ChatAgent) Run() error {
 			continue
 		}
 
+		fmt.Fprintln(os.Stdout, questionStyle.Render(line))
+		fmt.Fprintln(os.Stdout)
+
 		if handled, exit := a.handleCommand(line); handled {
 			if exit {
 				break
 			}
 			continue
 		}
-
-		fmt.Fprintln(os.Stdout, questionStyle.Render(line))
-		fmt.Fprintln(os.Stdout)
 
 		answer, err := a.ask(line)
 		if err != nil {

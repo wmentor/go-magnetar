@@ -16,7 +16,7 @@ type Plugin struct{}
 func (p *Plugin) Init(_ plugin.State, hub plugin.Hub) error {
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name:    "exit",
-		Aliases: []string{"quit"},
+		Aliases: []string{"quit", "q"},
 		Help:    "End the session and exit.",
 		Execute: func(_ context.Context, _ plugin.AgentHandle, _ string) error {
 			return plugin.ErrExit
