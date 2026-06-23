@@ -6,7 +6,7 @@ go-magnetar — a knowledge base tool built on RAG (Retrieval-Augmented Generati
 - **Indexer** — splits documents into semantic chunks and stores them in a vector database
 - **Chat agent** — answers questions strictly based on indexed data (no hallucinations or guessing)
 
-> If the `webfetch` block is configured, it is used to clean HTML content from ads, navigation, and other noise when processing web pages.
+> If the `webfetch` block is configured, it is used to clean HTML content from ads, navigation, and other noise when processing web pages. Confluence URLs (both standard and short links) are also supported via the `confluence` block.
 
 ## Requirements
 
@@ -75,9 +75,15 @@ webfetch:
   api_key: sk-...
   model: gpt-4o
   context: 128000
+
+confluence:
+  base_url: https://your-domain.atlassian.net
+  api_key: YOUR_API_KEY
 ```
 
 > If the `webfetch` block is specified, the model parameters listed above are used to clean HTML content obtained from web pages.
+
+> The `confluence` block enables fetching Confluence pages directly by URL (both standard and short links).
 
 ### 4. Index Documents
 
@@ -85,11 +91,14 @@ webfetch:
 # Single file
 ./bin/go-magnetar -c my-config.yaml indexer -f docs/guide.md
 
-# From URL
+# From URL (web page)
 ./bin/go-magnetar -c my-config.yaml indexer --url https://example.com/article
+
+# From Confluence URL
+./bin/go-magnetar -c my-config.yaml indexer --url https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/123456
 ```
 
-> If the `webfetch` block is configured in the config, web pages are cleaned of ads and navigation using an AI agent before being converted to Markdown and indexed.
+> If the `webfetch` block is configured in the config, web pages are cleaned of ads and navigation using an AI agent before being converted to Markdown and indexed. Confluence pages are also indexed via the `confluence` block.
 
 ### 5. Ask Questions
 
@@ -165,7 +174,7 @@ Use **↑/↓** arrows to navigate through previously entered commands. History 
 | `file_list` | Recursively lists files in the current directory |
 | `file_write` | Writes content to a file in the filesystem |
 | `rag_search` | Returns relevant fragments from indexed data |
-| `web_fetch` | Fetches web pages (used only if RAG returns no results) |
+| `web_fetch` | Fetches web pages (fallback if RAG returns no results); also fetches Confluence pages when URL matches |
 
 ### Search tool call limit
 
@@ -198,6 +207,8 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 | `webfetch.api_key` | — | API key for web content cleaning model |
 | `webfetch.model` | — | Model name for web content cleaning (e.g. `gpt-4o`) |
 | `webfetch.context` | — | Token limit of the model's context window for web cleaning |
+| `confluence.base_url` | — | Confluence instance base URL (e.g. `https://your-domain.atlassian.net`) |
+| `confluence.api_key` | — | Confluence API key for fetching pages |
 
 **Vector sizes for common embedding models:**
 

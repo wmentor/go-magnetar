@@ -78,6 +78,12 @@ type LogConfig struct {
 	Level string `koanf:"level"` // debug | info | warn | error
 }
 
+// ConfluenceConfig holds settings for Confluence integration.
+type ConfluenceConfig struct {
+	BaseURL string `koanf:"base_url"`
+	APIKey  string `koanf:"api_key"`
+}
+
 // CompactConfig controls the history-summarization behaviour of the chat agent.
 type CompactConfig struct {
 	// Threshold is the token count at which history summarization is triggered.
@@ -92,11 +98,12 @@ type CompactConfig struct {
 
 // Config is the root configuration structure.
 type Config struct {
-	LLM      LLMConfig      `koanf:"llm"`
-	RAG      RAGConfig      `koanf:"rag"`
-	Log      LogConfig      `koanf:"log"`
-	Compact  CompactConfig  `koanf:"compact"`
-	WebFetch WebFetchConfig `koanf:"webfetch"`
+	LLM        LLMConfig        `koanf:"llm"`
+	RAG        RAGConfig        `koanf:"rag"`
+	Log        LogConfig        `koanf:"log"`
+	Compact    CompactConfig    `koanf:"compact"`
+	WebFetch   WebFetchConfig   `koanf:"webfetch"`
+	Confluence ConfluenceConfig `koanf:"confluence"`
 }
 
 // defaults holds default config values that are applied before the

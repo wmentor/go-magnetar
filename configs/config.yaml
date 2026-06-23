@@ -48,3 +48,7 @@ webfetch:
   api_key: YOUR_API_KEY
   model: gpt-4o
   context: 128000
+
+confluence:
+  base_url: https://your-domain.atlassian.net
+  api_key: YOUR_API_KEY

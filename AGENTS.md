@@ -72,9 +72,15 @@ webfetch:
   api_key: YOUR_API_KEY
   model: gpt-4o
   context: 128000
+
+confluence:
+  base_url: https://your-domain.atlassian.net
+  api_key: YOUR_API_KEY
 ```
 
 > If the `webfetch` block is specified, the listed model parameters are used to clean HTML content obtained from web pages.
+
+> The `confluence` block enables fetching Confluence pages directly by URL (both standard and short links).
 
 > `vector_size` must match the dimensionality of the chosen embedding model.
 > For `text-embedding-3-small` — 1536, for `text-embedding-ada-002` — 1536, for `text-embedding-3-large` — 3072.
@@ -126,6 +132,9 @@ Reads `.md` and `.txt` files or web pages (by URL), splits content into overlapp
 
 ```bash
 ./bin/go-magnetar -c my-config.yaml indexer --url https://example.com/article
+
+# From Confluence URL (standard or short link)
+./bin/go-magnetar -c my-config.yaml indexer --url https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/123456
 ```
 
 ### Prepend message to chunks
@@ -207,7 +216,7 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 | `file_list` | `(options: object) -> []string` | Recursively lists files in the current directory |
 | `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem |
 | `rag_search` | `(query: string) -> string` | Returns top-N relevant fragments from Qdrant (N is set by `rag.search.limit`) |
-| `web_fetch` | `(url: string) -> string` | Fetches and cleans a web page (fallback if RAG returns no results) |
+| `web_fetch` | `(url: string) -> string` | Fetches and cleans a web page (fallback if RAG returns no results); also fetches Confluence pages when URL matches |
 
 ## Architecture
 

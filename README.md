@@ -10,7 +10,7 @@ A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines tw
 
 **Search tool call limit** — to prevent infinite loops, each user request is limited to a maximum number of search-related tool calls (`rag_search` + `web_fetch`). By default, the limit is 10 calls per request. When the limit is reached, an error message is sent to the LLM.
 
-**HTML Preprocessing** — when `webfetch.*` parameters are configured, web pages fetched via `web_fetch` are cleaned of ads, navigation, cookie banners, and other noise using an AI agent before being converted to Markdown and indexed or returned to the agent.
+**HTML Preprocessing** — when `webfetch.*` parameters are configured, web pages fetched via `web_fetch` are cleaned of ads, navigation, cookie banners, and other noise using an AI agent before being converted to Markdown and indexed or returned to the agent. Confluence URLs are also handled via the `confluence` block to fetch pages by ID.
 
 ## Requirements
 
@@ -79,6 +79,10 @@ webfetch:
   api_key: sk-...
   model: gpt-4o
   context: 128000
+
+confluence:
+  base_url: https://your-domain.atlassian.net
+  api_key: YOUR_API_KEY
 ```
 
 ### 4. Index your documents
@@ -89,6 +93,9 @@ webfetch:
 
 # From URL
 ./bin/go-magnetar -c my-config.yaml indexer --url https://example.com/article
+
+# From Confluence URL
+./bin/go-magnetar -c my-config.yaml indexer --url https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/123456
 ```
 
 ### 5. Ask questions
@@ -146,6 +153,8 @@ The chat agent maintains command history in `~/.go-magnetar-history.json`. Use *
 | `webfetch.api_key` | — | API key for web page preprocessing model |
 | `webfetch.model` | — | Model name for web page preprocessing (e.g. `gpt-4o`) |
 | `webfetch.context` | — | Token limit of the model's context window for web preprocessing |
+| `confluence.base_url` | — | Confluence instance base URL (e.g. `https://your-domain.atlassian.net`) |
+| `confluence.api_key` | — | Confluence API key for fetching pages |
 
 **Vector sizes for common embedding models:**
 
@@ -174,10 +183,10 @@ go-magnetar [-c <config>] indexer [-f <file>] [--url <url>] [-m <message>]
 | Flag | Description |
 |---|---|
 | `-f` | Path to a single `.md` or `.txt` file to index |
-| `--url` | URL to fetch and index |
+| `--url` | URL to fetch and index (web page or Confluence page) |
 | `-m` | Message to prepend to each chunk for improved search |
 
-Specify either `-f` or `--url`. If a file fails to read, an error is logged.
+Specify either `-f` or `--url`. If a file fails to read, an error is logged. Confluence standard and short links are both supported.
 
 ### `agent` — interactive chat
 
