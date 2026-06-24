@@ -16,7 +16,7 @@ func init() {
 // Plugin registers the /version chat command.
 type Plugin struct{}
 
-func (p *Plugin) Init(_ plugin.State, hub plugin.Hub) error {
+func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name: "version",
 		Help: "Show the current program version.",

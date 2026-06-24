@@ -24,4 +24,4 @@ func (p *Plugin) RegisterCLI(add func(cmd any)) {
 	add(&p.w)
 }
 
-func (p *Plugin) Init(_ plugin.State, _ plugin.Hub) error { return nil }
+func (p *Plugin) Init(_ *plugin.State, _ plugin.Hub) error { return nil }

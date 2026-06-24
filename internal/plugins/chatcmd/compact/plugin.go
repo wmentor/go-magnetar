@@ -16,7 +16,7 @@ func init() {
 // Plugin registers the /compact chat command.
 type Plugin struct{}
 
-func (p *Plugin) Init(_ plugin.State, hub plugin.Hub) error {
+func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name: "compact",
 		Help: "Compress conversation history via summarizer.",

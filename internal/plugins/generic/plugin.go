@@ -18,11 +18,11 @@ func init() {
 // agent's working-directory Root (set via plugin.SetRoot) is available.
 type Plugin struct {
 	mu    sync.Mutex
-	state plugin.State
+	state *plugin.State
 	tools *generic.GenericTools
 }
 
-func (p *Plugin) Init(s plugin.State, hub plugin.Hub) error {
+func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	p.state = s
 
 	hub.RegisterTool(plugin.LLMTool{
@@ -52,7 +52,6 @@ func (p *Plugin) Init(s plugin.State, hub plugin.Hub) error {
 	return nil
 }
 
-// get returns GenericTools, creating or re-creating it when Root changes.
 func (p *Plugin) get() *generic.GenericTools {
 	p.mu.Lock()
 	defer p.mu.Unlock()

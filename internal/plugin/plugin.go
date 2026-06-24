@@ -20,7 +20,7 @@ type Plugin interface {
 	// Init is called once after the config is loaded.
 	// The plugin registers its contributions through hub and initialises
 	// any internal state from s.
-	Init(s State, hub Hub) error
+	Init(s *State, hub Hub) error
 }
 
 // State carries shared infrastructure injected into every plugin at Init time.

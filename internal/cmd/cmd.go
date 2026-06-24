@@ -45,7 +45,7 @@ func Execute() error {
 
 	config.SetupLogger(cfg)
 
-	if err := plugin.InitAll(plugin.State{Config: cfg}); err != nil {
+	if err := plugin.InitAll(&plugin.State{Config: cfg}); err != nil {
 		return err
 	}
 	defer plugin.Stop()

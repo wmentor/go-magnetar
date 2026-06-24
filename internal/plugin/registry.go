@@ -172,7 +172,7 @@ func KongPlugins() kong.Plugins {
 //
 // Must be called exactly once, after the config is loaded.
 // Panics if called a second time.
-func InitAll(s State) error {
+func InitAll(s *State) error {
 	registryMu.Lock()
 	if globalHub.initialised {
 		registryMu.Unlock()

@@ -16,7 +16,7 @@ func init() {
 // Plugin registers the /save chat command.
 type Plugin struct{}
 
-func (p *Plugin) Init(_ plugin.State, hub plugin.Hub) error {
+func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name:    "save",
 		Help:    "Save the last assistant answer to a file.",

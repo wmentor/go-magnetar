@@ -18,7 +18,7 @@ func init() {
 // Plugin registers the /stat chat command.
 type Plugin struct{}
 
-func (p *Plugin) Init(_ plugin.State, hub plugin.Hub) error {
+func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name: "stat",
 		Help: "Print context statistics (messages, tokens, bytes, models).",

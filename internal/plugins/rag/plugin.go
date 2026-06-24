@@ -14,7 +14,7 @@ func init() {
 // Plugin wraps the RAG tools and exposes rag_search as an LLM tool.
 type Plugin struct{}
 
-func (p *Plugin) Init(s plugin.State, hub plugin.Hub) error {
+func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	tools, err := rag.New(s.Config)
 	if err != nil {
 		return err

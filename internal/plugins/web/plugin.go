@@ -17,12 +17,12 @@ func init() {
 // agent's working-directory Root (set via plugin.SetRoot) is available.
 type Plugin struct {
 	mu    sync.Mutex
-	state plugin.State
+	state *plugin.State
 	root  interface{} // tracks last root used to detect changes
 	tools *web.WebTools
 }
 
-func (p *Plugin) Init(s plugin.State, hub plugin.Hub) error {
+func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	p.state = s
 
 	hub.RegisterTool(plugin.LLMTool{
