@@ -212,7 +212,7 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 
 | Tool | Signature | Description |
 |---|---|---|
-| `file_read` | `(filename: string) -> string` | Reads file contents from the filesystem |
+| `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem; `limit` and `offset` specify line range (0 = read all) |
 | `file_list` | `(options: object) -> []string` | Recursively lists files in the current directory |
 | `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem |
 | `rag_search` | `(query: string) -> string` | Returns top-N relevant fragments from Qdrant (N is set by `rag.search.limit`) |
@@ -338,6 +338,17 @@ The `internal/chunk` package implements chunking optimized for RAG:
 - **Word-boundary snapping** — chunk and overlap boundaries are aligned to word edges; words are never cut in the middle.
 - **UTF-8 safe** — all size accounting is in Unicode runes, not bytes. Cyrillic, CJK, emoji all work correctly.
 - **Newline normalization** — `\r\n` and `\r` are normalized to `\n` before processing.
+
+## File reading with line range (`internal/tools/generic`)
+
+The `file_read` tool supports reading file contents by line range to avoid loading large files into memory:
+
+| Parameter | Default | Description |
+|---|---|---|
+| `limit` | `0` | Maximum number of lines to read (`0` = read all lines) |
+| `offset` | `0` | Number of lines to skip from the beginning (`0` = start from beginning) |
+
+When both `limit` and `offset` are `0`, the entire file is read using the optimized `ReadFile` path. When either parameter is non-zero, the tool uses `bufio.Scanner` to read line-by-line without loading the entire file into memory, then returns the specified range.
 
 ## Plugin System
 

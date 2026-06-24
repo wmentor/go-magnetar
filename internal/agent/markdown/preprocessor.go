@@ -121,7 +121,7 @@ func (p *Preprocessor) runAgentLoop(messages []openai.ChatCompletionMessage) (st
 func (p *Preprocessor) ProcessMD(filename string) (string, error) {
 	slog.Debug("preprocessor: processing markdown file", "file", filename)
 
-	markdownContent, ok := p.generic.FileRead(filename)
+	markdownContent, ok := p.generic.FileRead(filename, 0, 0)
 	if !ok {
 		return "", fmt.Errorf("preprocessor: failed to read file %s", filename)
 	}

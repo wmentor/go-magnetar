@@ -1,6 +1,7 @@
 package generic
 
 import (
+	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/fs"
@@ -23,9 +24,9 @@ type FileListOptions struct {
 
 // GenericTools provides basic file system operations as LLM tools.
 type GenericTools struct {
-	cfg    *config.Config
-	root   *os.Root
-	state  *plugin.State
+	cfg   *config.Config
+	root  *os.Root
+	state *plugin.State
 }
 
 // New creates a new GenericTools instance.
@@ -39,13 +40,48 @@ func (g *GenericTools) Root() *os.Root {
 }
 
 // FileRead reads a file and returns its content and a success flag.
-func (g *GenericTools) FileRead(filename string) (string, bool) {
-	data, err := g.root.ReadFile(filename)
+// If limit > 0, reads at most limit lines starting from offset line.
+func (g *GenericTools) FileRead(filename string, limit int, offset int) (string, bool) {
+	if limit <= 0 && offset <= 0 {
+		data, err := g.root.ReadFile(filename)
+		if err != nil {
+			slog.Error("file_read: failed to read file", "file", filename, "err", err)
+			return "", false
+		}
+		return string(data), true
+	}
+
+	f, err := g.root.Open(filename)
 	if err != nil {
-		slog.Error("file_read: failed to read file", "file", filename, "err", err)
+		slog.Error("file_read: failed to open file", "file", filename, "err", err)
 		return "", false
 	}
-	return string(data), true
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	var sb strings.Builder
+	lineCount := 0
+
+	for scanner.Scan() {
+		lineCount++
+		if lineCount <= offset {
+			continue
+		}
+		if limit > 0 && lineCount > offset+limit {
+			break
+		}
+		if lineCount > offset+1 {
+			sb.WriteByte('\n')
+		}
+		sb.WriteString(scanner.Text())
+	}
+
+	if err := scanner.Err(); err != nil {
+		slog.Error("file_read: failed to scan file", "file", filename, "err", err)
+		return "", false
+	}
+
+	return sb.String(), true
 }
 
 // FileWrite writes content to a file and returns a success flag.
@@ -158,6 +194,14 @@ func (g *GenericTools) DefinitionFileRead() openai.Tool {
 						"type":        "string",
 						"description": "Path to the file to read",
 					},
+					"limit": map[string]any{
+						"type":        "integer",
+						"description": "Maximum number of lines to read (optional, 0 = read all)",
+					},
+					"offset": map[string]any{
+						"type":        "integer",
+						"description": "Number of lines to skip from the beginning (optional, 0 = start from beginning)",
+					},
 				},
 				"required": []string{"filename"},
 			},
@@ -249,12 +293,14 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 	case "file_read":
 		var params struct {
 			Filename string `json:"filename"`
+			Limit    int    `json:"limit,omitempty"`
+			Offset   int    `json:"offset,omitempty"`
 		}
 		if err := json.Unmarshal([]byte(args), &params); err != nil {
 			slog.Error("file_read: failed to parse args", "args", args, "err", err)
 			return "error: failed to parse arguments"
 		}
-		content, ok := g.FileRead(params.Filename)
+		content, ok := g.FileRead(params.Filename, params.Limit, params.Offset)
 		if !ok {
 			return "error: failed to read file"
 		}
@@ -271,7 +317,7 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 		results := g.FileList(params.Options)
 		return strings.Join(results, "\n")
 
- 	case "file_write":
+	case "file_write":
 		var params struct {
 			Filename string `json:"filename"`
 			Content  string `json:"content"`
@@ -317,6 +363,14 @@ func StaticDefinitionFileRead() openai.Tool {
 					"filename": map[string]any{
 						"type":        "string",
 						"description": "Path to the file to read",
+					},
+					"limit": map[string]any{
+						"type":        "integer",
+						"description": "Maximum number of lines to read (optional, 0 = read all)",
+					},
+					"offset": map[string]any{
+						"type":        "integer",
+						"description": "Number of lines to skip from the beginning (optional, 0 = start from beginning)",
 					},
 				},
 				"required": []string{"filename"},
