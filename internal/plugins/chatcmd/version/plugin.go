@@ -2,9 +2,8 @@ package versionplugin
 
 import (
 	"context"
-	"debug/buildinfo"
 	"fmt"
-	"os"
+	"runtime/debug"
 
 	"github.com/wmentor/go-magnetar/internal/plugin"
 )
@@ -21,20 +20,11 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 		Name: "version",
 		Help: "Show the current program version.",
 		Execute: func(_ context.Context, a plugin.AgentHandle, args string) error {
-			f, err := os.Open(os.Args[0])
-			if err != nil {
-				fmt.Fprintf(os.Stdout, "Error opening binary: %v\n", err)
-				return nil
+			if info, ok := debug.ReadBuildInfo(); ok {
+				fmt.Printf("Version: %s\n", info.Main.Version)
+			} else {
+				fmt.Println("Version: dev")
 			}
-			defer f.Close()
-
-			bi, err := buildinfo.Read(f)
-			if err != nil {
-				fmt.Fprintf(os.Stdout, "Error reading build info: %v\n", err)
-				return nil
-			}
-
-			fmt.Fprintf(os.Stdout, "Version: %s\n", bi.Main.Version)
 			return nil
 		},
 	})
