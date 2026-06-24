@@ -14,10 +14,14 @@ func init() {
 	plugin.Register("chatcmd.less", &Plugin{})
 }
 
-// Plugin registers the /less chat command.
+// Plugin registers the /less chat command only if the 'less' command is available.
 type Plugin struct{}
 
 func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
+	if !p.checkLess() {
+		return nil
+	}
+
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name:    "less",
 		Help:    "View the last assistant answer using less.",
@@ -58,4 +62,9 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 		},
 	})
 	return nil
+}
+
+func (p *Plugin) checkLess() bool {
+	_, err := exec.LookPath("less")
+	return err == nil
 }

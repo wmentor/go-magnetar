@@ -215,6 +215,7 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 | `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem; `limit` and `offset` specify line range (0 = read all) |
 | `file_list` | `(options: object) -> []string` | Recursively lists files in the current directory |
 | `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem |
+| `system_grep` | `(filename: string, pattern: string, case_insensitive: bool, recursive: bool) -> string` | Executes system grep command with safe parameters: -n (always), -i/-r (optional) |
 | `rag_search` | `(query: string) -> string` | Returns top-N relevant fragments from Qdrant (N is set by `rag.search.limit`) |
 | `web_fetch` | `(url: string) -> string` | Fetches and cleans a web page (fallback if RAG returns no results); also fetches Confluence pages when URL matches |
 
@@ -233,7 +234,7 @@ internal/
   plugins/
     rag/plugin.go                — rag_search LLM tool (init → Register)
     web/plugin.go                — web_fetch LLM tool (init → Register)
-    generic/plugin.go            — file_read/list/write/exists LLM tools (init → Register)
+    generic/plugin.go            — file_read/list/write/exists/system_grep LLM tools (init → Register)
     cli/
       indexer/plugin.go          — "indexer" CLI subcommand (CLIPlugin)
       agent/plugin.go            — "agent" CLI subcommand (CLIPlugin)
@@ -250,7 +251,7 @@ internal/
   tools/
     rag/rag.go                   — rag_save and rag_search tools; Qdrant connection
     web/fetch.go                 — web_fetch tool; HTML fetching and cleaning
-    generic/generic.go           — file_read, file_list, file_write, file_exists tools
+    generic/generic.go           — file_read, file_list, file_write, file_exists, system_grep tools
   agent/
     indexer/indexer.go           — indexer agent
     chat/agent.go                — chat agent, REPL, tool-use loop, agentHandle adapter

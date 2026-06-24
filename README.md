@@ -241,7 +241,7 @@ internal/
   plugins/
     rag/plugin.go                — rag_search LLM tool plugin
     web/plugin.go                — web_fetch LLM tool plugin
-    generic/plugin.go            — file_read/list/write/exists LLM tool plugin
+     generic/plugin.go            — file_read/list/write/exists/system_grep LLM tool plugin
     cli/
       indexer/plugin.go          — "indexer" CLI subcommand plugin
       agent/plugin.go            — "agent" CLI subcommand plugin
@@ -258,7 +258,7 @@ internal/
   tools/
     rag/rag.go                   — rag_save and rag_search tools; Qdrant connection
     web/fetch.go                 — web_fetch tool (HTML preprocessing, URL fetching)
-    generic/generic.go           — file_read, file_list, file_write, file_exists tools
+     generic/generic.go           — file_read, file_list, file_write, file_exists, system_grep tools
   agent/
     indexer/indexer.go           — indexer agent
     chat/agent.go                — chat agent, REPL, tool-use loop

@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"log/slog"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -180,6 +181,31 @@ func (g *GenericTools) FileList(opts *FileListOptions) []string {
 	return results
 }
 
+// SystemGrep executes the system grep command with a limited set of safe arguments:
+// pattern (required), -i (case-insensitive), -r (recursive), and always adds -n (line numbers).
+func (g *GenericTools) SystemGrep(filename string, pattern string, caseInsensitive bool, recursive bool) string {
+	cmd := []string{"grep", "-n"}
+
+	if caseInsensitive {
+		cmd = append(cmd, "-i")
+	}
+
+	if recursive {
+		cmd = append(cmd, "-r")
+	}
+
+	cmd = append(cmd, "-E", pattern, filename)
+	fmt.Println(pattern)
+
+	output, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
+	if err != nil {
+		slog.Error("system_grep: command failed", "cmd", cmd, "err", err, "output", string(output))
+		return fmt.Sprintf("error: %v\n%s", err, output)
+	}
+
+	return string(output)
+}
+
 // DefinitionFileRead returns the OpenAI tool schema for file_read.
 func (g *GenericTools) DefinitionFileRead() openai.Tool {
 	return openai.Tool{
@@ -287,6 +313,64 @@ func (g *GenericTools) DefinitionFileList() openai.Tool {
 	}
 }
 
+// DefinitionFileGrep returns the OpenAI tool schema for file_grep.
+func (g *GenericTools) DefinitionFileGrep() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "file_grep",
+			Description: "Search for a regex pattern in a file and return matching lines with line numbers",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"filename": map[string]any{
+						"type":        "string",
+						"description": "Path to the file to search",
+					},
+					"pattern": map[string]any{
+						"type":        "string",
+						"description": "Regular expression pattern to search for",
+					},
+				},
+				"required": []string{"filename", "pattern"},
+			},
+		},
+	}
+}
+
+// DefinitionSystemGrep returns the OpenAI tool schema for system_grep.
+func (g *GenericTools) DefinitionSystemGrep() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "system_grep",
+			Description: "Execute system grep command with safe parameters: -n (always), optional -i (case-insensitive) and -r (recursive)",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"filename": map[string]any{
+						"type":        "string",
+						"description": "Path to the file or directory to search",
+					},
+					"pattern": map[string]any{
+						"type":        "string",
+						"description": "Regular expression pattern to search for",
+					},
+					"case_insensitive": map[string]any{
+						"type":        "boolean",
+						"description": "If true, perform case-insensitive matching (default: false)",
+					},
+					"recursive": map[string]any{
+						"type":        "boolean",
+						"description": "If true, search recursively in directories (default: false)",
+					},
+				},
+				"required": []string{"filename", "pattern"},
+			},
+		},
+	}
+}
+
 // Dispatch handles a tool call by name, parsing JSON args and returning the result as a string.
 func (g *GenericTools) Dispatch(name string, args string) string {
 	switch name {
@@ -343,6 +427,19 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 			return "File does not exist."
 		}
 		return "File exists."
+
+	case "system_grep":
+		var params struct {
+			Filename        string `json:"filename"`
+			Pattern         string `json:"pattern"`
+			CaseInsensitive bool   `json:"case_insensitive,omitempty"`
+			Recursive       bool   `json:"recursive,omitempty"`
+		}
+		if err := json.Unmarshal([]byte(args), &params); err != nil {
+			slog.Error("system_grep: failed to parse args", "args", args, "err", err)
+			return "error: failed to parse arguments"
+		}
+		return g.SystemGrep(params.Filename, params.Pattern, params.CaseInsensitive, params.Recursive)
 
 	default:
 		return "error: unknown tool " + name
@@ -418,6 +515,39 @@ func StaticDefinitionFileExists() openai.Tool {
 					},
 				},
 				"required": []string{"filename"},
+			},
+		},
+	}
+}
+
+// StaticDefinitionSystemGrep returns the OpenAI tool schema for system_grep without instance.
+func StaticDefinitionSystemGrep() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "system_grep",
+			Description: "Execute system grep command with safe parameters: -n (always), optional -i (case-insensitive) and -r (recursive)",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"filename": map[string]any{
+						"type":        "string",
+						"description": "Path to the file or directory to search",
+					},
+					"pattern": map[string]any{
+						"type":        "string",
+						"description": "Regular expression pattern to search for",
+					},
+					"case_insensitive": map[string]any{
+						"type":        "boolean",
+						"description": "If true, perform case-insensitive matching (default: false)",
+					},
+					"recursive": map[string]any{
+						"type":        "boolean",
+						"description": "If true, search recursively in directories (default: false)",
+					},
+				},
+				"required": []string{"filename", "pattern"},
 			},
 		},
 	}
