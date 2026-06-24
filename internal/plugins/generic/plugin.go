@@ -57,7 +57,7 @@ func (p *Plugin) get() *generic.GenericTools {
 	defer p.mu.Unlock()
 	root := plugin.GetRoot()
 	if p.tools == nil || p.tools.Root() != root {
-		p.tools = generic.New(p.state.Config, root)
+		p.tools = generic.New(p.state.Config, root, p.state)
 	}
 	return p.tools
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/plugin"
 )
 
 // FileListOptions defines optional filters for listing files.
@@ -22,13 +23,14 @@ type FileListOptions struct {
 
 // GenericTools provides basic file system operations as LLM tools.
 type GenericTools struct {
-	cfg  *config.Config
-	root *os.Root
+	cfg    *config.Config
+	root   *os.Root
+	state  *plugin.State
 }
 
 // New creates a new GenericTools instance.
-func New(cfg *config.Config, root *os.Root) *GenericTools {
-	return &GenericTools{cfg: cfg, root: root}
+func New(cfg *config.Config, root *os.Root, state *plugin.State) *GenericTools {
+	return &GenericTools{cfg: cfg, root: root, state: state}
 }
 
 // Root returns the sandboxed filesystem root used by this instance.
@@ -47,7 +49,12 @@ func (g *GenericTools) FileRead(filename string) (string, bool) {
 }
 
 // FileWrite writes content to a file and returns a success flag.
+// Returns false if read-only mode is enabled.
 func (g *GenericTools) FileWrite(filename string, content string) bool {
+	if g.state.ReadOnly {
+		slog.Warn("file_write: blocked by read-only mode", "file", filename)
+		return false
+	}
 	err := g.root.WriteFile(filename, []byte(content), 0644)
 	if err != nil {
 		slog.Error("file_write: failed to write file", "file", filename, "err", err)
@@ -264,7 +271,7 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 		results := g.FileList(params.Options)
 		return strings.Join(results, "\n")
 
-	case "file_write":
+ 	case "file_write":
 		var params struct {
 			Filename string `json:"filename"`
 			Content  string `json:"content"`
@@ -274,7 +281,7 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 			return "error: failed to parse arguments"
 		}
 		if ok := g.FileWrite(params.Filename, params.Content); !ok {
-			return "error: failed to write file"
+			return "error: read only mode"
 		}
 		return "File written successfully."
 

@@ -67,7 +67,8 @@ func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
 
 	systemContent := systemPrompt
 	if root != nil {
-		genTools := generic.New(cfg, root)
+		state := &plugin.State{Config: cfg}
+		genTools := generic.New(cfg, root, state)
 		if _, statErr := root.Stat(agentsFile); statErr == nil {
 			if agentsContent, ok := genTools.FileRead(agentsFile); ok {
 				systemContent = systemPrompt + "\n\n# Project context (from AGENTS.md)\n\n" + agentsContent

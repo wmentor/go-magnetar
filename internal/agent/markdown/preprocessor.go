@@ -10,6 +10,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/tools/generic"
 )
 
@@ -50,6 +51,7 @@ func New(cfg *config.Config, root *os.Root) (*Preprocessor, error) {
 		return nil, nil
 	}
 
+	state := &plugin.State{Config: cfg}
 	llmCfg := openai.DefaultConfig(cfg.WebFetch.APIKey)
 	llmCfg.BaseURL = cfg.WebFetch.BaseURL
 	llmClient := openai.NewClientWithConfig(llmCfg)
@@ -57,7 +59,7 @@ func New(cfg *config.Config, root *os.Root) (*Preprocessor, error) {
 	return &Preprocessor{
 		cfg:     cfg,
 		llm:     llmClient,
-		generic: generic.New(cfg, root),
+		generic: generic.New(cfg, root, state),
 	}, nil
 }
 
