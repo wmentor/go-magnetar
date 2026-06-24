@@ -52,3 +52,7 @@ webfetch:
 confluence:
   base_url: https://your-domain.atlassian.net
   api_key: YOUR_API_KEY
+
+jira:
+  base_url: https://jira.example.com
+  api_key: YOUR_API_KEY

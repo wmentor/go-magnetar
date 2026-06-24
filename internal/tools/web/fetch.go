@@ -116,6 +116,15 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 		}
 	}
 
+	if w.cfg.JIRA.BaseURL != "" {
+		if strings.HasPrefix(url, w.cfg.JIRA.BaseURL) && (strings.Contains(url, "/browse/") || strings.Contains(url, "/issues/")) {
+			issueKey, err := extractIssueKeyFromJIRAURL(url)
+			if err == nil && issueKey != "" {
+				return w.fetchJIRAIssue(issueKey)
+			}
+		}
+	}
+
 	content, contentType, err := w.fetchURLWithMediaType(url)
 	if err != nil {
 		slog.Error("webfetch: failed to fetch URL", "url", url, "err", err)
@@ -152,6 +161,47 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 
 	slog.Debug("webfetch: done (non-HTML content)", "url", url, "content_type", contentType)
 	return content, nil
+}
+
+// extractIssueKeyFromJIRAURL extracts the issue key (e.g., GOARCH-60) from a JIRA URL.
+func extractIssueKeyFromJIRAURL(url string) (string, error) {
+	// Handle URLs with /browse/
+	if idx := strings.Index(url, "/browse/"); idx != -1 {
+		idPart := url[idx+8:]
+		if idx2 := strings.Index(idPart, "/"); idx2 != -1 {
+			idPart = idPart[:idx2]
+		}
+		if idx2 := strings.Index(idPart, "?"); idx2 != -1 {
+			idPart = idPart[:idx2]
+		}
+		if idx2 := strings.Index(idPart, "#"); idx2 != -1 {
+			idPart = idPart[:idx2]
+		}
+		if idPart == "" {
+			return "", fmt.Errorf("issue key is empty")
+		}
+		return idPart, nil
+	}
+
+	// Handle URLs with /issues/
+	if idx := strings.Index(url, "/issues/"); idx != -1 {
+		idPart := url[idx+8:]
+		if idx2 := strings.Index(idPart, "/"); idx2 != -1 {
+			idPart = idPart[:idx2]
+		}
+		if idx2 := strings.Index(idPart, "?"); idx2 != -1 {
+			idPart = idPart[:idx2]
+		}
+		if idx2 := strings.Index(idPart, "#"); idx2 != -1 {
+			idPart = idPart[:idx2]
+		}
+		if idPart == "" {
+			return "", fmt.Errorf("issue key is empty")
+		}
+		return idPart, nil
+	}
+
+	return "", fmt.Errorf("not a JIRA issue URL")
 }
 
 // extractPageIDFromConfluenceURL parses a Confluence URL and returns the page ID.
@@ -335,6 +385,132 @@ func (w *WebTools) fetchConfluencePage(pageID string, isShortID bool) (string, e
 	return fmt.Sprintf("Title: %s\nVersion: %d\nAuthor: %s\nUpdated: %s\nBody:\n%s", result.Title, result.Version.Number, result.Version.Author, result.Version.Updated, result.Body.Storage.Value), nil
 }
 
+// fetchJIRAIssue fetches a JIRA issue by its key (e.g., GOARCH-60) and returns its content in Markdown.
+func (w *WebTools) fetchJIRAIssue(issueKey string) (string, error) {
+	slog.Debug("webfetch: detected JIRA issue", "issue_key", issueKey)
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
+
+	tr := &http.Transport{
+		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
+		DisableKeepAlives: true,
+	}
+
+	client := &http.Client{
+		Timeout:   defaultTimeout,
+		Transport: tr,
+	}
+
+	apiURL := fmt.Sprintf("%s/rest/api/2/issue/%s", w.cfg.JIRA.BaseURL, issueKey)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("web: failed to create JIRA request for issue %q: %w", issueKey, err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+w.cfg.JIRA.APIKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("web: failed to fetch JIRA issue %q: %w", issueKey, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("web: JIRA issue %q returned status %d", issueKey, resp.StatusCode)
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	utf8, err1 := charset.NewReader(resp.Body, contentType)
+	if err1 != nil {
+		return "", fmt.Errorf("web: decode JIRA issue %q error: %w", issueKey, err1)
+	}
+
+	body, err := io.ReadAll(utf8)
+	if err != nil {
+		return "", fmt.Errorf("web: failed to read JIRA response body: %w", err)
+	}
+
+	var result struct {
+		ID     string `json:"id"`
+		Key    string `json:"key"`
+		Self   string `json:"self"`
+		Fields struct {
+			Summary     string `json:"summary"`
+			Description string `json:"description"`
+			Status      struct {
+				Name string `json:"name"`
+			} `json:"status"`
+			Assignee struct {
+				DisplayName string `json:"displayName"`
+			} `json:"assignee"`
+			Reporter struct {
+				DisplayName string `json:"displayName"`
+			} `json:"reporter"`
+			Project struct {
+				Name string `json:"name"`
+			} `json:"project"`
+			Type struct {
+				Name string `json:"name"`
+			} `json:"issuetype"`
+			Created string `json:"created"`
+			Updated string `json:"updated"`
+			Comment struct {
+				Comments []struct {
+					Author struct {
+						DisplayName string `json:"displayName"`
+					} `json:"author"`
+					Body    string `json:"body"`
+					Created string `json:"created"`
+				} `json:"comments"`
+			} `json:"comment"`
+		} `json:"fields"`
+	}
+
+	if err := json.Unmarshal(body, &result); err != nil {
+		return "", fmt.Errorf("web: failed to parse JIRA response: %w", err)
+	}
+
+	slog.Debug("webfetch: JIRA issue fetched", "issue_key", issueKey)
+	
+	var sb strings.Builder
+	sb.WriteString("Issue: ")
+	sb.WriteString(result.Key)
+	sb.WriteString("\nSummary: ")
+	sb.WriteString(result.Fields.Summary)
+	sb.WriteString("\nStatus: ")
+	sb.WriteString(result.Fields.Status.Name)
+	sb.WriteString("\nAssignee: ")
+	sb.WriteString(result.Fields.Assignee.DisplayName)
+	sb.WriteString("\nReporter: ")
+	sb.WriteString(result.Fields.Reporter.DisplayName)
+	sb.WriteString("\nProject: ")
+	sb.WriteString(result.Fields.Project.Name)
+	sb.WriteString("\nType: ")
+	sb.WriteString(result.Fields.Type.Name)
+	sb.WriteString("\nCreated: ")
+	sb.WriteString(result.Fields.Created)
+	sb.WriteString("\nUpdated: ")
+	sb.WriteString(result.Fields.Updated)
+	sb.WriteString("\nDescription:\n")
+	sb.WriteString(result.Fields.Description)
+
+	if len(result.Fields.Comment.Comments) > 0 {
+		sb.WriteString("\n\nComments:\n")
+		for i, comment := range result.Fields.Comment.Comments {
+			sb.WriteString(fmt.Sprintf("%d. [%s] %s\n", i+1, comment.Author.DisplayName, comment.Created))
+			sb.WriteString(comment.Body)
+			if i < len(result.Fields.Comment.Comments)-1 {
+				sb.WriteString("\n\n")
+			}
+		}
+	}
+
+	return sb.String(), nil
+}
+
 // Definition returns the OpenAI tool schema for web_fetch.
 func (w *WebTools) Definition() openai.Tool {
 	return openai.Tool{
@@ -384,13 +560,13 @@ func StaticDefinition() openai.Tool {
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
 			Name:        "web_fetch",
-			Description: "Fetch a web page and return clean Markdown content",
+			Description: "Fetch a web page and return clean Markdown content. Supports Confluence pages and JIRA issues.",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
 					"url": map[string]any{
 						"type":        "string",
-						"description": "URL of the web page to fetch",
+						"description": "URL of the web page, Confluence page, or JIRA issue to fetch",
 					},
 				},
 				"required": []string{"url"},

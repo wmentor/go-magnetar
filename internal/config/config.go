@@ -84,6 +84,12 @@ type ConfluenceConfig struct {
 	APIKey  string `koanf:"api_key"`
 }
 
+// JIRAConfig holds settings for JIRA integration.
+type JIRAConfig struct {
+	BaseURL string `koanf:"base_url"`
+	APIKey  string `koanf:"api_key"`
+}
+
 // CompactConfig controls the history-summarization behaviour of the chat agent.
 type CompactConfig struct {
 	// Threshold is the token count at which history summarization is triggered.
@@ -104,6 +110,7 @@ type Config struct {
 	Compact    CompactConfig    `koanf:"compact"`
 	WebFetch   WebFetchConfig   `koanf:"webfetch"`
 	Confluence ConfluenceConfig `koanf:"confluence"`
+	JIRA       JIRAConfig       `koanf:"jira"`
 }
 
 // defaults holds default config values that are applied before the
