@@ -8,6 +8,7 @@ import (
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/compact"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/exit"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/help"
+	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/less"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/new"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/readonly"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/save"
