@@ -1,6 +1,6 @@
 # go-magnetar
 
-A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines two agents: an **indexer** that splits documents into semantic chunks and stores them in a vector database, and a **chat agent** that answers questions strictly based on the indexed data — no hallucinations, no guessing.
+A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines a **chat agent** with an integrated **index command** for document ingestion — all in a unified interactive REPL.
 
 ## How it works
 
@@ -8,9 +8,11 @@ A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines tw
 
 **Chat** — an interactive REPL with multi-turn conversation support. The agent always tries `rag_search` first; if the knowledge base returns relevant results, the answer is based exclusively on those results. `web_fetch` is used only as a fallback when the knowledge base has no relevant information and the user needs external or up-to-date data. If neither source has an answer, the agent says so explicitly. Conversation history is automatically managed to stay within the configured context window: when history approaches the token threshold it is compacted by the built-in summarizer, which replaces older turns with a concise summary while keeping the most recent ones verbatim.
 
+**Indexing via chat** — the `/index` command (alias `/i`) replaces the separate indexer CLI subcommand. Simply type `/index <path|url>` in the REPL to index documents directly.
+
 **Search tool call limit** — to prevent infinite loops, each user request is limited to a maximum number of search-related tool calls (`rag_search` + `web_fetch`). By default, the limit is 10 calls per request. When the limit is reached, an error message is sent to the LLM.
 
-**HTML Preprocessing** — when `webfetch.*` parameters are configured, web pages fetched via `web_fetch` are cleaned of ads, navigation, cookie banners, and other noise using an AI agent before being converted to Markdown and indexed or returned to the agent. Confluence URLs are also handled via the `confluence` block to fetch pages by ID.
+**HTML Preprocessing** — when `webfetch.*` parameters are configured, web pages fetched via `web_fetch` are cleaned of ads, navigation, cookie banners, and other noise using an AI agent before being converted to Markdown and indexed or returned to the agent. Confluence URLs are also handled via the `confluence` block to fetch pages by ID, and JIRA issues via the `jira` block.
 
 ## Requirements
 
@@ -83,19 +85,26 @@ webfetch:
 confluence:
   base_url: https://your-domain.atlassian.net
   api_key: YOUR_API_KEY
+
+jira:
+  base_url: https://jira.example.com
+  api_key: YOUR_API_KEY
 ```
 
 ### 4. Index your documents
 
 ```bash
-# Single file
-./bin/go-magnetar -c my-config.yaml indexer -f docs/guide.md
+./bin/go-magnetar -c my-config.yaml agent
+> /index docs/guide.md
 
 # From URL
-./bin/go-magnetar -c my-config.yaml indexer --url https://example.com/article
+> /index https://example.com/article
 
-# From Confluence URL
-./bin/go-magnetar -c my-config.yaml indexer --url https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/123456
+# From Confluence URL (standard or short link)
+> /index https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/123456
+
+# From JIRA issue URL
+> /index https://jira.example.com/browse/PROJECT-123
 ```
 
 ### 5. Ask questions
@@ -109,7 +118,7 @@ confluence:
 go-magnetar is a RAG-based knowledge base tool...
 
 > What commands does it support?
-It supports two commands: indexer and agent...
+It supports the /index command and chat commands like /help, /exit...
 
 > ^D
 ```
@@ -155,6 +164,8 @@ The chat agent maintains command history in `~/.go-magnetar-history.json`. Use *
 | `webfetch.context` | — | Token limit of the model's context window for web preprocessing |
 | `confluence.base_url` | — | Confluence instance base URL (e.g. `https://your-domain.atlassian.net`) |
 | `confluence.api_key` | — | Confluence API key for fetching pages |
+| `jira.base_url` | — | JIRA instance base URL |
+| `jira.api_key` | — | JIRA API key for fetching issues |
 
 **Vector sizes for common embedding models:**
 
@@ -166,27 +177,13 @@ The chat agent maintains command history in `~/.go-magnetar-history.json`. Use *
 
 ## Commands
 
-The `-c`/`--config` flag is global and must be placed **before** the subcommand:
+The `-c`/`--config` flag is global and must be placed **before** the command:
 
 ```
 go-magnetar [-c <config>] <command> [flags]
 ```
 
 If `-c` is omitted, `~/.go-magnetar.yaml` is used. The flag can also be set via the `GO_MAGNETAR_CONFIG` environment variable.
-
-### `indexer` — index documents
-
-```
-go-magnetar [-c <config>] indexer [-f <file>] [--url <url>] [-m <message>]
-```
-
-| Flag | Description |
-|---|---|
-| `-f` | Path to a single `.md` or `.txt` file to index |
-| `--url` | URL to fetch and index (web page or Confluence page) |
-| `-m` | Message to prepend to each chunk for improved search |
-
-Specify either `-f` or `--url`. If a file fails to read, an error is logged. Confluence standard and short links are both supported.
 
 ### `agent` — interactive chat
 
@@ -208,7 +205,17 @@ The REPL reads questions from stdin. Press `Ctrl+D` to exit.
 
 Commands are case-insensitive, processed locally, and never sent to the LLM.
 
-### Command history
+#### Indexing command
+
+| Command | Aliases | Description |
+|---|---|---|
+| `/index <path\|url> [-m <message>]` | `/i` | Index file or URL into RAG knowledge base (auto-detects URL vs file) |
+
+The command auto-detects whether the argument is a file path or URL based on protocol prefix. Supports `-m <message>` to prepend context to each chunk.
+
+Confluence and JIRA URLs are automatically recognized and fetched via their respective APIs when configured.
+
+#### Command history
 
 The REPL supports command history navigation with arrow keys:
 - **↑** — previous command
@@ -241,28 +248,29 @@ internal/
   plugins/
     rag/plugin.go                — rag_search LLM tool plugin
     web/plugin.go                — web_fetch LLM tool plugin
-     generic/plugin.go            — file_read/list/write/exists/system_grep LLM tool plugin
-    cli/
-      indexer/plugin.go          — "indexer" CLI subcommand plugin
-      agent/plugin.go            — "agent" CLI subcommand plugin
+    generic/plugin.go            — file_read/list/write/exists/system_grep LLM tool plugin
+    indexcmd/plugin.go           — /index chat command plugin
     chatcmd/
       help/plugin.go             — /help chat command plugin
       exit/plugin.go             — /exit chat command plugin
       new/plugin.go              — /new chat command plugin
       compact/plugin.go          — /compact chat command plugin
       stat/plugin.go             — /stat chat command plugin
+      less/plugin.go             — /less chat command plugin
+      save/plugin.go             — /save chat command plugin
+      version/plugin.go          — /version chat command plugin
+      readonly/plugin.go         — /readonly chat command plugin
   cmd/
     cmd.go                       — root CLI (kong); config load; plugin.InitAll
-    indexer/cmd.go               — indexer subcommand logic
-    agent/cmd.go                 — agent subcommand logic
   tools/
     rag/rag.go                   — rag_save and rag_search tools; Qdrant connection
     web/fetch.go                 — web_fetch tool (HTML preprocessing, URL fetching)
-     generic/generic.go           — file_read, file_list, file_write, file_exists, system_grep tools
+    generic/generic.go           — file_read, file_list, file_write, file_exists, system_grep tools
   agent/
-    indexer/indexer.go           — indexer agent
+    indexer/indexer.go           — indexer agent (used by /index command)
     chat/agent.go                — chat agent, REPL, tool-use loop
     summarizer/summarizer.go     — history compaction agent
+    markdown/preprocessor.go     — AI-based Markdown cleaner (webfetch post-processing)
 ```
 
 ### Plugin lifecycle
@@ -273,20 +281,20 @@ main()
         └── plugin.Register("name", &Plugin{})   — records plugin in global registry
 
 cmd.Execute()
-  ├── plugin.KongPlugins()     — collects CLI structs from CLIPlugin.RegisterCLI()
   ├── kong.Parse(...)          — parses os.Args; resolves -c/--config flag
   ├── config.Load(path)        — loads YAML config
+  ├── config.SetupLogger(cfg)  — initializes slog
   ├── plugin.InitAll(State{Config: cfg})
   │     ├── Plugin.Init(s, hub) for every registered plugin  — tools/commands registered
   │     └── hub.start()        — launches all goroutines queued via Hub.Go
   ├── defer plugin.Stop()      — cancels goroutine contexts, waits for exit
-  └── ctx.Run(cfg)             — dispatches to the selected subcommand
+  └── agent.Run()              — starts REPL
 ```
 
 ### Indexing flow
 
 ```
-indexer -f file.md [-m <message>]
+/index path/to/file.md [-m <message>]
   └── os.ReadFile(file.md)
         └── chunk.Split(content)       — paragraph/heading-aware, word-boundary snapping
               └── for each chunk:
@@ -296,7 +304,7 @@ indexer -f file.md [-m <message>]
                           ├── embed(chunk)        -> []float32
                           └── qdrant.Upsert(id, vector, payload{text: chunk})
 
-indexer --url https://example.com [-m <message>]
+/index https://example.com [-m <message>]
   └── web.WebFetch(url)               — fetch + HTML cleanup -> Markdown
         └── chunk.Split(content)
               └── (same as above)

@@ -2,11 +2,12 @@
 
 ## Description
 
-go-magnetar — a knowledge base tool built on RAG (Retrieval-Augmented Generation). It combines two agents:
-- **Indexer** — splits documents into semantic chunks and stores them in a vector database
-- **Chat agent** — answers questions strictly based on indexed data (no hallucinations or guessing)
+go-magnetar — a knowledge base tool built on RAG (Retrieval-Augmented Generation). It combines a chat agent with an integrated `/index` command for document ingestion.
 
-> If the `webfetch` block is configured, it is used to clean HTML content from ads, navigation, and other noise when processing web pages. Confluence URLs (both standard and short links) are also supported via the `confluence` block.
+- **Chat agent** — answers questions strictly based on indexed data (no hallucinations or guessing)
+- **Index command** — `/index <path|url> [-m <message>]` indexes documents directly from the chat REPL
+
+> If the `webfetch` block is configured, it is used to clean HTML content from ads, navigation, and other noise when processing web pages. Confluence URLs (both standard and short links) are also supported via the `confluence` block. JIRA issues are supported via the `jira` block.
 
 ## Requirements
 
@@ -79,26 +80,35 @@ webfetch:
 confluence:
   base_url: https://your-domain.atlassian.net
   api_key: YOUR_API_KEY
+
+jira:
+  base_url: https://jira.example.com
+  api_key: YOUR_API_KEY
 ```
 
 > If the `webfetch` block is specified, the model parameters listed above are used to clean HTML content obtained from web pages.
 
 > The `confluence` block enables fetching Confluence pages directly by URL (both standard and short links).
 
+> The `jira` block enables fetching JIRA issues directly by URL.
+
 ### 4. Index Documents
 
 ```bash
-# Single file
-./bin/go-magnetar -c my-config.yaml indexer -f docs/guide.md
+./bin/go-magnetar -c my-config.yaml agent
+> /index docs/guide.md
 
 # From URL (web page)
-./bin/go-magnetar -c my-config.yaml indexer --url https://example.com/article
+> /index https://example.com/article
 
 # From Confluence URL
-./bin/go-magnetar -c my-config.yaml indexer --url https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/123456
+> /index https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/123456
+
+# From JIRA issue URL
+> /index https://jira.example.com/browse/PROJECT-123
 ```
 
-> If the `webfetch` block is configured in the config, web pages are cleaned of ads and navigation using an AI agent before being converted to Markdown and indexed. Confluence pages are also indexed via the `confluence` block.
+> If the `webfetch` block is configured in the config, web pages are cleaned of ads and navigation using an AI agent before being converted to Markdown and indexed. Confluence pages are also indexed via the `confluence` block. JIRA issues are indexed via the `jira` block.
 
 ### 5. Ask Questions
 
@@ -111,14 +121,14 @@ confluence:
 go-magnetar is a RAG-based knowledge base tool...
 
 > What commands does it support?
-It supports two commands: indexer and agent...
+It supports the /index command and chat commands like /help, /exit...
 
 > ^D
 ```
 
 ## CLI
 
-The `-c`/`--config` flag is **global** and must be placed before the subcommand:
+The `-c`/`--config` flag is **global** and must be placed before the command:
 
 ```
 go-magnetar [-c <config>] <command> [flags]
@@ -127,20 +137,6 @@ go-magnetar [-c <config>] <command> [flags]
 If `-c` is omitted, `~/.go-magnetar.yaml` is used. The flag can also be set via the `GO_MAGNETAR_CONFIG` environment variable.
 
 ## Commands
-
-### `indexer` — document indexing
-
-```
-go-magnetar [-c <config>] indexer [-f <file>] [--url <url>] [-m <message>]
-```
-
-| Flag | Description |
-|---|---|
-| `-f` | Path to a single `.md` or `.txt` file to index |
-| `--url` | URL to fetch and index |
-| `-m` | Message to prepend to each chunk for improved search |
-
-Specify either `-f` or `--url`. If a file fails to read, an error will be logged.
 
 ### `agent` — interactive chat
 
@@ -162,6 +158,16 @@ The REPL reads questions from stdin. Press `Ctrl+D` to exit.
 
 Commands are case-insensitive, processed locally, and never sent to the LLM.
 
+#### Indexing command
+
+| Command | Aliases | Description |
+|---|---|---|
+| `/index <path\|url> [-m <message>]` | `/i` | Index file or URL into RAG knowledge base (auto-detects URL vs file) |
+
+The command auto-detects whether the argument is a file path or URL based on protocol prefix. Supports `-m <message>` to prepend context to each chunk.
+
+Confluence and JIRA URLs are automatically recognized and fetched via their respective APIs when configured.
+
 #### Command history
 
 Use **↑/↓** arrows to navigate through previously entered commands. History is persisted in `~/.go-magnetar-history.json` and limited to 200 entries.
@@ -175,7 +181,7 @@ Use **↑/↓** arrows to navigate through previously entered commands. History 
 | `file_write` | Writes content to a file in the filesystem |
 | `system_grep` | Executes system grep command with safe parameters |
 | `rag_search` | Returns relevant fragments from indexed data |
-| `web_fetch` | Fetches web pages (fallback if RAG returns no results); also fetches Confluence pages when URL matches |
+| `web_fetch` | Fetches web pages (fallback if RAG returns no results); also fetches Confluence pages and JIRA issues when URL matches |
 
 ### Search tool call limit
 
@@ -210,6 +216,8 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 | `webfetch.context` | — | Token limit of the model's context window for web cleaning |
 | `confluence.base_url` | — | Confluence instance base URL (e.g. `https://your-domain.atlassian.net`) |
 | `confluence.api_key` | — | Confluence API key for fetching pages |
+| `jira.base_url` | — | JIRA instance base URL |
+| `jira.api_key` | — | JIRA API key for fetching issues |
 
 **Vector sizes for common embedding models:**
 
