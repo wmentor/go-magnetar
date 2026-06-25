@@ -67,12 +67,14 @@ func (s *Storage) Prev() string {
 }
 
 func (s *Storage) Next() string {
+	if s.currentIdx < len(s.records) {
+		s.currentIdx++
+	}
 	if s.currentIdx >= len(s.records) {
 		s.currentIdx = len(s.records)
 		return ""
 	}
 	record := s.records[s.currentIdx]
-	s.currentIdx++
 	return record
 }
 
