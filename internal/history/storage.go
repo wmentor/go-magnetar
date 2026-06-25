@@ -3,6 +3,7 @@ package history
 import (
 	"encoding/json"
 	"os"
+	"slices"
 
 	"github.com/pkg/errors"
 )
@@ -27,11 +28,15 @@ func New(filename string, limit int) *Storage {
 	s := &Storage{
 		limit:    limit,
 		filename: filename,
+		records:  make([]string, 0),
+	}
+
+	if filename == "" {
+		return s
 	}
 
 	data, err := os.ReadFile(filename)
 	if err != nil {
-		s.records = make([]string, 0)
 		return s
 	}
 
@@ -76,6 +81,10 @@ func (s *Storage) Next() string {
 	}
 	record := s.records[s.currentIdx]
 	return record
+}
+
+func (s *Storage) Records() []string {
+	return slices.Clone(s.records)
 }
 
 func (s *Storage) Save() error {
