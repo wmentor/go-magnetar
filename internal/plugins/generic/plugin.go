@@ -51,28 +51,29 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 			return p.get().Dispatch("file_exists", args), nil
 		},
 	})
-	if p.checkGrep() {
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: generic.StaticDefinitionSystemGrep,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return p.get().Dispatch("system_grep", args), nil
-		},
-	})
+	if _, err := exec.LookPath("grep"); err == nil {
+		hub.RegisterTool(plugin.LLMTool{
+			Definition: generic.StaticDefinitionSystemGrep,
+			Execute: func(_ context.Context, args string) (string, error) {
+				return p.get().Dispatch("system_grep", args), nil
+			},
+		})
+	}
 	hub.RegisterTool(plugin.LLMTool{
 		Definition: generic.StaticDefinitionSystemExec,
 		Execute: func(_ context.Context, args string) (string, error) {
 			return p.get().Dispatch("system_exec", args), nil
 		},
 	})
+	if _, err := exec.LookPath("date"); err == nil {
+		hub.RegisterTool(plugin.LLMTool{
+			Definition: generic.StaticDefinitionSystemDate,
+			Execute: func(_ context.Context, args string) (string, error) {
+				return p.get().Dispatch("system_date", args), nil
+			},
+		})
+	}
 	return nil
-}
-	return nil
-}
-
-// checkGrep checks if the grep command is available in the system.
-func (p *Plugin) checkGrep() bool {
-	_, err := exec.LookPath("grep")
-	return err == nil
 }
 
 func (p *Plugin) get() *generic.GenericTools {

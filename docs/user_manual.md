@@ -171,6 +171,8 @@ Use **↑/↓** arrows to navigate through previously entered commands. History 
 | `file_read` | Reads file contents from the filesystem |
 | `file_list` | Recursively lists files in the current directory |
 | `file_write` | Writes content to a file in the filesystem |
+| `system_exec` | Executes a system command with arguments; in read-only mode, only commands from the allowed list are permitted |
+| `system_date` | Executes the date command to get the current system time |
 | `system_grep` | Executes system grep command with safe parameters |
 | `rag_search` | Returns relevant fragments from indexed data |
 | `web_fetch` | Fetches web pages (fallback if RAG returns no results); also fetches Confluence pages and JIRA issues when URL matches |

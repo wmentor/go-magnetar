@@ -245,6 +245,19 @@ func (g *GenericTools) SystemExec(command string, args []string) string {
 	return string(output)
 }
 
+// SystemDate executes the date command and returns the output.
+func (g *GenericTools) SystemDate() string {
+	cmd := exec.Command("date")
+
+	output, err := cmd.Output()
+	if err != nil {
+		slog.Error("system_date: command failed", "err", err, "output", string(output))
+		return fmt.Sprintf("error: %v\n%s", err, string(output))
+	}
+
+	return string(strings.TrimSpace(string(output)))
+}
+
 // SystemGrep executes the system grep command with a limited set of safe arguments:
 // pattern (required), -i (case-insensitive), -r (recursive), and always adds -n (line numbers).
 func (g *GenericTools) SystemGrep(filename string, pattern string, caseInsensitive bool, recursive bool) string {
@@ -428,6 +441,22 @@ func (g *GenericTools) DefinitionSystemExec() openai.Tool {
 	}
 }
 
+// DefinitionSystemDate returns the OpenAI tool schema for system_date.
+func (g *GenericTools) DefinitionSystemDate() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "system_date",
+			Description: "Execute the date command to get the current system time",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{},
+				"required": []string{},
+			},
+		},
+	}
+}
+
 // DefinitionSystemGrep returns the OpenAI tool schema for system_grep.
 func (g *GenericTools) DefinitionSystemGrep() openai.Tool {
 	return openai.Tool{
@@ -528,6 +557,9 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 			return "error: failed to parse arguments"
 		}
 		return g.SystemExec(params.Command, params.Args)
+
+	case "system_date":
+		return g.SystemDate()
 
 	case "system_grep":
 		var params struct {
@@ -642,6 +674,22 @@ func StaticDefinitionSystemExec() openai.Tool {
 					},
 				},
 				"required": []string{"command", "args"},
+			},
+		},
+	}
+}
+
+// StaticDefinitionSystemDate returns the OpenAI tool schema for system_date without instance.
+func StaticDefinitionSystemDate() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "system_date",
+			Description: "Execute the date command to get the current system time",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{},
+				"required": []string{},
 			},
 		},
 	}
