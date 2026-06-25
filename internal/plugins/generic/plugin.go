@@ -52,13 +52,20 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		},
 	})
 	if p.checkGrep() {
-		hub.RegisterTool(plugin.LLMTool{
-			Definition: generic.StaticDefinitionSystemGrep,
-			Execute: func(_ context.Context, args string) (string, error) {
-				return p.get().Dispatch("system_grep", args), nil
-			},
-		})
-	}
+	hub.RegisterTool(plugin.LLMTool{
+		Definition: generic.StaticDefinitionSystemGrep,
+		Execute: func(_ context.Context, args string) (string, error) {
+			return p.get().Dispatch("system_grep", args), nil
+		},
+	})
+	hub.RegisterTool(plugin.LLMTool{
+		Definition: generic.StaticDefinitionSystemExec,
+		Execute: func(_ context.Context, args string) (string, error) {
+			return p.get().Dispatch("system_exec", args), nil
+		},
+	})
+	return nil
+}
 	return nil
 }
 

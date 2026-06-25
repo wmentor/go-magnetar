@@ -51,6 +51,10 @@ func Execute() error {
 	}
 	defer rootFS.Close()
 
+	// Provide the agent's working-directory root to plugins that need
+	// filesystem access (generic file tools, web preprocessor).
+	plugin.SetRoot(rootFS)
+
 	agent, err := chat.New(cfg, rootFS)
 	if err != nil {
 		return err

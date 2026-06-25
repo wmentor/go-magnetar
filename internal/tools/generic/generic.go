@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/sashabaranov/go-openai"
@@ -181,6 +182,69 @@ func (g *GenericTools) FileList(opts *FileListOptions) []string {
 	return results
 }
 
+// CmdRecord defines a command that can be used in specific modes.
+type CmdRecord struct {
+	Command  []string // Command name and optional subcommand(s)
+	ReadOnly bool     // If true, command is allowed in read-only mode
+}
+
+// allowedCommands holds the list of commands with mode restrictions.
+// Each record specifies whether the command is allowed in read-only mode.
+var allowedCommands = []CmdRecord{
+	// Simple commands allowed in read-only mode
+	{Command: []string{"find"}, ReadOnly: true},
+	{Command: []string{"grep"}, ReadOnly: true},
+	{Command: []string{"wc"}, ReadOnly: true},
+	{Command: []string{"head"}, ReadOnly: true},
+	{Command: []string{"tail"}, ReadOnly: true},
+	{Command: []string{"git", "diff"}, ReadOnly: true},
+	{Command: []string{"git", "show"}, ReadOnly: true},
+	{Command: []string{"git", "log"}, ReadOnly: true},
+	{Command: []string{"git", "status"}, ReadOnly: true},
+	{Command: []string{"go", "build"}, ReadOnly: false},
+	{Command: []string{"go", "fix"}, ReadOnly: false},
+	{Command: []string{"go", "get"}, ReadOnly: false},
+	{Command: []string{"go", "mod"}, ReadOnly: false},
+	{Command: []string{"go", "run"}, ReadOnly: false},
+	{Command: []string{"go", "test"}, ReadOnly: true},
+	{Command: []string{"uuidgen"}, ReadOnly: true},
+}
+
+// isCommandAllowed checks if a command is allowed in the current mode.
+// Commands not in the allowedCommands list are always blocked.
+func isCommandAllowed(command string, args []string, readOnly bool) bool {
+	search := append([]string{command}, args...)
+	for _, rec := range allowedCommands {
+		if len(rec.Command) <= len(search) {
+			if slices.Equal(rec.Command, search[:len(rec.Command)]) {
+				return !readOnly || rec.ReadOnly
+			}
+		}
+	}
+	return false
+}
+
+// SystemExec executes a system command with arguments.
+// If read-only mode is enabled, only commands in the allowed list are permitted.
+func (g *GenericTools) SystemExec(command string, args []string) string {
+	cmdPath := command
+
+	if !isCommandAllowed(command, args, g.state.ReadOnly) {
+		slog.Warn("system_exec: blocked", "command", command, "args", args)
+		return fmt.Sprintf("error: command '%s' is not allowed in current mode", command)
+	}
+
+	cmd := exec.Command(cmdPath, args...)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		slog.Error("system_exec: command failed", "command", command, "args", args, "err", err, "output", string(output))
+		return fmt.Sprintf("error: %v\n%s", err, output)
+	}
+
+	return string(output)
+}
+
 // SystemGrep executes the system grep command with a limited set of safe arguments:
 // pattern (required), -i (case-insensitive), -r (recursive), and always adds -n (line numbers).
 func (g *GenericTools) SystemGrep(filename string, pattern string, caseInsensitive bool, recursive bool) string {
@@ -338,6 +402,32 @@ func (g *GenericTools) DefinitionFileGrep() openai.Tool {
 	}
 }
 
+// DefinitionSystemExec returns the OpenAI tool schema for system_exec.
+func (g *GenericTools) DefinitionSystemExec() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "system_exec",
+			Description: "Execute a system command with arguments. In read-only mode, only commands from the allowed list are permitted.",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"command": map[string]any{
+						"type":        "string",
+						"description": "Name or path of the command to execute",
+					},
+					"args": map[string]any{
+						"type":        "array",
+						"items":       map[string]any{"type": "string"},
+						"description": "List of arguments to pass to the command",
+					},
+				},
+				"required": []string{"command", "args"},
+			},
+		},
+	}
+}
+
 // DefinitionSystemGrep returns the OpenAI tool schema for system_grep.
 func (g *GenericTools) DefinitionSystemGrep() openai.Tool {
 	return openai.Tool{
@@ -428,6 +518,17 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 		}
 		return "File exists."
 
+	case "system_exec":
+		var params struct {
+			Command string   `json:"command"`
+			Args    []string `json:"args"`
+		}
+		if err := json.Unmarshal([]byte(args), &params); err != nil {
+			slog.Error("system_exec: failed to parse args", "args", args, "err", err)
+			return "error: failed to parse arguments"
+		}
+		return g.SystemExec(params.Command, params.Args)
+
 	case "system_grep":
 		var params struct {
 			Filename        string `json:"filename"`
@@ -515,6 +616,32 @@ func StaticDefinitionFileExists() openai.Tool {
 					},
 				},
 				"required": []string{"filename"},
+			},
+		},
+	}
+}
+
+// StaticDefinitionSystemExec returns the OpenAI tool schema for system_exec without instance.
+func StaticDefinitionSystemExec() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "system_exec",
+			Description: "Execute a system command with arguments. In read-only mode, only commands from the allowed list are permitted.",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"command": map[string]any{
+						"type":        "string",
+						"description": "Name or path of the command to execute",
+					},
+					"args": map[string]any{
+						"type":        "array",
+						"items":       map[string]any{"type": "string"},
+						"description": "List of arguments to pass to the command",
+					},
+				},
+				"required": []string{"command", "args"},
 			},
 		},
 	}

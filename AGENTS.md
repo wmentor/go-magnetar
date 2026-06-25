@@ -91,6 +91,12 @@ jira:
 > `vector_size` must match the dimensionality of the chosen embedding model.
 > For `text-embedding-3-small` — 1536, for `text-embedding-ada-002` — 1536, for `text-embedding-3-large` — 3072.
 
+### Parameters `allowed_read_only_commands`
+
+| Parameter | Default | Description |
+|---|---|---|
+| `allowed_read_only_commands.commands` | `[]` | List of commands allowed in read-only mode. When read-only mode is enabled and this list is non-empty, only commands in the list can be executed via `system_exec`. Empty list (default) blocks all commands in read-only mode. |
+
 ### Parameters `rag.chunk`
 
 | Parameter | Default | Description |
@@ -196,6 +202,7 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 | `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem; `limit` and `offset` specify line range (0 = read all) |
 | `file_list` | `(options: object) -> []string` | Recursively lists files in the current directory |
 | `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem |
+| `system_exec` | `(command: string, args: []string) -> string` | Executes a system command with arguments; in read-only mode, only commands from the allowed list are permitted |
 | `system_grep` | `(filename: string, pattern: string, case_insensitive: bool, recursive: bool) -> string` | Executes system grep command with safe parameters: -n (always), -i/-r (optional) |
 | `rag_search` | `(query: string) -> string` | Returns top-N relevant fragments from Qdrant (N is set by `rag.search.limit`) |
 | `web_fetch` | `(url: string) -> string` | Fetches and cleans a web page (fallback if RAG returns no results); also fetches Confluence pages and JIRA issues when URL matches |
