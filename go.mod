@@ -18,6 +18,7 @@ require (
 	github.com/knadh/koanf/providers/file v1.2.1
 	github.com/knadh/koanf/v2 v2.3.5
 	github.com/lmittmann/tint v1.1.3
+	github.com/pkg/errors v0.9.1
 	github.com/qdrant/go-client v1.18.2
 	github.com/sashabaranov/go-openai v1.41.2
 	golang.org/x/net v0.56.0
@@ -58,7 +59,6 @@ require (
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/reflow v0.3.0 // indirect
 	github.com/muesli/termenv v0.16.0 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/xo/terminfo v0.0.0-20220910002029-abceb7e1c41e // indirect
 	github.com/yuin/goldmark v1.8.2 // indirect

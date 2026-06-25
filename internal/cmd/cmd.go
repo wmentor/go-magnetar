@@ -1,37 +1,27 @@
 package cmd
 
 import (
+	"fmt"
+	"os"
+
 	"github.com/alecthomas/kong"
 
+	"github.com/wmentor/go-magnetar/internal/agent/chat"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 )
 
-// Globals holds flags shared across all subcommands.
-// It is embedded in the root CLI struct and bound into every Run() call.
 type Globals struct {
 	Config string `short:"c" type:"path" default:"~/.go-magnetar.yaml" help:"Path to config file" env:"GO_MAGNETAR_CONFIG"`
 }
 
-// cli is the root command structure. Subcommands are contributed dynamically
-// by CLI plugins via kong.Plugins.
 type cli struct {
 	Globals
-	kong.Plugins
 }
 
-// Execute parses CLI arguments, loads config, initialises plugins and
-// dispatches to the appropriate subcommand.
-//
-// Flow:
-//  1. kong.Parse — resolves flags including -c/--config
-//  2. config.Load — loads the YAML config
-//  3. plugin.InitAll — initialises all plugins with the real State
-//  4. ctx.Run — dispatches to the selected subcommand
 func Execute() error {
 	root := &cli{}
-	root.Plugins = plugin.KongPlugins()
-	ctx := kong.Parse(root,
+	kong.Parse(root,
 		kong.Name("go-magnetar"),
 		kong.Description("RAG indexer and AI chat agent"),
 		kong.UsageOnError(),
@@ -50,5 +40,21 @@ func Execute() error {
 	}
 	defer plugin.Stop()
 
-	return ctx.Run(&root.Globals, cfg)
+	workDir, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("get work dir error: %w", err)
+	}
+
+	rootFS, err := os.OpenRoot(workDir)
+	if err != nil {
+		return fmt.Errorf("open work dir error: %w", err)
+	}
+	defer rootFS.Close()
+
+	agent, err := chat.New(cfg, rootFS)
+	if err != nil {
+		return err
+	}
+
+	return agent.Run()
 }
