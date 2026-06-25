@@ -160,6 +160,8 @@ Exit — `Ctrl+D` (EOF) or `/exit` command. Empty lines are ignored.
 | `/compact` | — | Immediately compress history via summarizer, without waiting for automatic threshold |
 | `/new` | — | Start a new session and clear conversation history |
 | `/stat` | — | Print context statistics: number of messages, estimated tokens, size in bytes, LLM model name, RAG model name, and vector size |
+| `/index` | `/i` | Index file or URL into RAG knowledge base (auto-detects URL vs file) |
+| `/idxtab` | — | Index multiple files/URLs from a JSON lines file (one per line, format: `{"source":"path|url","message":"text"}`) |
 
 Commands are dispatched in `handleCommand` (`internal/agent/chat/agent.go`) by iterating over `plugin.ChatCommands()`. Input is split into `name` + `args` on the first space; matching is case-insensitive against `Name` and `Aliases`. Commands are never added to the message history.
 
@@ -231,7 +233,28 @@ The indexer reads `.md` and `.txt` files or web pages (by URL), splits content i
 
 The `-m` option prepends the specified message to each chunk for improved search quality.
 
-> If the `webfetch` block is configured in the config, the HTML page is cleaned of ads, navigation, and other noise by an AI agent before conversion to Markdown and indexing.
+### Indexing multiple files via `/idxtab`
+
+The `/idxtab` command indexes multiple documents from a JSON lines file:
+
+```bash
+./bin/go-magnetar -c my-config.yaml agent
+> /idxtab configs/cmd_idxtab.txt
+```
+
+Each line should have format: `{"source":"path|url","message":"text"}`
+
+**Example file** (`configs/cmd_idxtab.txt`):
+
+```json
+{"source":"docs/guide.md","message":"API docs"}
+{"source":"https://example.com/article","message":""}
+{"source":"docs/api.md","message":"API reference"}
+{"source":"https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/123456","message":""}
+{"source":"https://jira.example.com/browse/PROJECT-123","message":""}
+```
+
+The command processes entries sequentially, auto-detects URLs vs file paths, and supports prepending context via the `message` field. Errors for individual entries don't stop processing — they are logged and skipped.
 
 ### Duplicate handling
 

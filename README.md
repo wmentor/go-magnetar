@@ -202,18 +202,10 @@ The REPL reads questions from stdin. Press `Ctrl+D` to exit.
 | `/compact` | — | Immediately compress the conversation history via the summarizer |
 | `/new` | — | Start a new session and clear conversation history |
 | `/stat` | — | Print context statistics: messages, estimated tokens, bytes, LLM model, RAG model, vector size |
+| `/index` | `/i` | Index file or URL into RAG knowledge base (auto-detects URL vs file) |
+| `/idxtab` | — | Index multiple files/URLs from a JSON lines file (one per line, format: `{"source":"path\|url","message":"text"}`) |
 
 Commands are case-insensitive, processed locally, and never sent to the LLM.
-
-#### Indexing command
-
-| Command | Aliases | Description |
-|---|---|---|
-| `/index <path\|url> [-m <message>]` | `/i` | Index file or URL into RAG knowledge base (auto-detects URL vs file) |
-
-The command auto-detects whether the argument is a file path or URL based on protocol prefix. Supports `-m <message>` to prepend context to each chunk.
-
-Confluence and JIRA URLs are automatically recognized and fetched via their respective APIs when configured.
 
 #### Command history
 

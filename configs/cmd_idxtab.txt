@@ -1,0 +1,5 @@
+{"source":"docs/guide.md","message":"API docs"}
+{"source":"https://example.com/article","message":""}
+{"source":"docs/api.md","message":"API reference"}
+{"source":"https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/123456","message":""}
+{"source":"https://jira.example.com/browse/PROJECT-123","message":""}
