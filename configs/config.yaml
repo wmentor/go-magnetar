@@ -56,3 +56,7 @@ confluence:
 jira:
   base_url: https://jira.example.com
   api_key: YOUR_API_KEY
+
+gitlab:
+  base_url: https://gitlab.example.com
+  api_key: YOUR_API_KEY

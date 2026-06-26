@@ -26,6 +26,8 @@ var defaults = map[string]any{
 	"rag.search.threshold":       0.40, // minimum cosine-similarity score
 	"rag.search.multi_query":     2,    // number of extra query reformulations
 	"rag.search.dedup_threshold": 0.95, // near-duplicate suppression threshold
+	"gitlab.base_url":            "",   // GitLab base URL (optional)
+	"gitlab.api_key":             "",   // GitLab API key (optional)
 }
 
 // Load reads and parses a YAML config file at the given path.

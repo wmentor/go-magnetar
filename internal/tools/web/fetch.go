@@ -19,6 +19,7 @@ import (
 
 	sanitizer "github.com/wmentor/go-magnetar/internal/agent/markdown"
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/tools/gitlab"
 )
 
 const (
@@ -121,6 +122,15 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 			issueKey, err := extractIssueKeyFromJIRAURL(url)
 			if err == nil && issueKey != "" {
 				return w.fetchJIRAIssue(issueKey)
+			}
+		}
+	}
+
+	if w.cfg.String("gitlab.base_url") != "" {
+		if strings.HasPrefix(url, w.cfg.String("gitlab.base_url")) && strings.Contains(url, "/-/merge_requests/") {
+			projectPath, issueID, err := extractProjectAndMergeRequestFromGitLabURL(url, w.cfg.String("gitlab.base_url"))
+			if err == nil && projectPath != "" && issueID != "" {
+				return w.fetchGitLabMergeRequest(projectPath, issueID)
 			}
 		}
 	}
@@ -474,7 +484,7 @@ func (w *WebTools) fetchJIRAIssue(issueKey string) (string, error) {
 	}
 
 	slog.Debug("webfetch: JIRA issue fetched", "issue_key", issueKey)
-	
+
 	var sb strings.Builder
 	sb.WriteString("Issue: ")
 	sb.WriteString(result.Key)
@@ -553,6 +563,72 @@ func (w *WebTools) Dispatch(name string, args string) string {
 	}
 }
 
+// extractProjectAndMergeRequestFromGitLabURL extracts the project path and merge request ID from a GitLab URL.
+func extractProjectAndMergeRequestFromGitLabURL(url string, baseURL string) (string, string, error) {
+	// Handle URLs with /-/merge_requests/
+	if idx := strings.Index(url, "/-/merge_requests/"); idx != -1 {
+		pathPart := url[:idx]
+		// Extract project path (remove base URL)
+
+		pathPart = strings.TrimPrefix(pathPart, baseURL)
+
+		idPart := url[idx+18:]
+		if idx2 := strings.Index(idPart, "/"); idx2 != -1 {
+			idPart = idPart[:idx2]
+		}
+		if idx2 := strings.Index(idPart, "?"); idx2 != -1 {
+			idPart = idPart[:idx2]
+		}
+		if idx2 := strings.Index(idPart, "#"); idx2 != -1 {
+			idPart = idPart[:idx2]
+		}
+		if idPart == "" {
+			return "", "", fmt.Errorf("merge request ID is empty")
+		}
+
+		// Extract project path from the URL
+		projectPath := strings.TrimPrefix(pathPart, "/")
+
+		return projectPath, idPart, nil
+	}
+
+	// Handle URLs with /-/
+	if idx := strings.Index(url, "/-/"); idx != -1 {
+		pathPart := url[:idx+2]
+		idPart := url[idx+2:]
+		if idx2 := strings.Index(idPart, "/"); idx2 != -1 {
+			idPart = idPart[:idx2]
+		}
+		if idx2 := strings.Index(idPart, "?"); idx2 != -1 {
+			idPart = idPart[:idx2]
+		}
+		if idx2 := strings.Index(idPart, "#"); idx2 != -1 {
+			idPart = idPart[:idx2]
+		}
+		if idPart == "" {
+			return "", "", fmt.Errorf("merge request ID is empty")
+		}
+
+		// Extract project path
+		projectPath := strings.TrimPrefix(pathPart, "/")
+		if idx2 := strings.Index(projectPath, "/"); idx2 != -1 {
+			projectPath = projectPath[idx2+1:]
+		}
+
+		return projectPath, idPart, nil
+	}
+
+	return "", "", fmt.Errorf("not a GitLab merge request URL")
+}
+
+// fetchGitLabMergeRequest fetches a GitLab merge request and returns its content.
+func (w *WebTools) fetchGitLabMergeRequest(projectPath string, mrID string) (string, error) {
+	slog.Debug("webfetch: detected GitLab merge request", "project_path", projectPath, "mr_id", mrID)
+
+	gitLabTools := gitlab.New(w.cfg)
+	return gitLabTools.FetchMergeRequest(projectPath, mrID)
+}
+
 // StaticDefinition returns the OpenAI tool schema for web_fetch without
 // requiring an initialised WebTools instance. Used by the plugin for lazy init.
 func StaticDefinition() openai.Tool {
@@ -560,13 +636,13 @@ func StaticDefinition() openai.Tool {
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
 			Name:        "web_fetch",
-			Description: "Fetch a web page and return clean Markdown content. Supports Confluence pages and JIRA issues.",
+			Description: "Fetch a web page and return clean Markdown content. Supports Confluence pages, JIRA issues, and GitLab merge requests.",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
 					"url": map[string]any{
 						"type":        "string",
-						"description": "URL of the web page, Confluence page, or JIRA issue to fetch",
+						"description": "URL of the web page, Confluence page, JIRA issue, or GitLab merge request to fetch",
 					},
 				},
 				"required": []string{"url"},
