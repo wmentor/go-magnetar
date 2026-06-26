@@ -12,7 +12,7 @@ A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines a 
 
 **Search tool call limit** — to prevent infinite loops, each user request is limited to a maximum number of search-related tool calls (`rag_search` + `web_fetch`). By default, the limit is 10 calls per request. When the limit is reached, an error message is sent to the LLM.
 
-**HTML Preprocessing** — when `webfetch.*` parameters are configured, web pages fetched via `web_fetch` are cleaned of ads, navigation, cookie banners, and other noise using an AI agent before being converted to Markdown and indexed or returned to the agent. Confluence URLs are also handled via the `confluence` block to fetch pages by ID, and JIRA issues via the `jira` block.
+**HTML Preprocessing** — when `webfetch.*` parameters are configured, web pages fetched via `web_fetch` are cleaned of ads, navigation, cookie banners, and other noise using an AI agent before being converted to Markdown and indexed or returned to the agent. Confluence URLs are also handled via the `confluence` block to fetch pages by ID, JIRA issues via the `jira` block, and GitLab merge requests via the `gitlab` block to fetch MR details and file changes.
 
 ## Requirements
 
@@ -89,6 +89,10 @@ confluence:
 jira:
   base_url: https://jira.example.com
   api_key: YOUR_API_KEY
+
+gitlab:
+  base_url: https://gitlab.example.com
+  api_key: YOUR_API_KEY
 ```
 
 ### 4. Index your documents
@@ -105,6 +109,9 @@ jira:
 
 # From JIRA issue URL
 > /index https://jira.example.com/browse/PROJECT-123
+
+# From GitLab merge request URL
+> /index https://gitlab.example.com/namespace/project/-/merge_requests/123
 ```
 
 ### 5. Ask questions
@@ -166,6 +173,8 @@ The chat agent maintains command history in `~/.go-magnetar-history.json`. Use *
 | `confluence.api_key` | — | Confluence API key for fetching pages |
 | `jira.base_url` | — | JIRA instance base URL |
 | `jira.api_key` | — | JIRA API key for fetching issues |
+| `gitlab.base_url` | — | GitLab instance base URL |
+| `gitlab.api_key` | — | GitLab API key for fetching merge requests and file changes |
 
 **Vector sizes for common embedding models:**
 
