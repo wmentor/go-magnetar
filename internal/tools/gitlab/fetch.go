@@ -233,8 +233,6 @@ func (g *GitLabTools) FetchMergeRequest(projectPath string, mrID string) (string
 		}
 	}
 
-	fmt.Println(sb.String())
-
 	return sb.String(), nil
 }
 

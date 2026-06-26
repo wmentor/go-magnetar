@@ -9,6 +9,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/agent/chat"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
+	version "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/version"
 )
 
 type Globals struct {
@@ -34,6 +35,8 @@ func Execute() error {
 	}
 
 	config.SetupLogger(cfg)
+
+	version.PrintVersion(cfg.String("llm.model"))
 
 	if err := plugin.InitAll(&plugin.State{Config: cfg}); err != nil {
 		return err

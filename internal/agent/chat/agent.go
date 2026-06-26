@@ -212,7 +212,7 @@ func (a *ChatAgent) compactIfNeeded() {
 const maxSearchToolCalls = 10
 
 // ask sends the user input to the LLM, handles tool calls, and returns the final answer.
-func (a *ChatAgent) ask(userInput string) (string, error) {
+func (a *ChatAgent) Ask(userInput string) (string, error) {
 	a.messages = append(a.messages, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleUser,
 		Content: userInput,
@@ -239,7 +239,7 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 		}
 		trimmed := a.trimMessages(reserved)
 
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Hour)
 		resp, err := a.llm.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 			Model:    a.cfg.String("llm.model"),
 			Messages: trimmed,
@@ -311,7 +311,8 @@ var (
 	promptStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("69")).
 			Bold(true)
-	promptSymbol = promptStyle.Render("◆")
+	//promptSymbol = promptStyle.Render("◆")
+	promptSymbol = promptStyle.Render("🧑‍🚀")
 
 	questionStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("69")).
@@ -482,7 +483,7 @@ func (a *ChatAgent) Run() error {
 			continue
 		}
 
-		answer, err := a.ask(line)
+		answer, err := a.Ask(line)
 		if err != nil {
 			slog.Error("chat: failed to get answer", "err", err)
 			fmt.Fprintln(os.Stdout, "Error: failed to get response. Please try again.")
