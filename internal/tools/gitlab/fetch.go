@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/sashabaranov/go-openai"
-	"golang.org/x/net/html/charset"
 
 	"github.com/wmentor/go-magnetar/internal/config"
 )
@@ -51,6 +50,7 @@ func (g *GitLabTools) FetchMergeRequest(projectPath string, mrID string) (string
 
 	encodedProjectPath := url.PathEscape(projectPath)
 
+	// Fetch MR details
 	apiURL := fmt.Sprintf("%s/api/v4/projects/%s/merge_requests/%s", g.cfg.String("gitlab.base_url"), encodedProjectPath, mrID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
@@ -71,13 +71,7 @@ func (g *GitLabTools) FetchMergeRequest(projectPath string, mrID string) (string
 		return "", fmt.Errorf("gitlab: MR %q/%q returned status %d", projectPath, mrID, resp.StatusCode)
 	}
 
-	contentType := resp.Header.Get("Content-Type")
-	utf8, err1 := charset.NewReader(resp.Body, contentType)
-	if err1 != nil {
-		return "", fmt.Errorf("gitlab: decode MR %q/%q error: %w", projectPath, mrID, err1)
-	}
-
-	body, err := io.ReadAll(utf8)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", fmt.Errorf("gitlab: failed to read response body: %w", err)
 	}
@@ -124,6 +118,50 @@ func (g *GitLabTools) FetchMergeRequest(projectPath string, mrID string) (string
 
 	slog.Debug("gitlab: MR fetched", "project_path", projectPath, "mr_id", mrID)
 
+	// Fetch MR changes (diffs)
+	changesURL := fmt.Sprintf("%s/api/v4/projects/%s/merge_requests/%s/changes", g.cfg.String("gitlab.base_url"), encodedProjectPath, mrID)
+	reqChanges, err := http.NewRequestWithContext(ctx, http.MethodGet, changesURL, nil)
+	if err != nil {
+		return "", fmt.Errorf("gitlab: failed to create changes request for MR %q/%q: %w", projectPath, mrID, err)
+	}
+
+	reqChanges.Header.Set("Authorization", "Bearer "+g.cfg.String("gitlab.api_key"))
+	reqChanges.Header.Set("Content-Type", "application/json")
+
+	respChanges, err := client.Do(reqChanges)
+	if err != nil {
+		return "", fmt.Errorf("gitlab: failed to fetch MR changes %q/%q: %w", projectPath, mrID, err)
+	}
+	defer respChanges.Body.Close()
+
+	if respChanges.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("gitlab: MR changes %q/%q returned status %d", projectPath, mrID, respChanges.StatusCode)
+	}
+
+	changesBody, err := io.ReadAll(respChanges.Body)
+	if err != nil {
+		return "", fmt.Errorf("gitlab: failed to read changes response body: %w", err)
+	}
+
+	var changesResult struct {
+		Changes []struct {
+			OldPath string `json:"old_path"`
+			NewPath string `json:"new_path"`
+			AMode   string `json:"a_mode"`
+			BMode   string `json:"b_mode"`
+			Created bool   `json:"new_file"`
+			Deleted bool   `json:"deleted_file"`
+			Renamed bool   `json:"renamed_file"`
+			Diff    string `json:"diff"`
+		} `json:"changes"`
+	}
+
+	if err := json.Unmarshal(changesBody, &changesResult); err != nil {
+		return "", fmt.Errorf("gitlab: failed to parse changes response: %w", err)
+	}
+
+	slog.Debug("gitlab: MR changes fetched", "project_path", projectPath, "mr_id", mrID, "changes_count", len(changesResult.Changes))
+
 	var sb strings.Builder
 	sb.WriteString("Project: ")
 	sb.WriteString(projectPath)
@@ -168,6 +206,32 @@ func (g *GitLabTools) FetchMergeRequest(projectPath string, mrID string) (string
 	sb.WriteString(result.WebURL)
 	sb.WriteString("\n\nDescription:\n")
 	sb.WriteString(result.Description)
+
+	if len(changesResult.Changes) > 0 {
+		sb.WriteString("\n\nFile Changes:\n")
+		for i, diff := range changesResult.Changes {
+			sb.WriteString(fmt.Sprintf("%d. ", i+1))
+			if diff.Deleted {
+				sb.WriteString("Deleted: ")
+				sb.WriteString(diff.OldPath)
+			} else if diff.Created {
+				sb.WriteString("Created: ")
+				sb.WriteString(diff.NewPath)
+			} else if diff.Renamed {
+				sb.WriteString("Renamed: ")
+				sb.WriteString(diff.OldPath)
+				sb.WriteString(" -> ")
+				sb.WriteString(diff.NewPath)
+			} else {
+				sb.WriteString("Modified: ")
+				sb.WriteString(diff.NewPath)
+			}
+			sb.WriteString("\n")
+			sb.WriteString("Diff:\n")
+			sb.WriteString(diff.Diff)
+			sb.WriteString("\n\n")
+		}
+	}
 
 	fmt.Println(sb.String())
 

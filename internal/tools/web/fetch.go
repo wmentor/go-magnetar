@@ -636,7 +636,7 @@ func StaticDefinition() openai.Tool {
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
 			Name:        "web_fetch",
-			Description: "Fetch a web page and return clean Markdown content. Supports Confluence pages, JIRA issues, and GitLab merge requests.",
+			Description: "Fetch a web page and return clean Markdown content. Supports Confluence pages, JIRA issues, and GitLab merge requests with file changes.",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
