@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"log/slog"
+	"github.com/wmentor/go-magnetar/internal/printer"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -47,7 +47,7 @@ func (g *GenericTools) FileRead(filename string, limit int, offset int) (string,
 	if limit <= 0 && offset <= 0 {
 		data, err := g.root.ReadFile(filename)
 		if err != nil {
-			slog.Error("file_read: failed to read file", "file", filename, "err", err)
+			printer.Error("file_read: failed to read file", "file", filename, "err", err)
 			return "", false
 		}
 		return string(data), true
@@ -55,7 +55,7 @@ func (g *GenericTools) FileRead(filename string, limit int, offset int) (string,
 
 	f, err := g.root.Open(filename)
 	if err != nil {
-		slog.Error("file_read: failed to open file", "file", filename, "err", err)
+		printer.Error("file_read: failed to open file", "file", filename, "err", err)
 		return "", false
 	}
 	defer f.Close()
@@ -79,7 +79,7 @@ func (g *GenericTools) FileRead(filename string, limit int, offset int) (string,
 	}
 
 	if err := scanner.Err(); err != nil {
-		slog.Error("file_read: failed to scan file", "file", filename, "err", err)
+		printer.Error("file_read: failed to scan file", "file", filename, "err", err)
 		return "", false
 	}
 
@@ -90,15 +90,15 @@ func (g *GenericTools) FileRead(filename string, limit int, offset int) (string,
 // Returns false if read-only mode is enabled.
 func (g *GenericTools) FileWrite(filename string, content string) bool {
 	if g.state.ReadOnly {
-		slog.Warn("file_write: blocked by read-only mode", "file", filename)
+		printer.Info("file_write: blocked by read-only mode", "file", filename)
 		return false
 	}
 	err := g.root.WriteFile(filename, []byte(content), 0644)
 	if err != nil {
-		slog.Error("file_write: failed to write file", "file", filename, "err", err)
+		printer.Error("file_write: failed to write file", "file", filename, "err", err)
 		return false
 	}
-	slog.Info("file_write: file written successfully", "file", filename)
+	printer.Info("file_write: file written successfully", "file", filename)
 	return true
 }
 
@@ -106,10 +106,10 @@ func (g *GenericTools) FileWrite(filename string, content string) bool {
 func (g *GenericTools) FileExists(filename string) bool {
 	_, err := g.root.Stat(filename)
 	if err != nil {
-		slog.Debug("file_exists: file not found", "file", filename, "err", err)
+		printer.Debug("file_exists: file not found", "file", filename, "err", err)
 		return false
 	}
-	slog.Debug("file_exists: file found", "file", filename)
+		printer.Debug("file_exists: file found", "file", filename)
 	return true
 }
 
@@ -175,7 +175,7 @@ func (g *GenericTools) FileList(opts *FileListOptions) []string {
 	})
 
 	if err != nil {
-		slog.Error("file_list: failed to walk directory", "path", g.root.Name(), "err", err)
+		printer.Error("file_list: failed to walk directory", "path", g.root.Name(), "err", err)
 		return []string{fmt.Sprintf("error: %v", err)}
 	}
 
@@ -230,7 +230,7 @@ func (g *GenericTools) SystemExec(command string, args []string) string {
 	cmdPath := command
 
 	if !isCommandAllowed(command, args, g.state.ReadOnly) {
-		slog.Warn("system_exec: blocked", "command", command, "args", args)
+		printer.Info("system_exec: blocked", "command", command, "args", args)
 		return fmt.Sprintf("error: command '%s' is not allowed in current mode", command)
 	}
 
@@ -238,7 +238,7 @@ func (g *GenericTools) SystemExec(command string, args []string) string {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		slog.Error("system_exec: command failed", "command", command, "args", args, "err", err, "output", string(output))
+		printer.Error("system_exec: command failed", "command", command, "args", args, "err", err, "output", string(output))
 		return fmt.Sprintf("error: %v\n%s", err, output)
 	}
 
@@ -251,7 +251,7 @@ func (g *GenericTools) SystemDate() string {
 
 	output, err := cmd.Output()
 	if err != nil {
-		slog.Error("system_date: command failed", "err", err, "output", string(output))
+		printer.Error("system_date: command failed", "err", err, "output", string(output))
 		return fmt.Sprintf("error: %v\n%s", err, string(output))
 	}
 
@@ -276,7 +276,7 @@ func (g *GenericTools) SystemGrep(filename string, pattern string, caseInsensiti
 
 	output, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 	if err != nil {
-		slog.Error("system_grep: command failed", "cmd", cmd, "err", err, "output", string(output))
+		printer.Error("system_grep: command failed", "cmd", cmd, "err", err, "output", string(output))
 		return fmt.Sprintf("error: %v\n%s", err, output)
 	}
 
@@ -500,7 +500,7 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 			Offset   int    `json:"offset,omitempty"`
 		}
 		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			slog.Error("file_read: failed to parse args", "args", args, "err", err)
+			printer.Error("file_read: failed to parse args", "args", args, "err", err)
 			return "error: failed to parse arguments"
 		}
 		content, ok := g.FileRead(params.Filename, params.Limit, params.Offset)
@@ -514,7 +514,7 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 			Options *FileListOptions `json:"options,omitempty"`
 		}
 		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			slog.Error("file_list: failed to parse args", "args", args, "err", err)
+			printer.Error("file_list: failed to parse args", "args", args, "err", err)
 			return "error: failed to parse arguments"
 		}
 		results := g.FileList(params.Options)
@@ -526,7 +526,7 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 			Content  string `json:"content"`
 		}
 		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			slog.Error("file_write: failed to parse args", "args", args, "err", err)
+			printer.Error("file_write: failed to parse args", "args", args, "err", err)
 			return "error: failed to parse arguments"
 		}
 		if ok := g.FileWrite(params.Filename, params.Content); !ok {
@@ -539,7 +539,7 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 			Filename string `json:"filename"`
 		}
 		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			slog.Error("file_exists: failed to parse args", "args", args, "err", err)
+			printer.Error("file_exists: failed to parse args", "args", args, "err", err)
 			return "error: failed to parse arguments"
 		}
 		if ok := g.FileExists(params.Filename); !ok {
@@ -553,7 +553,7 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 			Args    []string `json:"args"`
 		}
 		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			slog.Error("system_exec: failed to parse args", "args", args, "err", err)
+			printer.Error("system_exec: failed to parse args", "args", args, "err", err)
 			return "error: failed to parse arguments"
 		}
 		return g.SystemExec(params.Command, params.Args)
@@ -569,7 +569,7 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 			Recursive       bool   `json:"recursive,omitempty"`
 		}
 		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			slog.Error("system_grep: failed to parse args", "args", args, "err", err)
+			printer.Error("system_grep: failed to parse args", "args", args, "err", err)
 			return "error: failed to parse arguments"
 		}
 		return g.SystemGrep(params.Filename, params.Pattern, params.CaseInsensitive, params.Recursive)

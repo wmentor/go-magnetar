@@ -8,7 +8,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -19,6 +18,7 @@ import (
 
 	sanitizer "github.com/wmentor/go-magnetar/internal/agent/markdown"
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools/gitlab"
 )
 
@@ -105,7 +105,7 @@ func (w *WebTools) preprocessMarkdown(markdownStr string) (string, error) {
 
 // WebFetch fetches a web page, preprocesses it (if HTML), and returns the cleaned content.
 func (w *WebTools) WebFetch(url string) (string, error) {
-	slog.Debug("webfetch: fetching URL", "url", url)
+	printer.Debug("webfetch: fetching URL", "url", url)
 
 	if w.cfg.String("confluence.base_url") != "" {
 		if strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/spaces/") || strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/x/") || strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/p/") {
@@ -137,12 +137,12 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 
 	content, contentType, err := w.fetchURLWithMediaType(url)
 	if err != nil {
-		slog.Error("webfetch: failed to fetch URL", "url", url, "err", err)
+		printer.Error("webfetch: failed to fetch URL", "url", url, "err", err)
 		return "", fmt.Errorf("webfetch: failed to fetch URL %q", url)
 	}
 
 	if contentType != "" && strings.Contains(strings.ToLower(contentType), "text/html") {
-		slog.Debug("webfetch: HTML detected, preprocessing", "url", url, "content_type", contentType)
+		printer.Debug("webfetch: HTML detected, preprocessing", "url", url, "content_type", contentType)
 
 		content, err := CleanHTML(content)
 		if err != nil {
@@ -161,15 +161,15 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 
 		content, err = w.preprocessMarkdown(content)
 		if err != nil {
-			slog.Error("webfetch: preprocessing failed", "url", url, "err", err)
+			printer.Error("webfetch: preprocessing failed", "url", url, "err", err)
 			return "", fmt.Errorf("webfetch: preprocessing failed for URL %q", url)
 		}
 
-		slog.Debug("webfetch: done", "url", url)
+		printer.Debug("webfetch: done", "url", url)
 		return content, nil
 	}
 
-	slog.Debug("webfetch: done (non-HTML content)", "url", url, "content_type", contentType)
+	printer.Debug("webfetch: done (non-HTML content)", "url", url, "content_type", contentType)
 	return content, nil
 }
 
@@ -303,28 +303,28 @@ func decodeShortPageID(shortCode string) (int64, error) {
 
 // resolveShortPageID resolves a short Confluence page code (e.g., AgA5) to numeric ID.
 func (w *WebTools) resolveShortPageID(shortCode string) (string, error) {
-	slog.Debug("webfetch: resolving short Confluence page ID", "short_code", shortCode)
+	printer.Debug("webfetch: resolving short Confluence page ID", "short_code", shortCode)
 
 	pageID, err := decodeShortPageID(shortCode)
 	if err != nil {
 		return "", err
 	}
 
-	slog.Debug("webfetch: decoded short page ID", "short", shortCode, "numeric", pageID)
+	printer.Debug("webfetch: decoded short page ID", "short", shortCode, "numeric", pageID)
 	return fmt.Sprintf("%d", pageID), nil
 }
 
 // fetchConfluencePage fetches a Confluence page by ID and returns its content in Markdown.
 func (w *WebTools) fetchConfluencePage(pageID string, isShortID bool) (string, error) {
-	slog.Debug("webfetch: detected Confluence page", "page_id", pageID, "is_short_id", isShortID)
+	printer.Debug("webfetch: detected Confluence page", "page_id", pageID, "is_short_id", isShortID)
 
 	if isShortID {
 		numID, err := w.resolveShortPageID(pageID)
 		if err == nil {
 			pageID = numID
-			slog.Debug("webfetch: resolved short page ID", "short", pageID, "numeric", numID)
+			printer.Debug("webfetch: resolved short page ID", "short", pageID, "numeric", numID)
 		} else {
-			slog.Debug("webfetch: failed to resolve short page ID, trying as numeric", "page_id", pageID, "err", err)
+			printer.Debug("webfetch: failed to resolve short page ID, trying as numeric", "page_id", pageID, "err", err)
 		}
 	}
 
@@ -391,13 +391,13 @@ func (w *WebTools) fetchConfluencePage(pageID string, isShortID bool) (string, e
 		return "", fmt.Errorf("web: failed to parse Confluence response: %w", err)
 	}
 
-	slog.Debug("webfetch: Confluence page fetched", "page_id", pageID)
+	printer.Debug("webfetch: Confluence page fetched", "page_id", pageID)
 	return fmt.Sprintf("Title: %s\nVersion: %d\nAuthor: %s\nUpdated: %s\nBody:\n%s", result.Title, result.Version.Number, result.Version.Author, result.Version.Updated, result.Body.Storage.Value), nil
 }
 
 // fetchJIRAIssue fetches a JIRA issue by its key (e.g., GOARCH-60) and returns its content in Markdown.
 func (w *WebTools) fetchJIRAIssue(issueKey string) (string, error) {
-	slog.Debug("webfetch: detected JIRA issue", "issue_key", issueKey)
+	printer.Debug("webfetch: detected JIRA issue", "issue_key", issueKey)
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
@@ -483,7 +483,7 @@ func (w *WebTools) fetchJIRAIssue(issueKey string) (string, error) {
 		return "", fmt.Errorf("web: failed to parse JIRA response: %w", err)
 	}
 
-	slog.Debug("webfetch: JIRA issue fetched", "issue_key", issueKey)
+	printer.Debug("webfetch: JIRA issue fetched", "issue_key", issueKey)
 
 	var sb strings.Builder
 	sb.WriteString("Issue: ")
@@ -550,7 +550,7 @@ func (w *WebTools) Dispatch(name string, args string) string {
 			URL string `json:"url"`
 		}
 		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			slog.Error("web_fetch: failed to parse args", "args", args, "err", err)
+			printer.Error("web_fetch: failed to parse args", "args", args, "err", err)
 			return "error: failed to parse arguments"
 		}
 		content, err := w.WebFetch(params.URL)
@@ -623,7 +623,7 @@ func extractProjectAndMergeRequestFromGitLabURL(url string, baseURL string) (str
 
 // fetchGitLabMergeRequest fetches a GitLab merge request and returns its content.
 func (w *WebTools) fetchGitLabMergeRequest(projectPath string, mrID string) (string, error) {
-	slog.Debug("webfetch: detected GitLab merge request", "project_path", projectPath, "mr_id", mrID)
+	printer.Debug("webfetch: detected GitLab merge request", "project_path", projectPath, "mr_id", mrID)
 
 	gitLabTools := gitlab.New(w.cfg)
 	return gitLabTools.FetchMergeRequest(projectPath, mrID)

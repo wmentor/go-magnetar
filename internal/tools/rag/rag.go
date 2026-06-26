@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
+	"github.com/wmentor/go-magnetar/internal/printer"
 	"math"
 	"net/url"
 	"strconv"
@@ -141,7 +141,7 @@ func (r *RAGTools) ensureCollection() error {
 		return fmt.Errorf("rag: failed to create collection %q: %w", r.cfg.String("rag.qdrant.collection"), err)
 	}
 
-	slog.Info("rag: collection created", "collection", r.cfg.String("rag.qdrant.collection"))
+	printer.Info("rag: collection created", "collection", r.cfg.String("rag.qdrant.collection"))
 	return nil
 }
 
@@ -190,7 +190,7 @@ func (r *RAGTools) expandQuery(ctx context.Context, query string, n int) []strin
 		},
 	})
 	if err != nil {
-		slog.Warn("rag: query expansion failed, falling back to single query", "err", err)
+		printer.Info("rag: query expansion failed, falling back to single query", "err", err)
 		return nil
 	}
 
@@ -205,7 +205,7 @@ func (r *RAGTools) expandQuery(ctx context.Context, query string, n int) []strin
 			result = append(result, line)
 		}
 	}
-	slog.Debug("rag: query expansion", "original", preview(query, 60), "variants", len(result))
+	printer.Debug("rag: query expansion", "original", preview(query, 60), "variants", len(result))
 	return result
 }
 
@@ -300,7 +300,7 @@ func (r *RAGTools) dedup(results []searchResult) []searchResult {
 			defer wg.Done()
 			vec, err := r.embed(text)
 			if err != nil {
-				slog.Debug("rag: dedup embed failed, skipping", "err", err)
+				printer.Debug("rag: dedup embed failed, skipping", "err", err)
 				return
 			}
 			mu.Lock()
@@ -323,7 +323,7 @@ func (r *RAGTools) dedup(results []searchResult) []searchResult {
 			}
 			sim := cosineSimilarity(embeddings[i], embeddings[j])
 			if sim >= float32(threshold) {
-				slog.Debug("rag: dedup suppressed near-duplicate",
+				printer.Debug("rag: dedup suppressed near-duplicate",
 					"sim", fmt.Sprintf("%.3f", sim),
 					"kept", preview(results[i].text, 40),
 					"dropped", preview(results[j].text, 40),
@@ -356,7 +356,7 @@ func (r *RAGTools) RagSave(content string, prepend string) bool {
 
 	vector, err := r.embed(content)
 	if err != nil {
-		slog.Error("rag_save: embedding failed", "err", err)
+		printer.Error("rag_save: embedding failed", "err", err)
 		return false
 	}
 
@@ -378,11 +378,11 @@ func (r *RAGTools) RagSave(content string, prepend string) bool {
 		},
 	})
 	if err != nil {
-		slog.Error("rag_save: failed to upsert point", "id", id, "err", err)
+		printer.Error("rag_save: failed to upsert point", "id", id, "err", err)
 		return false
 	}
 
-	slog.Debug("rag_save: saved", "id", id)
+	printer.Debug("rag_save: saved", "id", id)
 	return true
 }
 
@@ -423,7 +423,7 @@ func (r *RAGTools) RagSearch(query string) string {
 	for range queries {
 		qr := <-ch
 		if qr.err != nil {
-			slog.Error("rag_search: query failed", "err", qr.err)
+			printer.Error("rag_search: query failed", "err", qr.err)
 			continue
 		}
 		for _, res := range qr.results {
@@ -434,7 +434,7 @@ func (r *RAGTools) RagSearch(query string) string {
 	}
 
 	if len(bestByID) == 0 {
-		slog.Debug("rag_search: no results", "query", preview(query, 60))
+		printer.Debug("rag_search: no results", "query", preview(query, 60))
 		return ""
 	}
 
@@ -460,10 +460,10 @@ func (r *RAGTools) RagSearch(query string) string {
 	parts := make([]string, 0, len(merged))
 	for _, res := range merged {
 		parts = append(parts, res.text)
-		slog.Debug("rag_search: result", "score", res.score, "preview", preview(res.text, 60))
+		printer.Debug("rag_search: result", "score", res.score, "preview", preview(res.text, 60))
 	}
 
-	slog.Debug("rag_search: done", "query", preview(query, 60),
+	printer.Debug("rag_search: done", "query", preview(query, 60),
 		"queries", len(queries), "results", len(parts))
 	return strings.Join(parts, "\n\n---\n\n")
 }
@@ -541,7 +541,7 @@ func (r *RAGTools) Dispatch(name string, args string) string {
 			Content string `json:"content"`
 		}
 		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			slog.Error("rag_save: failed to parse args", "args", args, "err", err)
+			printer.Error("rag_save: failed to parse args", "args", args, "err", err)
 			return "error: failed to parse arguments"
 		}
 		ok := r.RagSave(params.Content, "")
@@ -555,7 +555,7 @@ func (r *RAGTools) Dispatch(name string, args string) string {
 			Query string `json:"query"`
 		}
 		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			slog.Error("rag_search: failed to parse args", "args", args, "err", err)
+			printer.Error("rag_search: failed to parse args", "args", args, "err", err)
 			return "error: failed to parse arguments"
 		}
 		result := r.RagSearch(params.Query)

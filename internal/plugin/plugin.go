@@ -3,12 +3,12 @@ package plugin
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"os"
 
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/printer"
 )
 
 // ErrExit is a sentinel error that a ChatCommand.Execute function may return
@@ -26,10 +26,10 @@ type Plugin interface {
 // State carries shared infrastructure injected into every plugin at Init time.
 // Named State (not Context) to avoid confusion with context.Context.
 type State struct {
-	Config    *config.Config
-	Root      *os.Root     // sandboxed filesystem; nil in the indexer context
-	Log       *slog.Logger
-	ReadOnly  bool         // if true, disable file write operations
+	Config   *config.Config
+	Root     *os.Root // sandboxed filesystem; nil in the indexer context
+	Printer  *printer.Printer
+	ReadOnly bool // if true, disable file write operations
 }
 
 // Hub is the registration and lifecycle interface passed to Plugin.Init.

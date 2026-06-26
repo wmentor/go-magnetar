@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
+	"github.com/wmentor/go-magnetar/internal/printer"
 	"os"
 	"path/filepath"
 	"strings"
@@ -83,14 +83,14 @@ func (p *Plugin) execute(ctx context.Context, agent plugin.AgentHandle, args str
 	}
 
 	if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") {
-		slog.Info("indexcmd: indexing URL", "url", target)
+		printer.Info("indexcmd: indexing URL", "url", target)
 		if err := p.idx.IndexURL(target, message); err != nil {
 			return fmt.Errorf("index URL failed: %w", err)
 		}
 		return nil
 	}
 
-	slog.Info("indexcmd: indexing file", "file", target)
+	printer.Info("indexcmd: indexing file", "file", target)
 	if err := p.idx.IndexFile(target, message); err != nil {
 		return fmt.Errorf("index file failed: %w", err)
 	}
@@ -124,7 +124,7 @@ func (p *Plugin) executeTab(ctx context.Context, agent plugin.AgentHandle, args 
 
 		var entry Entry
 		if err := json.Unmarshal([]byte(line), &entry); err != nil {
-			slog.Error("json parse error", "line", line, "error", err)
+			printer.Error("json parse error", "line", line, "error", err)
 			continue
 		}
 
@@ -132,18 +132,18 @@ func (p *Plugin) executeTab(ctx context.Context, agent plugin.AgentHandle, args 
 		message := entry.Message
 
 		if strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://") {
-			slog.Info("indexcmd: indexing URL from tab", "url", source)
+			printer.Info("indexcmd: indexing URL from tab", "url", source)
 			if err := p.idx.IndexURL(source, message); err != nil {
-				slog.Error("index URL failed", "url", source, "error", err)
+				printer.Error("index URL failed", "url", source, "error", err)
 				continue
 			}
 		} else {
 			if !filepath.IsAbs(source) {
 				source = filepath.Join(workDir, source)
 			}
-			slog.Info("indexcmd: indexing file from tab", "file", source)
+			printer.Info("indexcmd: indexing file from tab", "file", source)
 			if err := p.idx.IndexFile(source, message); err != nil {
-				slog.Error("index file failed", "file", source, "error", err)
+				printer.Error("index file failed", "file", source, "error", err)
 				continue
 			}
 		}

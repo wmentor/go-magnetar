@@ -273,7 +273,7 @@ Each chunk's ID is UUID v5 derived from its text (`uuid.NewSHA1`). Repeated call
 ```
 cmd/go-magnetar/main.go          — entry point; blank plugin imports
 internal/
-  config/config.go               — YAML config loading, slog initialization
+  config/config.go               — YAML config loading, printer initialization
   chunk/chunk.go                 — text chunking (UTF-8, paragraph/heading boundaries)
   plugin/
     plugin.go                    — Plugin, Hub, CLIPlugin, AgentHandle interfaces;
@@ -318,7 +318,7 @@ main()
 cmd.Execute()
   ├── kong.Parse(cli, ...)             — parses flags; -c resolved here
   ├── config.Load(path)                — loads YAML
-  ├── config.SetupLogger(cfg)          — initializes slog
+  ├── config.SetupLogger(cfg)          — initializes printer
   ├── plugin.InitAll(State{Config})
   │     ├── Plugin.Init(s, hub) × N   — tools/commands/goroutines registered
   │     └── hub.start()               — goroutines launched
@@ -437,7 +437,7 @@ type AgentHandle interface {
 
 ## Logging
 
-All logs are written to `stderr` in `slog` text format. Levels:
+All logs are written to `stderr` in text format using the `internal/printer` package. This package provides `Info`, `Debug`, `Warn`, and `Error` functions with the same signatures as `log/slog`.
 
 | Level | When |
 |---|---|
@@ -459,4 +459,4 @@ Set `log.level: debug` in the config for verbose output.
 | `github.com/knadh/koanf/v2` | YAML config loading |
 | `github.com/lmittmann/tint` | Colorized slog handler |
 | `github.com/charmbracelet/glamour` | Markdown rendering in terminal |
-| `log/slog` | Structured logging (stdlib) |
+| `log/slog` | Structured logging (stdlib, replaced by internal/printer) |

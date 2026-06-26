@@ -2,7 +2,7 @@ package indexer
 
 import (
 	"fmt"
-	"log/slog"
+	"github.com/wmentor/go-magnetar/internal/printer"
 	"os"
 
 	"github.com/wmentor/go-magnetar/internal/chunk"
@@ -39,7 +39,7 @@ func New(cfg *config.Config, root *os.Root) (*Indexer, error) {
 
 // IndexFile indexes a single file into the RAG knowledge base.
 func (idx *Indexer) IndexFile(filename string, msg string) error {
-	slog.Info("indexer: indexing file", "file", filename)
+	printer.Info("indexer: indexing file", "file", filename)
 
 	data, err := os.ReadFile(filename)
 	if err != nil {
@@ -51,7 +51,7 @@ func (idx *Indexer) IndexFile(filename string, msg string) error {
 
 // IndexURL fetches content from a URL, chunks it, and stores it in the RAG knowledge base.
 func (idx *Indexer) IndexURL(rawURL string, msg string) error {
-	slog.Info("indexer: indexing URL", "url", rawURL)
+	printer.Info("indexer: indexing URL", "url", rawURL)
 
 	content, err := idx.web.WebFetch(rawURL)
 	if err != nil {
@@ -74,9 +74,9 @@ func (idx *Indexer) chunkAndSave(content string, msg string) error {
 		if idx.rag.RagSave(c, msg) {
 			saved++
 		}
-		slog.Debug("indexer: chunk saved", "chunk", i+1, "size", len(c))
+		printer.Debug("indexer: chunk saved", "chunk", i+1, "size", len(c))
 	}
 
-	slog.Info("indexer: done", "chunk", len(chunks), "saved", saved)
+	printer.Info("indexer: done", "chunk", len(chunks), "saved", saved)
 	return nil
 }

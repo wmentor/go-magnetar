@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -21,6 +20,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/config"
 	hstore "github.com/wmentor/go-magnetar/internal/history"
 	"github.com/wmentor/go-magnetar/internal/plugin"
+	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools/generic"
 )
 
@@ -72,7 +72,7 @@ func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
 		if _, statErr := root.Stat(agentsFile); statErr == nil {
 			if agentsContent, ok := genTools.FileRead(agentsFile, 0, 0); ok {
 				systemContent = systemPrompt + "\n\n# Project context (from AGENTS.md)\n\n" + agentsContent
-				slog.Info("agents: loaded AGENTS.md into system prompt")
+				printer.Info("agents: loaded AGENTS.md into system prompt")
 			}
 		}
 	}
@@ -126,7 +126,7 @@ func (h *agentHandle) Compact() error {
 }
 
 func (h *agentHandle) Reset() {
-	slog.Info("chat: starting new session, clearing context")
+	printer.Info("chat: starting new session, clearing context")
 	h.a.messages = []openai.ChatCompletionMessage{
 		{
 			Role:    openai.ChatMessageRoleSystem,
@@ -184,7 +184,7 @@ func (a *ChatAgent) trimMessages(reservedOutputTokens int) []openai.ChatCompleti
 	trimmed = append(trimmed, keep...)
 
 	if dropped := len(tail) - len(keep); dropped > 0 {
-		slog.Debug("chat: trimmed message history to fit context window",
+		printer.Debug("chat: trimmed message history to fit context window",
 			"dropped", dropped, "kept", len(keep))
 	}
 
@@ -202,7 +202,7 @@ func (a *ChatAgent) compactIfNeeded() {
 	}
 	compacted, err := a.summarizer.Compact(a.messages)
 	if err != nil {
-		slog.Error("chat: history compaction failed, continuing with full history", "err", err)
+		printer.Error("chat: history compaction failed, continuing with full history", "err", err)
 		return
 	}
 	a.messages = compacted
@@ -263,7 +263,7 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 				name := toolCall.Function.Name
 				args := toolCall.Function.Arguments
 
-				slog.Debug("chat: tool call", "tool", name, "args", args)
+				printer.Debug("chat: tool call", "tool", name, "args", args)
 
 				var result string
 				t, ok := toolMap[name]
@@ -433,7 +433,7 @@ func (a *ChatAgent) handleCommand(line string) (handled bool, exit bool) {
 				if errors.Is(err, plugin.ErrExit) {
 					return true, true
 				}
-				slog.Error("chat: command error", "cmd", cmd.Name, "err", err)
+				printer.Error("chat: command error", "cmd", cmd.Name, "err", err)
 			}
 			return true, false
 		}
@@ -485,7 +485,7 @@ func (a *ChatAgent) Run() error {
 
 		answer, err := a.Ask(line)
 		if err != nil {
-			slog.Error("chat: failed to get answer", "err", err)
+			printer.Error("chat: failed to get answer", "err", err)
 			fmt.Fprintln(os.Stdout, "Error: failed to get response. Please try again.")
 			continue
 		}

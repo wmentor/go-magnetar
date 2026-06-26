@@ -3,7 +3,7 @@ package compactplugin
 import (
 	"context"
 	"fmt"
-	"log/slog"
+	"github.com/wmentor/go-magnetar/internal/printer"
 	"os"
 
 	"github.com/wmentor/go-magnetar/internal/plugin"
@@ -23,7 +23,7 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 		Execute: func(_ context.Context, a plugin.AgentHandle, _ string) error {
 			before := len(a.Messages())
 			if err := a.Compact(); err != nil {
-				slog.Error("chat: manual compaction failed", "err", err)
+				printer.Error("chat: manual compaction failed", "err", err)
 				fmt.Fprintln(os.Stdout, "Error: compaction failed — see logs for details.")
 				return nil
 			}

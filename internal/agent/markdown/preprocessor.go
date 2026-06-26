@@ -3,7 +3,7 @@ package markdown
 import (
 	"context"
 	"fmt"
-	"log/slog"
+	"github.com/wmentor/go-magnetar/internal/printer"
 	"os"
 	"time"
 
@@ -94,7 +94,7 @@ func (p *Preprocessor) runAgentLoop(messages []openai.ChatCompletionMessage) (st
 				name := toolCall.Function.Name
 				args := toolCall.Function.Arguments
 
-				slog.Debug("preprocessor: tool call", "tool", name, "args", args)
+				printer.Debug("preprocessor: tool call", "tool", name, "args", args)
 
 				var result string
 				switch name {
@@ -113,13 +113,13 @@ func (p *Preprocessor) runAgentLoop(messages []openai.ChatCompletionMessage) (st
 			continue
 		}
 
-		slog.Debug("preprocessor: done", "response", choice.Message.Content)
+		printer.Debug("preprocessor: done", "response", choice.Message.Content)
 		return choice.Message.Content, nil
 	}
 }
 
 func (p *Preprocessor) ProcessMD(filename string) (string, error) {
-	slog.Debug("preprocessor: processing markdown file", "file", filename)
+	printer.Debug("preprocessor: processing markdown file", "file", filename)
 
 	markdownContent, ok := p.generic.FileRead(filename, 0, 0)
 	if !ok {
@@ -141,7 +141,7 @@ func (p *Preprocessor) ProcessMD(filename string) (string, error) {
 }
 
 func (p *Preprocessor) ProcessMDString(markdownStr string) (string, error) {
-	slog.Debug("preprocessor: processing markdown string")
+	printer.Debug("preprocessor: processing markdown string")
 
 	messages := []openai.ChatCompletionMessage{
 		{

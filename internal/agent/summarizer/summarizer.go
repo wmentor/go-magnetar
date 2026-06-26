@@ -3,12 +3,13 @@ package summarizer
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"strings"
 	"time"
 
 	"github.com/sashabaranov/go-openai"
+
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/printer"
 )
 
 const summaryPrompt = `You are a conversation summarizer. You will be given a sequence of chat messages.
@@ -94,7 +95,7 @@ func (s *Summarizer) Compact(messages []openai.ChatCompletionMessage) ([]openai.
 		return messages, nil
 	}
 
-	slog.Info("summarizer: compacting history",
+	printer.Info("summarizer: compacting history",
 		"summarize", len(toSummarize),
 		"preserve_tail", len(tail),
 	)
@@ -112,7 +113,7 @@ func (s *Summarizer) Compact(messages []openai.ChatCompletionMessage) ([]openai.
 	})
 	result = append(result, tail...)
 
-	slog.Debug("summarizer: history compacted",
+	printer.Debug("summarizer: history compacted",
 		"before", 1+len(rest),
 		"after", len(result),
 	)
