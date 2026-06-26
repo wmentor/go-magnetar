@@ -64,8 +64,8 @@ func (idx *Indexer) IndexURL(rawURL string, msg string) error {
 // chunkAndSave splits content into overlapping chunks and saves each one to RAG.
 func (idx *Indexer) chunkAndSave(content string, msg string) error {
 	cfg := chunk.Config{
-		MaxSize: idx.cfg.RAG.Chunk.Size,
-		Overlap: idx.cfg.RAG.Chunk.Overlap,
+		MaxSize: idx.cfg.Int("rag.chunk.size"),
+		Overlap: idx.cfg.Int("rag.chunk.overlap"),
 	}
 	chunks := chunk.Split(content, cfg)
 	saved := 0

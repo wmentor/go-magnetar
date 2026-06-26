@@ -35,7 +35,7 @@ type WebTools struct {
 // New creates a new WebTools instance.
 func New(cfg *config.Config, root *os.Root) (*WebTools, error) {
 	var preprocessor *sanitizer.Preprocessor
-	if cfg.WebFetch.BaseURL != "" {
+	if cfg.String("webfetch.base_url") != "" {
 		p, err := sanitizer.New(cfg, root)
 		if err != nil {
 			return nil, fmt.Errorf("web: failed to create preprocessor: %w", err)
@@ -106,8 +106,8 @@ func (w *WebTools) preprocessMarkdown(markdownStr string) (string, error) {
 func (w *WebTools) WebFetch(url string) (string, error) {
 	slog.Debug("webfetch: fetching URL", "url", url)
 
-	if w.cfg.Confluence.BaseURL != "" {
-		if strings.HasPrefix(url, w.cfg.Confluence.BaseURL+"/spaces/") || strings.HasPrefix(url, w.cfg.Confluence.BaseURL+"/x/") || strings.HasPrefix(url, w.cfg.Confluence.BaseURL+"/p/") {
+	if w.cfg.String("confluence.base_url") != "" {
+		if strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/spaces/") || strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/x/") || strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/p/") {
 			pageID, err := extractPageIDFromConfluenceURL(url)
 			if err == nil && pageID != "" {
 				isShortID := strings.Contains(url, "/x/") || strings.Contains(url, "/p/")
@@ -116,8 +116,8 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 		}
 	}
 
-	if w.cfg.JIRA.BaseURL != "" {
-		if strings.HasPrefix(url, w.cfg.JIRA.BaseURL) && (strings.Contains(url, "/browse/") || strings.Contains(url, "/issues/")) {
+	if w.cfg.String("jira.base_url") != "" {
+		if strings.HasPrefix(url, w.cfg.String("jira.base_url")) && (strings.Contains(url, "/browse/") || strings.Contains(url, "/issues/")) {
 			issueKey, err := extractIssueKeyFromJIRAURL(url)
 			if err == nil && issueKey != "" {
 				return w.fetchJIRAIssue(issueKey)
@@ -331,14 +331,14 @@ func (w *WebTools) fetchConfluencePage(pageID string, isShortID bool) (string, e
 		Transport: tr,
 	}
 
-	apiURL := fmt.Sprintf("%s/rest/api/content/%s?expand=body.storage,version.history", w.cfg.Confluence.BaseURL, pageID)
+	apiURL := fmt.Sprintf("%s/rest/api/content/%s?expand=body.storage,version.history", w.cfg.String("confluence.base_url"), pageID)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("web: failed to create Confluence request for page %q: %w", pageID, err)
 	}
 
-	req.Header.Set("Authorization", "Bearer "+w.cfg.Confluence.APIKey)
+	req.Header.Set("Authorization", "Bearer "+w.cfg.String("confluence.api_key"))
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := client.Do(req)
@@ -402,14 +402,14 @@ func (w *WebTools) fetchJIRAIssue(issueKey string) (string, error) {
 		Transport: tr,
 	}
 
-	apiURL := fmt.Sprintf("%s/rest/api/2/issue/%s", w.cfg.JIRA.BaseURL, issueKey)
+	apiURL := fmt.Sprintf("%s/rest/api/2/issue/%s", w.cfg.String("jira.base_url"), issueKey)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
 		return "", fmt.Errorf("web: failed to create JIRA request for issue %q: %w", issueKey, err)
 	}
 
-	req.Header.Set("Authorization", "Bearer "+w.cfg.JIRA.APIKey)
+	req.Header.Set("Authorization", "Bearer "+w.cfg.String("jira.api_key"))
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := client.Do(req)

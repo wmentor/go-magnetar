@@ -25,8 +25,8 @@ type Summarizer struct {
 
 // New creates a Summarizer backed by the same LLM as the chat agent.
 func New(cfg *config.Config) *Summarizer {
-	llmCfg := openai.DefaultConfig(cfg.LLM.APIKey)
-	llmCfg.BaseURL = cfg.LLM.BaseURL
+	llmCfg := openai.DefaultConfig(cfg.String("llm.api_key"))
+	llmCfg.BaseURL = cfg.String("llm.base_url")
 	return &Summarizer{
 		cfg: cfg,
 		llm: openai.NewClientWithConfig(llmCfg),
@@ -36,11 +36,11 @@ func New(cfg *config.Config) *Summarizer {
 // threshold returns the effective token threshold for triggering compaction.
 // If compact.threshold is not set (≤ 0), defaults to 80 % of llm.context.
 func (s *Summarizer) threshold() int {
-	if s.cfg.Compact.Threshold > 0 {
-		return s.cfg.Compact.Threshold
+	if cfgThreshold := s.cfg.Int("compact.threshold"); cfgThreshold > 0 {
+		return cfgThreshold
 	}
-	if s.cfg.LLM.Context > 0 {
-		return s.cfg.LLM.Context * 4 / 5
+	if cfgContext := s.cfg.Int("llm.context"); cfgContext > 0 {
+		return cfgContext * 4 / 5
 	}
 	return 0 // no limit configured
 }
@@ -77,7 +77,7 @@ func (s *Summarizer) Compact(messages []openai.ChatCompletionMessage) ([]openai.
 	system := messages[0]
 	rest := messages[1:]
 
-	saveTail := s.cfg.Compact.SaveTail
+	saveTail := s.cfg.Int("compact.save_tail")
 	if saveTail < 1 || saveTail >= len(rest) {
 		saveTail = 0
 	}
@@ -132,7 +132,7 @@ func (s *Summarizer) summarize(messages []openai.ChatCompletionMessage) (string,
 	}
 
 	req := openai.ChatCompletionRequest{
-		Model: s.cfg.LLM.Model,
+		Model: s.cfg.String("llm.model"),
 		Messages: []openai.ChatCompletionMessage{
 			{Role: openai.ChatMessageRoleSystem, Content: summaryPrompt},
 			{Role: openai.ChatMessageRoleUser, Content: sb.String()},

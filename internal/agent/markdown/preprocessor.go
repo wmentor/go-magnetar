@@ -47,13 +47,13 @@ type Preprocessor struct {
 
 // New creates a new Preprocessor instance.
 func New(cfg *config.Config, root *os.Root) (*Preprocessor, error) {
-	if cfg.WebFetch.BaseURL == "" {
+	if cfg.String("webfetch.base_url") == "" {
 		return nil, nil
 	}
 
 	state := &plugin.State{Config: cfg}
-	llmCfg := openai.DefaultConfig(cfg.WebFetch.APIKey)
-	llmCfg.BaseURL = cfg.WebFetch.BaseURL
+	llmCfg := openai.DefaultConfig(cfg.String("webfetch.api_key"))
+	llmCfg.BaseURL = cfg.String("webfetch.base_url")
 	llmClient := openai.NewClientWithConfig(llmCfg)
 
 	return &Preprocessor{
@@ -71,10 +71,10 @@ func (p *Preprocessor) runAgentLoop(messages []openai.ChatCompletionMessage) (st
 	for {
 		ctx, cancel := context.WithTimeout(context.Background(), agentLoopTimeout)
 		resp, err := p.llm.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-			Model:     p.cfg.WebFetch.Model,
+			Model:     p.cfg.String("webfetch.model"),
 			Messages:  messages,
 			Tools:     tools,
-			MaxTokens: p.cfg.WebFetch.Context,
+			MaxTokens: p.cfg.Int("webfetch.context"),
 		})
 		cancel()
 

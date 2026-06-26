@@ -53,8 +53,8 @@ type ChatAgent struct {
 
 // New creates a new ChatAgent instance.
 func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
-	llmCfg := openai.DefaultConfig(cfg.LLM.APIKey)
-	llmCfg.BaseURL = cfg.LLM.BaseURL
+	llmCfg := openai.DefaultConfig(cfg.String("llm.api_key"))
+	llmCfg.BaseURL = cfg.String("llm.base_url")
 	llmClient := openai.NewClientWithConfig(llmCfg)
 
 	renderer, err := glamour.NewTermRenderer(
@@ -152,13 +152,13 @@ func estimateTokens(m openai.ChatCompletionMessage) int {
 
 // trimMessages returns a copy of a.messages that fits within the context window.
 func (a *ChatAgent) trimMessages(reservedOutputTokens int) []openai.ChatCompletionMessage {
-	if a.cfg.LLM.Context <= 0 {
+	if a.cfg.Int("llm.context") <= 0 {
 		return a.messages
 	}
 
-	budget := a.cfg.LLM.Context - reservedOutputTokens
+	budget := a.cfg.Int("llm.context") - reservedOutputTokens
 	if budget <= 0 {
-		budget = a.cfg.LLM.Context
+		budget = a.cfg.Int("llm.context")
 	}
 
 	system := a.messages[0]
@@ -234,14 +234,14 @@ func (a *ChatAgent) ask(userInput string) (string, error) {
 
 	for {
 		reserved := 0
-		if a.cfg.LLM.Context > 0 {
-			reserved = a.cfg.LLM.Context / reservedOutputFraction
+		if a.cfg.Int("llm.context") > 0 {
+			reserved = a.cfg.Int("llm.context") / reservedOutputFraction
 		}
 		trimmed := a.trimMessages(reserved)
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 		resp, err := a.llm.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-			Model:    a.cfg.LLM.Model,
+			Model:    a.cfg.String("llm.model"),
 			Messages: trimmed,
 			Tools:    tools,
 		})

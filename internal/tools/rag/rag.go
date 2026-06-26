@@ -43,19 +43,19 @@ type RAGTools struct {
 // New creates a new RAGTools instance, connects to Qdrant and ensures the collection exists.
 func New(cfg *config.Config) (*RAGTools, error) {
 	// Build OpenAI embedding client.
-	embedCfg := openai.DefaultConfig(cfg.RAG.LLM.APIKey)
-	embedCfg.BaseURL = cfg.RAG.LLM.BaseURL
+	embedCfg := openai.DefaultConfig(cfg.String("rag.llm.api_key"))
+	embedCfg.BaseURL = cfg.String("rag.llm.base_url")
 	embedClient := openai.NewClientWithConfig(embedCfg)
 
 	// Build LLM client for query expansion (reuses main LLM config).
-	llmCfg := openai.DefaultConfig(cfg.LLM.APIKey)
-	llmCfg.BaseURL = cfg.LLM.BaseURL
+	llmCfg := openai.DefaultConfig(cfg.String("llm.api_key"))
+	llmCfg.BaseURL = cfg.String("llm.base_url")
 	llmClient := openai.NewClientWithConfig(llmCfg)
 
 	// Parse connstr to extract host and port for gRPC.
-	host, port, err := parseConnStr(cfg.RAG.Qdrant.ConnStr)
+	host, port, err := parseConnStr(cfg.String("rag.qdrant.connstr"))
 	if err != nil {
-		return nil, fmt.Errorf("rag: invalid qdrant connstr %q: %w", cfg.RAG.Qdrant.ConnStr, err)
+		return nil, fmt.Errorf("rag: invalid qdrant connstr %q: %w", cfg.String("rag.qdrant.connstr"), err)
 	}
 
 	// Connect to Qdrant via gRPC.
@@ -120,7 +120,7 @@ func (r *RAGTools) ensureCollection() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	exists, err := r.qdrantClient.CollectionExists(ctx, r.cfg.RAG.Qdrant.Collection)
+	exists, err := r.qdrantClient.CollectionExists(ctx, r.cfg.String("rag.qdrant.collection"))
 	if err != nil {
 		return fmt.Errorf("rag: failed to check collection existence: %w", err)
 	}
@@ -129,19 +129,19 @@ func (r *RAGTools) ensureCollection() error {
 		return nil
 	}
 
-	vectorSize := uint64(r.cfg.RAG.LLM.VectorSize)
+	vectorSize := uint64(r.cfg.Int("rag.llm.vector_size"))
 	err = r.qdrantClient.CreateCollection(ctx, &qdrant.CreateCollection{
-		CollectionName: r.cfg.RAG.Qdrant.Collection,
+		CollectionName: r.cfg.String("rag.qdrant.collection"),
 		VectorsConfig: qdrant.NewVectorsConfig(&qdrant.VectorParams{
 			Size:     vectorSize,
 			Distance: qdrant.Distance_Cosine,
 		}),
 	})
 	if err != nil {
-		return fmt.Errorf("rag: failed to create collection %q: %w", r.cfg.RAG.Qdrant.Collection, err)
+		return fmt.Errorf("rag: failed to create collection %q: %w", r.cfg.String("rag.qdrant.collection"), err)
 	}
 
-	slog.Info("rag: collection created", "collection", r.cfg.RAG.Qdrant.Collection)
+	slog.Info("rag: collection created", "collection", r.cfg.String("rag.qdrant.collection"))
 	return nil
 }
 
@@ -152,7 +152,7 @@ func (r *RAGTools) embed(text string) ([]float32, error) {
 
 	resp, err := r.embedClient.CreateEmbeddings(ctx, openai.EmbeddingRequest{
 		Input: []string{text},
-		Model: openai.EmbeddingModel(r.cfg.RAG.LLM.Model),
+		Model: openai.EmbeddingModel(r.cfg.String("rag.llm.model")),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("rag: embedding failed: %w", err)
@@ -184,7 +184,7 @@ func (r *RAGTools) expandQuery(ctx context.Context, query string, n int) []strin
 	defer cancel()
 
 	resp, err := r.llmClient.CreateChatCompletion(reqCtx, openai.ChatCompletionRequest{
-		Model: r.cfg.LLM.Model,
+		Model: r.cfg.String("llm.model"),
 		Messages: []openai.ChatCompletionMessage{
 			{Role: openai.ChatMessageRoleUser, Content: prompt},
 		},
@@ -227,11 +227,11 @@ func (r *RAGTools) searchOne(ctx context.Context, query string) ([]searchResult,
 	qCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	limit := uint64(r.cfg.RAG.Search.Limit)
+	limit := uint64(r.cfg.Int("rag.search.limit"))
 	withPayload := true
-	scoreThreshold := r.cfg.RAG.Search.Threshold
+	scoreThreshold := float32(r.cfg.Float64("rag.search.threshold"))
 	points, err := r.qdrantClient.Query(qCtx, &qdrant.QueryPoints{
-		CollectionName: r.cfg.RAG.Qdrant.Collection,
+		CollectionName: r.cfg.String("rag.qdrant.collection"),
 		Query:          qdrant.NewQuery(vector...),
 		Limit:          &limit,
 		ScoreThreshold: &scoreThreshold,
@@ -280,11 +280,11 @@ func cosineSimilarity(a, b []float32) float32 {
 
 // dedup removes near-duplicate chunks from results.
 // Two chunks are considered near-duplicates when their text embeddings have a
-// cosine similarity above cfg.RAG.Search.DedupThreshold. When a pair is found,
+// cosine similarity above cfg.Float64("rag.search.dedup_threshold"). When a pair is found,
 // the chunk with the lower score is dropped.
 // Embeddings for each unique chunk are computed lazily and cached within the call.
 func (r *RAGTools) dedup(results []searchResult) []searchResult {
-	threshold := r.cfg.RAG.Search.DedupThreshold
+	threshold := r.cfg.Float64("rag.search.dedup_threshold")
 	if threshold <= 0 || len(results) <= 1 {
 		return results
 	}
@@ -322,7 +322,7 @@ func (r *RAGTools) dedup(results []searchResult) []searchResult {
 				continue
 			}
 			sim := cosineSimilarity(embeddings[i], embeddings[j])
-			if sim >= threshold {
+			if sim >= float32(threshold) {
 				slog.Debug("rag: dedup suppressed near-duplicate",
 					"sim", fmt.Sprintf("%.3f", sim),
 					"kept", preview(results[i].text, 40),
@@ -365,7 +365,7 @@ func (r *RAGTools) RagSave(content string, prepend string) bool {
 
 	waitUpsert := true
 	_, err = r.qdrantClient.Upsert(ctx, &qdrant.UpsertPoints{
-		CollectionName: r.cfg.RAG.Qdrant.Collection,
+		CollectionName: r.cfg.String("rag.qdrant.collection"),
 		Wait:           &waitUpsert,
 		Points: []*qdrant.PointStruct{
 			{
@@ -388,19 +388,19 @@ func (r *RAGTools) RagSave(content string, prepend string) bool {
 
 // RagSearch searches the knowledge base and returns relevant text fragments.
 //
-// When cfg.RAG.Search.MultiQuery > 0 the original query is expanded into
+// When cfg.Int("rag.search.multi_query") > 0 the original query is expanded into
 // multiple phrasings via the LLM; each phrasing is searched independently and
 // results are merged by keeping the best (highest) score per unique chunk ID.
-//
-// When cfg.RAG.Search.DedupThreshold > 0 near-duplicate chunks (cosine
+
+// When cfg.Float64("rag.search.dedup_threshold") > 0 near-duplicate chunks (cosine
 // similarity above the threshold) are suppressed before returning results.
 func (r *RAGTools) RagSearch(query string) string {
 	ctx := context.Background()
 
 	// --- Step 1: build the list of queries to run ---
 	queries := []string{query}
-	if r.cfg.RAG.Search.MultiQuery > 0 {
-		extras := r.expandQuery(ctx, query, r.cfg.RAG.Search.MultiQuery)
+	if r.cfg.Int("rag.search.multi_query") > 0 {
+		extras := r.expandQuery(ctx, query, r.cfg.Int("rag.search.multi_query"))
 		queries = append(queries, extras...)
 	}
 
@@ -447,12 +447,12 @@ func (r *RAGTools) RagSearch(query string) string {
 
 	// Trim to configured limit (each sub-query can return up to Limit results,
 	// so the merged set may be larger).
-	if limit := r.cfg.RAG.Search.Limit; limit > 0 && len(merged) > limit {
+	if limit := r.cfg.Int("rag.search.limit"); limit > 0 && len(merged) > limit {
 		merged = merged[:limit]
 	}
 
 	// --- Step 4: deduplicate near-identical chunks ---
-	if r.cfg.RAG.Search.DedupThreshold > 0 {
+	if r.cfg.Float64("rag.search.dedup_threshold") > 0 {
 		merged = r.dedup(merged)
 	}
 
