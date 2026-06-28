@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"github.com/wmentor/go-magnetar/internal/printer"
 	"net/http"
 	"net/url"
 	"strings"
@@ -15,6 +14,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/printer"
 )
 
 const gitlabDefaultTimeout = time.Minute
@@ -31,8 +31,6 @@ func New(cfg *config.Config) *GitLabTools {
 
 // FetchMergeRequest fetches a GitLab merge request by project path and ID.
 func (g *GitLabTools) FetchMergeRequest(projectPath string, mrID string) (string, error) {
-	printer.Debug("gitlab: detected merge request", "project_path", projectPath, "mr_id", mrID)
-
 	ctx, cancel := context.WithTimeout(context.Background(), gitlabDefaultTimeout)
 	defer cancel()
 

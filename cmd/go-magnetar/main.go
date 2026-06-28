@@ -17,6 +17,7 @@ import (
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/write"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/generic"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/indexcmd"
+	_ "github.com/wmentor/go-magnetar/internal/plugins/jira"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/rag"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/web"
 )

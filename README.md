@@ -169,6 +169,16 @@ The chat agent maintains command history in `~/.go-magnetar-history.json`. Use *
 | `rag.search.dedup_threshold` | `0.95` | Cosine similarity above which two result chunks are considered near-duplicates; the lower-scoring one is dropped. `0` disables deduplication |
 | `rag.qdrant.connstr` | — | Qdrant address, e.g. `http://localhost:6333` |
 | `rag.qdrant.collection` | — | Collection name (created automatically if absent) |
+| `webfetch.base_url` | — | Endpoint of the OpenAI-compatible API for web page preprocessing model |
+| `webfetch.api_key` | — | API key for web page preprocessing model |
+| `webfetch.model` | — | Model name for web page preprocessing (e.g. `gpt-4o`) |
+| `webfetch.context` | — | Token limit of the model's context window for web preprocessing |
+| `confluence.base_url` | — | Confluence instance base URL (e.g. `https://your-domain.atlassian.net`) |
+| `confluence.api_key` | — | Confluence API key for fetching pages |
+| `jira.base_url` | — | JIRA instance base URL |
+| `jira.api_key` | — | JIRA API key for fetching issues |
+| `gitlab.base_url` | — | GitLab instance base URL |
+| `gitlab.api_key` | — | GitLab API key for fetching merge requests and file changes |
 | `verbose` | `true` | Enable verbose output (tool calls, debug messages) |
 | `compact.threshold` | `0` | Token count that triggers history summarization. `0` = auto: 80 % of `llm.context` |
 | `compact.save_tail` | `6` | Number of most-recent messages kept verbatim during summarization |
@@ -182,6 +192,7 @@ The chat agent maintains command history in `~/.go-magnetar-history.json`. Use *
 | `jira.api_key` | — | JIRA API key for fetching issues |
 | `gitlab.base_url` | — | GitLab instance base URL |
 | `gitlab.api_key` | — | GitLab API key for fetching merge requests and file changes |
+| `verbose` | `true` | Enable verbose output (tool calls, debug messages) |
 
 **Vector sizes for common embedding models:**
 
@@ -306,7 +317,7 @@ cmd.Execute()
 |---|---|---|
 | `ask` | LLM tool | `ask` tool — allows the agent to ask clarifying questions to the user |
 | `rag` | LLM tool | `rag_search` tool — searches the knowledge base for relevant information |
-| `web` | LLM tool | `web_fetch` tool — fetches and cleans web pages |
+| `web` | LLM tool | `web_fetch` tool — fetches and cleans web pages, Confluence pages, JIRA issues, and GitLab merge requests |
 | `generic` | LLM tools | `file_read`, `file_list`, `file_write`, `file_exists`, `system_grep` tools |
 | `indexcmd` | Chat command | `/index` command for document indexing |
 | `chatcmd/help` | Chat command | `/help` command |
@@ -318,6 +329,7 @@ cmd.Execute()
 | `chatcmd/write` | Chat command | `/write` command |
 | `chatcmd/version` | Chat command | `/version` command |
 | `chatcmd/readonly` | Chat command | `/readonly` command |
+| `jira` | LLM tool | `jira_task_get` tool — fetches JIRA issues by issue key |
 
 ### Indexing flow
 

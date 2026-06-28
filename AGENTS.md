@@ -309,6 +309,7 @@ internal/
       write/plugin.go            — /write (write content to file)
       version/plugin.go          — /version (print version)
       readonly/plugin.go         — /readonly (toggle readonly mode)
+    jira/plugin.go               — jira_task_get LLM tool (init → Register)
   cmd/
     cmd.go                       — root CLI (kong); config load; plugin.InitAll; defer Stop
   tools/

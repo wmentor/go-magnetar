@@ -20,6 +20,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools/gitlab"
+	"github.com/wmentor/go-magnetar/internal/tools/jira"
 )
 
 const (
@@ -107,7 +108,7 @@ func (w *WebTools) preprocessMarkdown(markdownStr string) (string, error) {
 func (w *WebTools) WebFetch(url string) (string, error) {
 	printer.ToolCall(printer.IconSearch, "web_fetch", "url", url)
 
-	if w.cfg.String("confluence.base_url") != "" {
+	if w.cfg.String("confluence.base_url") != "" && !w.cfg.Bool("confluence.disable") {
 		if strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/spaces/") || strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/x/") || strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/p/") {
 			pageID, err := extractPageIDFromConfluenceURL(url)
 			if err == nil && pageID != "" {
@@ -117,16 +118,16 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 		}
 	}
 
-	if w.cfg.String("jira.base_url") != "" {
+	if w.cfg.String("jira.base_url") != "" && !w.cfg.Bool("jira.disable") {
 		if strings.HasPrefix(url, w.cfg.String("jira.base_url")) && (strings.Contains(url, "/browse/") || strings.Contains(url, "/issues/")) {
 			issueKey, err := extractIssueKeyFromJIRAURL(url)
 			if err == nil && issueKey != "" {
-				return w.fetchJIRAIssue(issueKey)
+				return jira.New(w.cfg).FetchIssue(issueKey)
 			}
 		}
 	}
 
-	if w.cfg.String("gitlab.base_url") != "" {
+	if w.cfg.String("gitlab.base_url") != "" && !w.cfg.Bool("gitlab.disable") {
 		if strings.HasPrefix(url, w.cfg.String("gitlab.base_url")) && strings.Contains(url, "/-/merge_requests/") {
 			projectPath, issueID, err := extractProjectAndMergeRequestFromGitLabURL(url, w.cfg.String("gitlab.base_url"))
 			if err == nil && projectPath != "" && issueID != "" {
@@ -393,132 +394,6 @@ func (w *WebTools) fetchConfluencePage(pageID string, isShortID bool) (string, e
 	return fmt.Sprintf("Title: %s\nVersion: %d\nAuthor: %s\nUpdated: %s\nBody:\n%s", result.Title, result.Version.Number, result.Version.Author, result.Version.Updated, result.Body.Storage.Value), nil
 }
 
-// fetchJIRAIssue fetches a JIRA issue by its key (e.g., GOARCH-60) and returns its content in Markdown.
-func (w *WebTools) fetchJIRAIssue(issueKey string) (string, error) {
-	printer.ToolCall(printer.IconSearch, "web_fetch: detected JIRA issue", "issue_key", issueKey)
-
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-
-	tr := &http.Transport{
-		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
-		DisableKeepAlives: true,
-	}
-
-	client := &http.Client{
-		Timeout:   defaultTimeout,
-		Transport: tr,
-	}
-
-	apiURL := fmt.Sprintf("%s/rest/api/2/issue/%s", w.cfg.String("jira.base_url"), issueKey)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
-	if err != nil {
-		return "", fmt.Errorf("web_fetch: failed to create JIRA request for issue %q: %w", issueKey, err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+w.cfg.String("jira.api_key"))
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("web_fetch: failed to fetch JIRA issue %q: %w", issueKey, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("web_fetch: JIRA issue %q returned status %d", issueKey, resp.StatusCode)
-	}
-
-	contentType := resp.Header.Get("Content-Type")
-	utf8, err1 := charset.NewReader(resp.Body, contentType)
-	if err1 != nil {
-		return "", fmt.Errorf("web_fetch: decode JIRA issue %q error: %w", issueKey, err1)
-	}
-
-	body, err := io.ReadAll(utf8)
-	if err != nil {
-		return "", fmt.Errorf("web_fetch: failed to read JIRA response body: %w", err)
-	}
-
-	var result struct {
-		ID     string `json:"id"`
-		Key    string `json:"key"`
-		Self   string `json:"self"`
-		Fields struct {
-			Summary     string `json:"summary"`
-			Description string `json:"description"`
-			Status      struct {
-				Name string `json:"name"`
-			} `json:"status"`
-			Assignee struct {
-				DisplayName string `json:"displayName"`
-			} `json:"assignee"`
-			Reporter struct {
-				DisplayName string `json:"displayName"`
-			} `json:"reporter"`
-			Project struct {
-				Name string `json:"name"`
-			} `json:"project"`
-			Type struct {
-				Name string `json:"name"`
-			} `json:"issuetype"`
-			Created string `json:"created"`
-			Updated string `json:"updated"`
-			Comment struct {
-				Comments []struct {
-					Author struct {
-						DisplayName string `json:"displayName"`
-					} `json:"author"`
-					Body    string `json:"body"`
-					Created string `json:"created"`
-				} `json:"comments"`
-			} `json:"comment"`
-		} `json:"fields"`
-	}
-
-	if err := json.Unmarshal(body, &result); err != nil {
-		return "", fmt.Errorf("web_fetch: failed to parse JIRA response: %w", err)
-	}
-
-	printer.Debug("web_fetch: JIRA issue fetched", "issue_key", issueKey)
-
-	var sb strings.Builder
-	sb.WriteString("Issue: ")
-	sb.WriteString(result.Key)
-	sb.WriteString("\nSummary: ")
-	sb.WriteString(result.Fields.Summary)
-	sb.WriteString("\nStatus: ")
-	sb.WriteString(result.Fields.Status.Name)
-	sb.WriteString("\nAssignee: ")
-	sb.WriteString(result.Fields.Assignee.DisplayName)
-	sb.WriteString("\nReporter: ")
-	sb.WriteString(result.Fields.Reporter.DisplayName)
-	sb.WriteString("\nProject: ")
-	sb.WriteString(result.Fields.Project.Name)
-	sb.WriteString("\nType: ")
-	sb.WriteString(result.Fields.Type.Name)
-	sb.WriteString("\nCreated: ")
-	sb.WriteString(result.Fields.Created)
-	sb.WriteString("\nUpdated: ")
-	sb.WriteString(result.Fields.Updated)
-	sb.WriteString("\nDescription:\n")
-	sb.WriteString(result.Fields.Description)
-
-	if len(result.Fields.Comment.Comments) > 0 {
-		sb.WriteString("\n\nComments:\n")
-		for i, comment := range result.Fields.Comment.Comments {
-			sb.WriteString(fmt.Sprintf("%d. [%s] %s\n", i+1, comment.Author.DisplayName, comment.Created))
-			sb.WriteString(comment.Body)
-			if i < len(result.Fields.Comment.Comments)-1 {
-				sb.WriteString("\n\n")
-			}
-		}
-	}
-
-	return sb.String(), nil
-}
-
 // Definition returns the OpenAI tool schema for web_fetch.
 func (w *WebTools) Definition() openai.Tool {
 	return openai.Tool{
@@ -622,10 +497,8 @@ func extractProjectAndMergeRequestFromGitLabURL(url string, baseURL string) (str
 
 // fetchGitLabMergeRequest fetches a GitLab merge request and returns its content.
 func (w *WebTools) fetchGitLabMergeRequest(projectPath string, mrID string) (string, error) {
-	printer.Debug("web_fetch: detected GitLab merge request", "project_path", projectPath, "mr_id", mrID)
-
-	gitLabTools := gitlab.New(w.cfg)
-	return gitLabTools.FetchMergeRequest(projectPath, mrID)
+	printer.ToolCall(printer.IconSearch, "web_fetch: fetch GitLab merge request", "project_path", projectPath, "mr_id", mrID)
+	return gitlab.New(w.cfg).FetchMergeRequest(projectPath, mrID)
 }
 
 // StaticDefinition returns the OpenAI tool schema for web_fetch without
