@@ -310,8 +310,7 @@ var (
 	promptStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("69")).
 			Bold(true)
-	//promptSymbol = promptStyle.Render("◆")
-	promptSymbol = promptStyle.Render("🧑‍🚀")
+	promptSymbol = promptStyle.Render("👨")
 
 	questionStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color("69")).

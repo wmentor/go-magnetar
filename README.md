@@ -300,6 +300,25 @@ cmd.Execute()
   └── agent.Run()              — starts REPL
 ```
 
+### Built-in plugins
+
+| Plugin | Type | Description |
+|---|---|---|
+| `ask` | LLM tool | `ask` tool — allows the agent to ask clarifying questions to the user |
+| `rag` | LLM tool | `rag_search` tool — searches the knowledge base for relevant information |
+| `web` | LLM tool | `web_fetch` tool — fetches and cleans web pages |
+| `generic` | LLM tools | `file_read`, `file_list`, `file_write`, `file_exists`, `system_grep` tools |
+| `indexcmd` | Chat command | `/index` command for document indexing |
+| `chatcmd/help` | Chat command | `/help` command |
+| `chatcmd/exit` | Chat command | `/exit` command |
+| `chatcmd/new` | Chat command | `/new` command |
+| `chatcmd/compact` | Chat command | `/compact` command |
+| `chatcmd/stat` | Chat command | `/stat` command |
+| `chatcmd/less` | Chat command | `/less` command |
+| `chatcmd/write` | Chat command | `/write` command |
+| `chatcmd/version` | Chat command | `/version` command |
+| `chatcmd/readonly` | Chat command | `/readonly` command |
+
 ### Indexing flow
 
 ```

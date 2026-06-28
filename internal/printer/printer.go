@@ -3,15 +3,19 @@ package printer
 import (
 	"bytes"
 	"fmt"
+	"strings"
 )
 
 type Icon = string
 
 const (
 	IconAlert  = Icon("⚠️")
+	IconAsk    = Icon("❓")
 	IconDone   = Icon("💫")
 	IconError  = Icon("❌")
+	IconIam    = Icon("👨")
 	IconModule = Icon("🛰️")
+	IconRobot  = Icon("🤖")
 	IconSave   = Icon("🚀")
 	IconSearch = Icon("🔭")
 	IconTool   = Icon("⚙️")
@@ -105,6 +109,25 @@ func (p *Printer) Print(typeIcon string, message string, params ...any) {
 
 func ToolEmptyLine() {
 	defaultPrinter.ToolEmptyLine()
+}
+
+func Ask(question string) string {
+	return defaultPrinter.Ask(question)
+}
+
+func (p *Printer) Ask(question string) string {
+	p.Print(IconRobot, question)
+	for {
+		fmt.Printf(" %s ", IconIam)
+
+		var answer string
+		fmt.Scanln(&answer)
+		answer = strings.TrimSpace(answer)
+		if answer == "" {
+			continue
+		}
+		return answer
+	}
 }
 
 func (p *Printer) ToolEmptyLine() {

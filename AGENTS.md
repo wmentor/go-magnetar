@@ -220,6 +220,7 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 | `system_grep` | `(filename: string, pattern: string, case_insensitive: bool, recursive: bool) -> string` | Executes system grep command with safe parameters: -n (always), -i/-r (optional) |
 | `rag_search` | `(query: string) -> string` | Returns top-N relevant fragments from Qdrant (N is set by `rag.search.limit`) |
 | `web_fetch` | `(url: string) -> string` | Fetches and cleans a web page (fallback if RAG returns no results); also fetches Confluence pages and JIRA issues when URL matches |
+| `ask` | `(question: string) -> string` | Asks the user a clarifying question and returns the answer |
 
 ## Indexer (via `/index` command)
 

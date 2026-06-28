@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/wmentor/go-magnetar/internal/cmd"
+	_ "github.com/wmentor/go-magnetar/internal/plugins/ask"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/compact"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/exit"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/help"

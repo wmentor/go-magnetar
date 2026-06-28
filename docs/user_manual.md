@@ -193,6 +193,7 @@ Use **↑/↓** arrows to navigate through previously entered commands. History 
 | `system_grep` | Executes system grep command with safe parameters |
 | `rag_search` | Returns relevant fragments from indexed data |
 | `web_fetch` | Fetches web pages (fallback if RAG returns no results); also fetches Confluence pages, JIRA issues, and GitLab merge requests (with file changes) when URL matches |
+| `ask` | Asks the user a clarifying question and returns the answer |
 
 ### Search tool call limit
 
