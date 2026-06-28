@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.1.2] - 2026-06-28
+
+### Added
+
+- **GitLab MR fetching** - Fetch GitLab merge requests with file changes
+  - Fetch MR details via `/api/v4/projects/{project}/merge_requests/{mr_id}`
+  - Additional call to `/api/v4/projects/{project}/merge_requests/{mr_id}/changes`
+  - Parse and include file diffs list in output
+  - Support MR URLs in format `https://gitlab.example.com/group/project/-/merge_requests/123`
+  - Configurable via `gitlab` block in config (base_url, api_key)
+  - Examples in user_manual.md and README.md
+- **version command** - Enhanced version command with timeout adjustment
+  - Improved display format
+  - Timeout adjustment support
+- **ask tool** - Clarifying questions tool for the agent
+  - Allows agent to ask user for clarification during conversation
+  - Returns user's answer as string
+- **JIRA plugin** - JIRA task fetching via LLM tool
+  - Fetch JIRA issues directly via `jira_task_get` tool
+  - Configurable via `jira` block in config
+  - Based on JIRA REST API
+
+### Changed
+
+- **Config refactoring** - Rewrite Config to use `koanf.Koanf` directly
+  - Simplified configuration structure
+  - Better support for dynamic config loading
+  - Optimized memory usage for shared structs
+- **Plugin architecture** - Optimized plugin initialization
+  - State passed by pointer instead of value
+- **History management** - Refactored to use `internal/history` package
+  - Added `Records()` method for history iteration
+  - Optimized `New()` for empty filename
+- **Logging** - Replaced `slog` with internal `printer` package
+  - Unified logging system across the codebase
+  - Consistent output format with icons and timestamps
+- **Documentation** - Updated documentation with new features
+  - Added GitLab MR support examples
+  - Updated user_manual.md with new commands
+  - Updated README.md with all supported features
+
+### Fixed
+
+- Multiple query processing in search with better deduplication
+- Improved error handling for web fetch operations
+- URL detection for Confluence, JIRA, and GitLab resources
+
+### Removed
+
+- Separate indexer CLI subcommand (`go-magnetar index`)
+- CLI agent subcommand (functionality merged into unified agent)
+
 ## [v0.1.1] - 2026-06-25
 
 ### Added
@@ -65,6 +117,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Plugin architecture refactoring
 - Search enhancements
 
-[Unreleased]: https://github.com/wmentor/go-magnetar/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/wmentor/go-magnetar/compare/v0.1.2...HEAD
+[v0.1.2]: https://github.com/wmentor/go-magnetar/compare/v0.1.1...v0.1.2
 [v0.1.1]: https://github.com/wmentor/go-magnetar/compare/v0.1.0...v0.1.1
 [v0.1.0]: https://github.com/wmentor/go-magnetar/releases/tag/v0.1.0

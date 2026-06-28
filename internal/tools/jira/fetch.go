@@ -207,7 +207,7 @@ func StaticDefinition() openai.Tool {
 				"properties": map[string]any{
 					"issue_key": map[string]any{
 						"type":        "string",
-						"description": "JIRA issue key (e.g., GOARCH-60)",
+						"description": "JIRA issue key (e.g., TASK-60)",
 					},
 				},
 				"required": []string{"issue_key"},
