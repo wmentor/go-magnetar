@@ -10,6 +10,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	version "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/version"
+	"github.com/wmentor/go-magnetar/internal/printer"
 )
 
 type Globals struct {
@@ -34,9 +35,11 @@ func Execute() error {
 		return err
 	}
 
-	config.SetupLogger(cfg)
+	printer.SetDefault(printer.New(cfg.Bool("verbose")))
 
 	version.PrintVersion(cfg.String("llm.model"))
+
+	printEnabledModules(cfg)
 
 	if err := plugin.InitAll(&plugin.State{Config: cfg}); err != nil {
 		return err
@@ -64,4 +67,27 @@ func Execute() error {
 	}
 
 	return agent.Run()
+}
+
+func printEnabledModules(cfg *config.Config) {
+	has := false
+	if cfg.String("confluence.base_url") != "" && !cfg.Bool("confluence.disable") {
+		printer.ToolCall(printer.IconModule, "confluence plugin is enabled")
+		has = true
+	}
+	if cfg.String("gitlab.base_url") != "" && !cfg.Bool("gitlab.disable") {
+		printer.ToolCall(printer.IconModule, "gitlab plugin is enabled")
+		has = true
+	}
+	if cfg.String("jira.base_url") != "" && !cfg.Bool("jira.disable") {
+		printer.ToolCall(printer.IconModule, "jira plugin is enabled")
+		has = true
+	}
+	if cfg.String("rag.llm.base_url") != "" && !cfg.Bool("rag.disable") {
+		printer.ToolCall(printer.IconModule, "rag plugin is enabled")
+		has = true
+	}
+	if has {
+		printer.ToolEmptyLine()
+	}
 }

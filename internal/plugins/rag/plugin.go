@@ -15,6 +15,10 @@ func init() {
 type Plugin struct{}
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
+	if s.Config.Bool("rag.disable") || s.Config.String("rag.llm.base_url") == "" {
+		return nil
+	}
+
 	tools, err := rag.New(s.Config)
 	if err != nil {
 		return err

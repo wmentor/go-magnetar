@@ -43,11 +43,13 @@ llm:
   context: 128000                        # token limit of the context window
 
 rag:
+  disable: false
   llm:
     base_url: https://api.openai.com/v1
     api_key: YOUR_API_KEY
     model: text-embedding-3-small        # embedding model
     vector_size: 1536                    # vector dimensionality of the model
+    disable: false
   chunk:
     size: 512                            # maximum chunk size in runes (default: 512)
     overlap: 64                          # overlap between adjacent chunks in runes (default: 64)
@@ -61,7 +63,9 @@ rag:
     collection: documents                # collection name (created automatically if missing)
 
 log:
-  level: info                            # debug | info | warn | error
+  level: info
+
+  verbose: true                            # enables verbose tool call output
 
 compact:
   threshold: 0    # token threshold for history compression; 0 = auto (80% of llm.context)
@@ -72,14 +76,22 @@ webfetch:
   api_key: YOUR_API_KEY
   model: gpt-4o
   context: 128000
+  disable: false
 
 confluence:
   base_url: https://your-domain.atlassian.net
   api_key: YOUR_API_KEY
+  disable: false
 
 jira:
   base_url: https://jira.example.com
   api_key: YOUR_API_KEY
+  disable: false
+
+gitlab:
+  base_url: https://gitlab.example.com
+  api_key: YOUR_API_KEY
+  disable: false
 ```
 
 > If the `webfetch` block is specified, the listed model parameters are used to clean HTML content obtained from web pages.
@@ -168,6 +180,7 @@ Exit — `Ctrl+D` (EOF) or `/exit` command. Empty lines are ignored.
 | `/stat` | — | Print context statistics: number of messages, estimated tokens, size in bytes, LLM model name, RAG model name, and vector size |
 | `/index` | `/i` | Index file or URL into RAG knowledge base (auto-detects URL vs file) |
 | `/idxtab` | — | Index multiple files/URLs from a JSON lines file (one per line, format: `{"source":"path|url","message":"text"}`) |
+| `/write` | `/w` | Write content to a file |
 
 Commands are dispatched in `handleCommand` (`internal/agent/chat/agent.go`) by iterating over `plugin.ChatCommands()`. Input is split into `name` + `args` on the first space; matching is case-insensitive against `Name` and `Aliases`. Commands are never added to the message history.
 
@@ -284,7 +297,7 @@ internal/
     rag/plugin.go                — rag_search LLM tool (init → Register)
     web/plugin.go                — web_fetch LLM tool (init → Register)
     generic/plugin.go            — file_read/list/write/exists/system_grep LLM tools (init → Register)
-    indexcmd/plugin.go           — /index chat command (registers /index helper command)
+     indexcmd/plugin.go           — /index chat command plugin
     chatcmd/
       help/plugin.go             — /help  (assembles output from plugin.ChatCommands())
       exit/plugin.go             — /exit  (returns plugin.ErrExit)
@@ -292,13 +305,13 @@ internal/
       compact/plugin.go          — /compact (calls AgentHandle.Compact())
       stat/plugin.go             — /stat  (reads AgentHandle.Messages() + Config())
       less/plugin.go             — /less  (view last answer with less)
-      save/plugin.go             — /save  (save conversation to file)
+      write/plugin.go            — /write (write content to file)
       version/plugin.go          — /version (print version)
       readonly/plugin.go         — /readonly (toggle readonly mode)
   cmd/
     cmd.go                       — root CLI (kong); config load; plugin.InitAll; defer Stop
   tools/
-    rag/rag.go                   — rag_save and rag_search tools; Qdrant connection
+    rag/rag.go                   —     rag_save and rag_search tools — removed rag_save from dispatch
     web/fetch.go                 — web_fetch tool; HTML fetching and cleaning
     generic/generic.go           — file_read, file_list, file_write, file_exists, system_grep tools
   agent/
@@ -318,7 +331,7 @@ main()
 cmd.Execute()
   ├── kong.Parse(cli, ...)             — parses flags; -c resolved here
   ├── config.Load(path)                — loads YAML
-  ├── config.SetupLogger(cfg)          — initializes printer
+  ├── printer.New(verbose)             — initializes printer
   ├── plugin.InitAll(State{Config})
   │     ├── Plugin.Init(s, hub) × N   — tools/commands/goroutines registered
   │     └── hub.start()               — goroutines launched
@@ -437,16 +450,24 @@ type AgentHandle interface {
 
 ## Logging
 
-All logs are written to `stderr` in text format using the `internal/printer` package. This package provides `Info`, `Debug`, `Warn`, and `Error` functions with the same signatures as `log/slog`.
+All logs are written to `stdout` in text format using the `internal/printer` package.
 
-| Level | When |
-|---|---|
-| `DEBUG` | Tool call details (name, arguments); search scores and result previews; number of trimmed/compressed messages |
-| `INFO` | Start/end of file indexing, collection creation, history compression start |
-| `WARN` | Overwriting an existing chunk in Qdrant |
-| `ERROR` | File read errors, embedding/Qdrant failures, LLM errors; compression failure (non-fatal) |
+Set `verbose: true` in the config for verbose output.
 
-Set `log.level: debug` in the config for verbose output.
+### Logging in Tools
+
+For logging within tools, use `printer.ToolCall()` with the appropriate icon:
+
+- **Success normal case**: `printer.IconTool`
+- **Error case**: `printer.IconError`
+
+**Signature**: `printer.ToolCall(icon, message, param1, value1, param2, value2, ...)`
+
+Example:
+```go
+printer.ToolCall(printer.IconTool, "rag_search", "query", query, "results", len(results))
+printer.ToolCall(printer.IconError, "rag_save failed", "id", id, "err", err)
+```
 
 ## Dependencies
 
@@ -457,6 +478,4 @@ Set `log.level: debug` in the config for verbose output.
 | `github.com/qdrant/go-client` | Qdrant client (gRPC) |
 | `github.com/google/uuid` | UUID v5 for deterministic chunk IDs |
 | `github.com/knadh/koanf/v2` | YAML config loading |
-| `github.com/lmittmann/tint` | Colorized slog handler |
 | `github.com/charmbracelet/glamour` | Markdown rendering in terminal |
-| `log/slog` | Structured logging (stdlib, replaced by internal/printer) |

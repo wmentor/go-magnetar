@@ -2,11 +2,11 @@ package indexer
 
 import (
 	"fmt"
-	"github.com/wmentor/go-magnetar/internal/printer"
 	"os"
 
 	"github.com/wmentor/go-magnetar/internal/chunk"
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
 	"github.com/wmentor/go-magnetar/internal/tools/web"
 )
@@ -71,12 +71,10 @@ func (idx *Indexer) chunkAndSave(content string, msg string) error {
 	saved := 0
 
 	for i, c := range chunks {
-		if idx.rag.RagSave(c, msg) {
+		if idx.rag.RagSave(c, msg, i+1) {
 			saved++
 		}
 		printer.Debug("indexer: chunk saved", "chunk", i+1, "size", len(c))
 	}
-
-	printer.Info("indexer: done", "chunk", len(chunks), "saved", saved)
 	return nil
 }

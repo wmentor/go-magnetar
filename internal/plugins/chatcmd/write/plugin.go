@@ -1,4 +1,4 @@
-package saveplugin
+package writeplugin
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 )
 
 func init() {
-	plugin.Register("chatcmd.save", &Plugin{})
+	plugin.Register("chatcmd.write", &Plugin{})
 }
 
 // Plugin registers the /save chat command.
@@ -18,12 +18,12 @@ type Plugin struct{}
 
 func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 	hub.RegisterChatCommand(plugin.ChatCommand{
-		Name:    "save",
+		Name:    "write",
 		Help:    "Save the last assistant answer to a file.",
-		Aliases: []string{"s"},
+		Aliases: []string{"w"},
 		Execute: func(_ context.Context, a plugin.AgentHandle, args string) error {
 			if args == "" {
-				fmt.Fprintln(os.Stdout, "Usage: /save <filename>")
+				fmt.Fprintln(os.Stdout, "Usage: /write <filename>")
 				return nil
 			}
 

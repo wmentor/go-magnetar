@@ -5,6 +5,7 @@ llm:
   context: 128000
 
 rag:
+  disable: false
   llm:
     base_url: https://api.openai.com/v1
     api_key: YOUR_API_KEY
@@ -32,8 +33,7 @@ rag:
     connstr: http://localhost:6333
     collection: documents
 
-log:
-  level: info
+verbose: true
 
 compact:
   # threshold: token count at which history summarization is triggered.
@@ -48,15 +48,20 @@ webfetch:
   api_key: YOUR_API_KEY
   model: gpt-4o
   context: 128000
+  disable: false
 
 confluence:
   base_url: https://your-domain.atlassian.net
   api_key: YOUR_API_KEY
+  disable: false
 
 jira:
   base_url: https://jira.example.com
   api_key: YOUR_API_KEY
+  disable: false
 
 gitlab:
   base_url: https://gitlab.example.com
   api_key: YOUR_API_KEY
+  disable: false
+

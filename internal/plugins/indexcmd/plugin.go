@@ -5,15 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/wmentor/go-magnetar/internal/printer"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/wmentor/go-magnetar/internal/agent/indexer"
 	"github.com/wmentor/go-magnetar/internal/plugin"
-	"github.com/wmentor/go-magnetar/internal/tools/rag"
-	"github.com/wmentor/go-magnetar/internal/tools/web"
+	"github.com/wmentor/go-magnetar/internal/printer"
 )
 
 func init() {
@@ -25,28 +23,20 @@ type Plugin struct {
 }
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
+	if s.Config.Bool("rag.disable") || s.Config.String("rag.llm.base_url") == "" {
+		return nil
+	}
+
 	root, err := os.OpenRoot("/")
 	if err != nil {
 		return fmt.Errorf("indexcmd: failed to open root: %w", err)
 	}
 	defer root.Close()
 
-	ragTools, err := rag.New(s.Config)
-	if err != nil {
-		return fmt.Errorf("indexcmd: failed to init RAG: %w", err)
-	}
-
-	webTools, err := web.New(s.Config, root)
-	if err != nil {
-		return fmt.Errorf("indexcmd: failed to init web: %w", err)
-	}
-
 	p.idx, err = indexer.New(s.Config, root)
 	if err != nil {
 		return fmt.Errorf("indexcmd: failed to create indexer: %w", err)
 	}
-	_ = ragTools
-	_ = webTools
 
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name:    "index",

@@ -52,6 +52,7 @@ rag:
     api_key: sk-...
     model: text-embedding-3-small
     vector_size: 1536
+  disable: false
   chunk:
     size: 512      # max chunk size in runes (default: 512)
     overlap: 64    # overlap between adjacent chunks in runes (default: 64)
@@ -67,6 +68,8 @@ rag:
 log:
   level: info
 
+verbose: true
+
 compact:
   threshold: 0   # 0 = auto (80 % of llm.context)
   save_tail: 6   # keep the last 6 messages verbatim
@@ -76,18 +79,22 @@ webfetch:
   api_key: sk-...
   model: gpt-4o
   context: 128000
+  disable: false
 
 confluence:
   base_url: https://your-domain.atlassian.net
   api_key: YOUR_API_KEY
+  disable: false
 
 jira:
   base_url: https://jira.example.com
   api_key: YOUR_API_KEY
+  disable: false
 
 gitlab:
   base_url: https://gitlab.example.com
   api_key: YOUR_API_KEY
+  disable: false
 ```
 
 > If the `webfetch` block is specified, the model parameters listed above are used to clean HTML content obtained from web pages.
@@ -166,6 +173,7 @@ The REPL reads questions from stdin. Press `Ctrl+D` to exit.
 | `/stat` | — | Print context statistics: messages, tokens, bytes, LLM model, RAG model, vector size |
 | `/index` | `/i` | Index file or URL into RAG knowledge base (auto-detects URL vs file) |
 | `/idxtab` | — | Index multiple files/URLs from a JSON lines file (one per line, format: `{"source":"path\|url","message":"text"}`) |
+| `/write` | `/w` | Write content to a file |
 
 Commands are case-insensitive, processed locally, and never sent to the LLM.
 
@@ -210,7 +218,7 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 | `rag.search.dedup_threshold` | `0.95` | Cosine similarity above which two result chunks are considered near-duplicates; the lower-scoring one is dropped. `0` disables deduplication |
 | `rag.qdrant.connstr` | — | Qdrant address, e.g. `http://localhost:6333` |
 | `rag.qdrant.collection` | — | Collection name (created automatically if absent) |
-| `log.level` | `info` | Log level: `debug`, `info`, `warn`, `error` |
+| `verbose` | `true` | Enable verbose output (tool calls, debug messages) |
 | `compact.threshold` | `0` | Token threshold for history compression. `0` = auto (80 % of llm.context) |
 | `compact.save_tail` | `6` | Number of most-recent messages kept verbatim during compression |
 | `webfetch.base_url` | — | Endpoint of OpenAI-compatible API for web content cleaning model |
@@ -267,16 +275,7 @@ To disable the new features (single-query, no dedup):
 
 ## Logging
 
-All logs are written to `stderr`. Log levels:
-
-| Level | When |
-|---|---|
-| `DEBUG` | Detailed tool call information; search scores; trimmed message counts |
-| `INFO` | Start/end of indexing, collection creation, history compaction |
-| `WARN` | Warnings (e.g., chunk overwrites in Qdrant) |
-| `ERROR` | File read errors, connection failures, LLM errors; compaction failure (non-fatal) |
-
-Set `log.level: debug` in the config for verbose output.
+Set `verbose: true` in the config for verbose output.
 
 ## License
 

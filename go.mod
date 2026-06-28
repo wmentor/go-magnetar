@@ -17,7 +17,6 @@ require (
 	github.com/knadh/koanf/providers/confmap v1.0.0
 	github.com/knadh/koanf/providers/file v1.2.1
 	github.com/knadh/koanf/v2 v2.3.5
-	github.com/lmittmann/tint v1.1.3
 	github.com/pkg/errors v0.9.1
 	github.com/qdrant/go-client v1.18.2
 	github.com/sashabaranov/go-openai v1.41.2

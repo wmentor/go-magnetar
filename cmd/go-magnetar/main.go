@@ -11,11 +11,11 @@ import (
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/less"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/new"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/readonly"
-	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/save"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/stat"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/version"
-	_ "github.com/wmentor/go-magnetar/internal/plugins/indexcmd"
+	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/write"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/generic"
+	_ "github.com/wmentor/go-magnetar/internal/plugins/indexcmd"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/rag"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/web"
 )

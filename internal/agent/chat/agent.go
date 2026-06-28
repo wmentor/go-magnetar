@@ -72,7 +72,8 @@ func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
 		if _, statErr := root.Stat(agentsFile); statErr == nil {
 			if agentsContent, ok := genTools.FileRead(agentsFile, 0, 0); ok {
 				systemContent = systemPrompt + "\n\n# Project context (from AGENTS.md)\n\n" + agentsContent
-				printer.Info("agents: loaded AGENTS.md into system prompt")
+				printer.ToolCall(printer.IconDone, "AGENTS.md has been loaded")
+				printer.ToolEmptyLine()
 			}
 		}
 	}
@@ -262,8 +263,6 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 			for _, toolCall := range choice.Message.ToolCalls {
 				name := toolCall.Function.Name
 				args := toolCall.Function.Arguments
-
-				printer.Debug("chat: tool call", "tool", name, "args", args)
 
 				var result string
 				t, ok := toolMap[name]

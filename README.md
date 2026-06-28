@@ -52,6 +52,7 @@ llm:
   context: 128000
 
 rag:
+  disable: false
   llm:
     base_url: https://api.openai.com/v1
     api_key: sk-...
@@ -72,6 +73,8 @@ rag:
 log:
   level: info
 
+verbose: true
+
 compact:
   threshold: 0   # 0 = auto (80 % of llm.context)
   save_tail: 6   # keep the last 6 messages verbatim
@@ -81,18 +84,22 @@ webfetch:
   api_key: sk-...
   model: gpt-4o
   context: 128000
+  disable: false
 
 confluence:
   base_url: https://your-domain.atlassian.net
   api_key: YOUR_API_KEY
+  disable: false
 
 jira:
   base_url: https://jira.example.com
   api_key: YOUR_API_KEY
+  disable: false
 
 gitlab:
   base_url: https://gitlab.example.com
   api_key: YOUR_API_KEY
+  disable: false
 ```
 
 ### 4. Index your documents
@@ -162,7 +169,7 @@ The chat agent maintains command history in `~/.go-magnetar-history.json`. Use *
 | `rag.search.dedup_threshold` | `0.95` | Cosine similarity above which two result chunks are considered near-duplicates; the lower-scoring one is dropped. `0` disables deduplication |
 | `rag.qdrant.connstr` | — | Qdrant address, e.g. `http://localhost:6333` |
 | `rag.qdrant.collection` | — | Collection name (created automatically if absent) |
-| `log.level` | `info` | Log level: `debug`, `info`, `warn`, `error` |
+| `verbose` | `true` | Enable verbose output (tool calls, debug messages) |
 | `compact.threshold` | `0` | Token count that triggers history summarization. `0` = auto: 80 % of `llm.context` |
 | `compact.save_tail` | `6` | Number of most-recent messages kept verbatim during summarization |
 | `webfetch.base_url` | — | Endpoint of the OpenAI-compatible API for web page preprocessing model |
@@ -213,6 +220,7 @@ The REPL reads questions from stdin. Press `Ctrl+D` to exit.
 | `/stat` | — | Print context statistics: messages, estimated tokens, bytes, LLM model, RAG model, vector size |
 | `/index` | `/i` | Index file or URL into RAG knowledge base (auto-detects URL vs file) |
 | `/idxtab` | — | Index multiple files/URLs from a JSON lines file (one per line, format: `{"source":"path\|url","message":"text"}`) |
+| `/write` | `/w` | Write content to a file |
 
 Commands are case-insensitive, processed locally, and never sent to the LLM.
 
@@ -239,7 +247,7 @@ make tidy       # go mod tidy
 ```
 cmd/go-magnetar/main.go          — entry point; blank plugin imports
 internal/
-  config/config.go               — YAML config loading, slog initialisation
+  config/config.go               — YAML config loading, printer initialization
   chunk/chunk.go                 — text chunking (paragraph/heading boundaries, UTF-8 safe)
   plugin/
     plugin.go                    — Plugin, Hub, CLIPlugin, AgentHandle interfaces;
@@ -258,13 +266,13 @@ internal/
       compact/plugin.go          — /compact chat command plugin
       stat/plugin.go             — /stat chat command plugin
       less/plugin.go             — /less chat command plugin
-      save/plugin.go             — /save chat command plugin
+      write/plugin.go            — /write chat command plugin
       version/plugin.go          — /version chat command plugin
       readonly/plugin.go         — /readonly chat command plugin
   cmd/
-    cmd.go                       — root CLI (kong); config load; plugin.InitAll
+    cmd.go                       — root CLI (kong); config load; plugin.InitAll; defer Stop
   tools/
-    rag/rag.go                   — rag_save and rag_search tools; Qdrant connection
+    rag/rag.go                   —     rag_save and rag_search tools — removed rag_save from dispatch
     web/fetch.go                 — web_fetch tool (HTML preprocessing, URL fetching)
     generic/generic.go           — file_read, file_list, file_write, file_exists, system_grep tools
   agent/
@@ -284,7 +292,7 @@ main()
 cmd.Execute()
   ├── kong.Parse(...)          — parses os.Args; resolves -c/--config flag
   ├── config.Load(path)        — loads YAML config
-  ├── config.SetupLogger(cfg)  — initializes slog
+  ├── printer.New(verbose)     — initializes printer
   ├── plugin.InitAll(State{Config: cfg})
   │     ├── Plugin.Init(s, hub) for every registered plugin  — tools/commands registered
   │     └── hub.start()        — launches all goroutines queued via Hub.Go
@@ -367,16 +375,7 @@ To disable the new features entirely (single-query, no dedup):
 
 ## Logging
 
-All logs are written to `stderr`. Log levels:
-
-| Level | When |
-|---|---|
-| `DEBUG` | Tool name and arguments for every call; search scores and previews; trimmed message counts |
-| `INFO` | Start/end of file indexing, collection creation, history compaction |
-| `WARN` | Overwriting an already existing chunk in Qdrant |
-| `ERROR` | File read errors, embedding failures, Qdrant errors, LLM errors; compaction failure (non-fatal) |
-
-Set `log.level: debug` in the config for verbose output.
+Set `verbose: true` in the config for verbose output.
 
 ## Dependencies
 
@@ -387,9 +386,8 @@ Set `log.level: debug` in the config for verbose output.
 | [`github.com/qdrant/go-client`](https://github.com/qdrant/go-client) | Qdrant client (gRPC) |
 | [`github.com/google/uuid`](https://github.com/google/uuid) | UUID v5 for deterministic chunk IDs |
 | [`github.com/knadh/koanf/v2`](https://github.com/knadh/koanf) | YAML config loading |
-| [`github.com/lmittmann/tint`](https://github.com/lmittmann/tint) | Colourised slog handler |
 | [`github.com/charmbracelet/glamour`](https://github.com/charmbracelet/glamour) | Markdown rendering in terminal |
-| `log/slog` | Structured logging (stdlib) |
+| `log/slog` | Structured logging (stdlib, replaced by internal/printer) |
 
 ## License
 

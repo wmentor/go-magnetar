@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/wmentor/go-magnetar/internal/printer"
 	"math"
 	"net/url"
 	"strconv"
@@ -17,6 +16,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/printer"
 )
 
 // contentUUID derives a deterministic UUID v5 from the text content.
@@ -30,6 +30,7 @@ func contentUUID(content string) string {
 const (
 	payloadTextField = "text"
 	defaultGRPCPort  = 6334
+	defaultTimeout   = time.Second * 30
 )
 
 // RAGTools provides RAG operations as LLM tools.
@@ -117,7 +118,7 @@ func parseConnStr(connStr string) (string, int, error) {
 
 // ensureCollection creates the Qdrant collection if it does not exist.
 func (r *RAGTools) ensureCollection() error {
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
 	exists, err := r.qdrantClient.CollectionExists(ctx, r.cfg.String("rag.qdrant.collection"))
@@ -180,7 +181,7 @@ func (r *RAGTools) expandQuery(ctx context.Context, query string, n int) []strin
 		n, query,
 	)
 
-	reqCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	reqCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 
 	resp, err := r.llmClient.CreateChatCompletion(reqCtx, openai.ChatCompletionRequest{
@@ -190,7 +191,7 @@ func (r *RAGTools) expandQuery(ctx context.Context, query string, n int) []strin
 		},
 	})
 	if err != nil {
-		printer.Info("rag: query expansion failed, falling back to single query", "err", err)
+		printer.ToolCall(printer.IconAlert, "rag_search: query expansion failed, falling back to single query", "err", err)
 		return nil
 	}
 
@@ -205,7 +206,7 @@ func (r *RAGTools) expandQuery(ctx context.Context, query string, n int) []strin
 			result = append(result, line)
 		}
 	}
-	printer.Debug("rag: query expansion", "original", preview(query, 60), "variants", len(result))
+	printer.ToolCall(printer.IconSearch, "rag_search: query expansion", "original", preview(query, 60), "variants", len(result))
 	return result
 }
 
@@ -224,7 +225,7 @@ func (r *RAGTools) searchOne(ctx context.Context, query string) ([]searchResult,
 		return nil, err
 	}
 
-	qCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	qCtx, cancel := context.WithTimeout(ctx, defaultTimeout)
 	defer cancel()
 
 	limit := uint64(r.cfg.Int("rag.search.limit"))
@@ -347,20 +348,22 @@ func (r *RAGTools) dedup(results []searchResult) []searchResult {
 // The point ID is a deterministic UUID v5 derived from the content, making
 // saves idempotent: re-indexing the same text overwrites the existing point
 // instead of creating a duplicate entry.
-func (r *RAGTools) RagSave(content string, prepend string) bool {
+func (r *RAGTools) RagSave(content string, prepend string, part int) bool {
 	if prepend != "" {
 		content = prepend + "\n" + content
 	}
 
 	id := contentUUID(content)
 
+	printer.ToolCall(printer.IconSave, "rag_save", "id", id, "size", len(content), "part", part)
+
 	vector, err := r.embed(content)
 	if err != nil {
-		printer.Error("rag_save: embedding failed", "err", err)
+		printer.ToolCall(printer.IconError, "rag_save: embedding failed", "err", err)
 		return false
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
 	waitUpsert := true
@@ -378,11 +381,10 @@ func (r *RAGTools) RagSave(content string, prepend string) bool {
 		},
 	})
 	if err != nil {
-		printer.Error("rag_save: failed to upsert point", "id", id, "err", err)
+		printer.ToolCall(printer.IconError, "rag_save: failed to upsert point", "id", id, "err", err)
 		return false
 	}
 
-	printer.Debug("rag_save: saved", "id", id)
 	return true
 }
 
@@ -395,7 +397,10 @@ func (r *RAGTools) RagSave(content string, prepend string) bool {
 // When cfg.Float64("rag.search.dedup_threshold") > 0 near-duplicate chunks (cosine
 // similarity above the threshold) are suppressed before returning results.
 func (r *RAGTools) RagSearch(query string) string {
-	ctx := context.Background()
+	printer.ToolCall(printer.IconSearch, "rad_search", "query", query)
+
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
+	defer cancel()
 
 	// --- Step 1: build the list of queries to run ---
 	queries := []string{query}
@@ -434,7 +439,7 @@ func (r *RAGTools) RagSearch(query string) string {
 	}
 
 	if len(bestByID) == 0 {
-		printer.Debug("rag_search: no results", "query", preview(query, 60))
+		printer.ToolCall(printer.IconSearch, "rag_search: no results", "query", preview(query, 60))
 		return ""
 	}
 
@@ -460,10 +465,9 @@ func (r *RAGTools) RagSearch(query string) string {
 	parts := make([]string, 0, len(merged))
 	for _, res := range merged {
 		parts = append(parts, res.text)
-		printer.Debug("rag_search: result", "score", res.score, "preview", preview(res.text, 60))
 	}
 
-	printer.Debug("rag_search: done", "query", preview(query, 60),
+	printer.ToolCall(printer.IconSearch, "rag_search: done", "query", preview(query, 60),
 		"queries", len(queries), "results", len(parts))
 	return strings.Join(parts, "\n\n---\n\n")
 }
@@ -485,31 +489,6 @@ func preview(s string, n int) string {
 		return s
 	}
 	return string(runes[:n]) + "…"
-}
-
-// DefinitionSave returns the OpenAI tool schema for rag_save.
-func (r *RAGTools) DefinitionSave() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "rag_save",
-			Description: "Save a text fragment to the knowledge base",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"content": map[string]any{
-						"type":        "string",
-						"description": "Text fragment to save",
-					},
-					"prepend": map[string]any{
-						"type":        "string",
-						"description": "Optional message to prepend to each chunk for improved search",
-					},
-				},
-				"required": []string{"content"},
-			},
-		},
-	}
 }
 
 // DefinitionSearch returns the OpenAI tool schema for rag_search.
@@ -536,26 +515,13 @@ func (r *RAGTools) DefinitionSearch() openai.Tool {
 // Dispatch handles a tool call by name, parsing JSON args and returning the result as a string.
 func (r *RAGTools) Dispatch(name string, args string) string {
 	switch name {
-	case "rag_save":
-		var params struct {
-			Content string `json:"content"`
-		}
-		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			printer.Error("rag_save: failed to parse args", "args", args, "err", err)
-			return "error: failed to parse arguments"
-		}
-		ok := r.RagSave(params.Content, "")
-		if !ok {
-			return "error: failed to save to RAG"
-		}
-		return "saved successfully"
 
 	case "rag_search":
 		var params struct {
 			Query string `json:"query"`
 		}
 		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			printer.Error("rag_search: failed to parse args", "args", args, "err", err)
+			printer.ToolCall(printer.IconError, "rag_search: failed to parse args", "args", args, "err", err)
 			return "error: failed to parse arguments"
 		}
 		result := r.RagSearch(params.Query)

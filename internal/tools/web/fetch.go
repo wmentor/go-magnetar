@@ -39,7 +39,7 @@ func New(cfg *config.Config, root *os.Root) (*WebTools, error) {
 	if cfg.String("webfetch.base_url") != "" {
 		p, err := sanitizer.New(cfg, root)
 		if err != nil {
-			return nil, fmt.Errorf("web: failed to create preprocessor: %w", err)
+			return nil, fmt.Errorf("web_fetch: failed to create preprocessor: %w", err)
 		}
 		preprocessor = p
 	}
@@ -67,30 +67,30 @@ func (w *WebTools) fetchURLWithMediaType(url string) (string, string, error) {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return "", "", fmt.Errorf("web: failed to create request for %q: %w", url, err)
+		return "", "", fmt.Errorf("web_fetch: failed to create request for %q: %w", url, err)
 	}
 
 	req.Header.Set("User-Agent", userAgent)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", "", fmt.Errorf("web: failed to fetch URL %q: %w", url, err)
+		return "", "", fmt.Errorf("web_fetch: failed to fetch URL %q: %w", url, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf("web: URL %q returned status %d", url, resp.StatusCode)
+		return "", "", fmt.Errorf("web_fetch: URL %q returned status %d", url, resp.StatusCode)
 	}
 
 	contentType := resp.Header.Get("Content-Type")
 	utf8, err1 := charset.NewReader(resp.Body, contentType)
 	if err1 != nil {
-		return "", "", fmt.Errorf("web: decode URL %q error: %w", url, err1)
+		return "", "", fmt.Errorf("web_fetch: decode URL %q error: %w", url, err1)
 	}
 
 	body, err := io.ReadAll(utf8)
 	if err != nil {
-		return "", "", fmt.Errorf("web: failed to read response body: %w", err)
+		return "", "", fmt.Errorf("web_fetch: failed to read response body: %w", err)
 	}
 
 	return string(body), contentType, nil
@@ -105,7 +105,7 @@ func (w *WebTools) preprocessMarkdown(markdownStr string) (string, error) {
 
 // WebFetch fetches a web page, preprocesses it (if HTML), and returns the cleaned content.
 func (w *WebTools) WebFetch(url string) (string, error) {
-	printer.Debug("webfetch: fetching URL", "url", url)
+	printer.ToolCall(printer.IconSearch, "web_fetch", "url", url)
 
 	if w.cfg.String("confluence.base_url") != "" {
 		if strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/spaces/") || strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/x/") || strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/p/") {
@@ -137,39 +137,38 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 
 	content, contentType, err := w.fetchURLWithMediaType(url)
 	if err != nil {
-		printer.Error("webfetch: failed to fetch URL", "url", url, "err", err)
-		return "", fmt.Errorf("webfetch: failed to fetch URL %q", url)
+		printer.ToolCall(printer.IconError, "web_fetch: failed to fetch URL", "url", url, "err", err)
+		return "", fmt.Errorf("web_fetch: failed to fetch URL %q", url)
 	}
 
 	if contentType != "" && strings.Contains(strings.ToLower(contentType), "text/html") {
-		printer.Debug("webfetch: HTML detected, preprocessing", "url", url, "content_type", contentType)
-
 		content, err := CleanHTML(content)
 		if err != nil {
-			return "", fmt.Errorf("webfetch: URL %q clean html error: %w", url, err)
+			printer.ToolCall(printer.IconError, "web_fetch: clean html error", "url", url, "err", err)
+			return "", fmt.Errorf("web_fetch: URL %q clean html error: %w", url, err)
 		}
 
 		content, err = ProcessReadability(content, url)
 		if err != nil {
-			return "", fmt.Errorf("webfetch: URL %q error: %w", url, err)
+			printer.ToolCall(printer.IconError, "web_fetch: process readability", "url", url, "err", err)
+			return "", fmt.Errorf("web_fetch: URL %q error: %w", url, err)
 		}
 
 		content, err = HTMLToMarkdown(content)
 		if err != nil {
-			return "", fmt.Errorf("webfetch: URL %q html to markdown error: %w", url, err)
+			printer.ToolCall(printer.IconError, "web_fetch: html to markdown", "url", url, "err", err)
+			return "", fmt.Errorf("web_fetch: URL %q html to markdown error: %w", url, err)
 		}
 
 		content, err = w.preprocessMarkdown(content)
 		if err != nil {
-			printer.Error("webfetch: preprocessing failed", "url", url, "err", err)
-			return "", fmt.Errorf("webfetch: preprocessing failed for URL %q", url)
+			printer.ToolCall(printer.IconError, "web_fetch: preprocessing failed", "url", url, "err", err)
+			return "", fmt.Errorf("web_fetch: preprocessing failed for URL %q", url)
 		}
 
-		printer.Debug("webfetch: done", "url", url)
 		return content, nil
 	}
 
-	printer.Debug("webfetch: done (non-HTML content)", "url", url, "content_type", contentType)
 	return content, nil
 }
 
@@ -289,12 +288,12 @@ func decodeShortPageID(shortCode string) (int64, error) {
 	// 2. Decode Base64 to bytes
 	decoded, err := base64.StdEncoding.DecodeString(paddedCode)
 	if err != nil {
-		return 0, fmt.Errorf("web: failed to decode short code %q: %w", shortCode, err)
+		return 0, fmt.Errorf("web_fetch: failed to decode short code %q: %w", shortCode, err)
 	}
 
 	// 3. Unpack 32-bit Little-Endian integer using binary package
 	if len(decoded) < 4 {
-		return 0, fmt.Errorf("web: decoded data too short for page ID")
+		return 0, fmt.Errorf("web_fetch: decoded data too short for page ID")
 	}
 	pageID := binary.LittleEndian.Uint32(decoded[:4])
 
@@ -303,28 +302,28 @@ func decodeShortPageID(shortCode string) (int64, error) {
 
 // resolveShortPageID resolves a short Confluence page code (e.g., AgA5) to numeric ID.
 func (w *WebTools) resolveShortPageID(shortCode string) (string, error) {
-	printer.Debug("webfetch: resolving short Confluence page ID", "short_code", shortCode)
+	printer.ToolCall(printer.IconSearch, "web_fetch: resolving short Confluence page ID", "short_code", shortCode)
 
 	pageID, err := decodeShortPageID(shortCode)
 	if err != nil {
 		return "", err
 	}
 
-	printer.Debug("webfetch: decoded short page ID", "short", shortCode, "numeric", pageID)
+	printer.ToolCall(printer.IconSearch, "web_fetch: decoded short page ID", "short", shortCode, "numeric", pageID)
 	return fmt.Sprintf("%d", pageID), nil
 }
 
 // fetchConfluencePage fetches a Confluence page by ID and returns its content in Markdown.
 func (w *WebTools) fetchConfluencePage(pageID string, isShortID bool) (string, error) {
-	printer.Debug("webfetch: detected Confluence page", "page_id", pageID, "is_short_id", isShortID)
+	printer.ToolCall(printer.IconSearch, "web_fetch: detected Confluence page", "page_id", pageID, "is_short_id", isShortID)
 
 	if isShortID {
 		numID, err := w.resolveShortPageID(pageID)
 		if err == nil {
 			pageID = numID
-			printer.Debug("webfetch: resolved short page ID", "short", pageID, "numeric", numID)
+			printer.ToolCall(printer.IconSearch, "web_fetch: resolved short page ID", "short", pageID, "numeric", numID)
 		} else {
-			printer.Debug("webfetch: failed to resolve short page ID, trying as numeric", "page_id", pageID, "err", err)
+			printer.ToolCall(printer.IconError, "web_fetch: failed to resolve short page ID, trying as numeric", "page_id", pageID, "err", err)
 		}
 	}
 
@@ -345,7 +344,7 @@ func (w *WebTools) fetchConfluencePage(pageID string, isShortID bool) (string, e
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
-		return "", fmt.Errorf("web: failed to create Confluence request for page %q: %w", pageID, err)
+		return "", fmt.Errorf("web_fetch: failed to create Confluence request for page %q: %w", pageID, err)
 	}
 
 	req.Header.Set("Authorization", "Bearer "+w.cfg.String("confluence.api_key"))
@@ -353,23 +352,23 @@ func (w *WebTools) fetchConfluencePage(pageID string, isShortID bool) (string, e
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("web: failed to fetch Confluence page %q: %w", pageID, err)
+		return "", fmt.Errorf("web_fetch: failed to fetch Confluence page %q: %w", pageID, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("web: Confluence page %q returned status %d", pageID, resp.StatusCode)
+		return "", fmt.Errorf("web_fetch: Confluence page %q returned status %d", pageID, resp.StatusCode)
 	}
 
 	contentType := resp.Header.Get("Content-Type")
 	utf8, err1 := charset.NewReader(resp.Body, contentType)
 	if err1 != nil {
-		return "", fmt.Errorf("web: decode Confluence page %q error: %w", pageID, err1)
+		return "", fmt.Errorf("web_fetch: decode Confluence page %q error: %w", pageID, err1)
 	}
 
 	body, err := io.ReadAll(utf8)
 	if err != nil {
-		return "", fmt.Errorf("web: failed to read Confluence response body: %w", err)
+		return "", fmt.Errorf("web_fetch: failed to read Confluence response body: %w", err)
 	}
 
 	var result struct {
@@ -388,16 +387,15 @@ func (w *WebTools) fetchConfluencePage(pageID string, isShortID bool) (string, e
 	}
 
 	if err := json.Unmarshal(body, &result); err != nil {
-		return "", fmt.Errorf("web: failed to parse Confluence response: %w", err)
+		return "", fmt.Errorf("web_fetch: failed to parse Confluence response: %w", err)
 	}
 
-	printer.Debug("webfetch: Confluence page fetched", "page_id", pageID)
 	return fmt.Sprintf("Title: %s\nVersion: %d\nAuthor: %s\nUpdated: %s\nBody:\n%s", result.Title, result.Version.Number, result.Version.Author, result.Version.Updated, result.Body.Storage.Value), nil
 }
 
 // fetchJIRAIssue fetches a JIRA issue by its key (e.g., GOARCH-60) and returns its content in Markdown.
 func (w *WebTools) fetchJIRAIssue(issueKey string) (string, error) {
-	printer.Debug("webfetch: detected JIRA issue", "issue_key", issueKey)
+	printer.ToolCall(printer.IconSearch, "web_fetch: detected JIRA issue", "issue_key", issueKey)
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
@@ -416,7 +414,7 @@ func (w *WebTools) fetchJIRAIssue(issueKey string) (string, error) {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
 	if err != nil {
-		return "", fmt.Errorf("web: failed to create JIRA request for issue %q: %w", issueKey, err)
+		return "", fmt.Errorf("web_fetch: failed to create JIRA request for issue %q: %w", issueKey, err)
 	}
 
 	req.Header.Set("Authorization", "Bearer "+w.cfg.String("jira.api_key"))
@@ -424,23 +422,23 @@ func (w *WebTools) fetchJIRAIssue(issueKey string) (string, error) {
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("web: failed to fetch JIRA issue %q: %w", issueKey, err)
+		return "", fmt.Errorf("web_fetch: failed to fetch JIRA issue %q: %w", issueKey, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("web: JIRA issue %q returned status %d", issueKey, resp.StatusCode)
+		return "", fmt.Errorf("web_fetch: JIRA issue %q returned status %d", issueKey, resp.StatusCode)
 	}
 
 	contentType := resp.Header.Get("Content-Type")
 	utf8, err1 := charset.NewReader(resp.Body, contentType)
 	if err1 != nil {
-		return "", fmt.Errorf("web: decode JIRA issue %q error: %w", issueKey, err1)
+		return "", fmt.Errorf("web_fetch: decode JIRA issue %q error: %w", issueKey, err1)
 	}
 
 	body, err := io.ReadAll(utf8)
 	if err != nil {
-		return "", fmt.Errorf("web: failed to read JIRA response body: %w", err)
+		return "", fmt.Errorf("web_fetch: failed to read JIRA response body: %w", err)
 	}
 
 	var result struct {
@@ -480,10 +478,10 @@ func (w *WebTools) fetchJIRAIssue(issueKey string) (string, error) {
 	}
 
 	if err := json.Unmarshal(body, &result); err != nil {
-		return "", fmt.Errorf("web: failed to parse JIRA response: %w", err)
+		return "", fmt.Errorf("web_fetch: failed to parse JIRA response: %w", err)
 	}
 
-	printer.Debug("webfetch: JIRA issue fetched", "issue_key", issueKey)
+	printer.Debug("web_fetch: JIRA issue fetched", "issue_key", issueKey)
 
 	var sb strings.Builder
 	sb.WriteString("Issue: ")
@@ -559,6 +557,7 @@ func (w *WebTools) Dispatch(name string, args string) string {
 		}
 		return content
 	default:
+		printer.ToolCall(printer.IconError, "unknown tool", "name", name)
 		return "error: unknown tool " + name
 	}
 }
@@ -623,7 +622,7 @@ func extractProjectAndMergeRequestFromGitLabURL(url string, baseURL string) (str
 
 // fetchGitLabMergeRequest fetches a GitLab merge request and returns its content.
 func (w *WebTools) fetchGitLabMergeRequest(projectPath string, mrID string) (string, error) {
-	printer.Debug("webfetch: detected GitLab merge request", "project_path", projectPath, "mr_id", mrID)
+	printer.Debug("web_fetch: detected GitLab merge request", "project_path", projectPath, "mr_id", mrID)
 
 	gitLabTools := gitlab.New(w.cfg)
 	return gitLabTools.FetchMergeRequest(projectPath, mrID)

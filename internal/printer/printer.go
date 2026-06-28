@@ -5,14 +5,24 @@ import (
 	"fmt"
 )
 
+type Icon = string
+
 const (
-	IconTool = "🚀"
+	IconAlert  = Icon("⚠️")
+	IconDone   = Icon("💫")
+	IconError  = Icon("❌")
+	IconModule = Icon("🛰️")
+	IconSave   = Icon("🚀")
+	IconSearch = Icon("🔭")
+	IconTool   = Icon("⚙️")
 )
 
-type Printer struct{}
+type Printer struct {
+	verbose bool
+}
 
-func New() *Printer {
-	return &Printer{}
+func New(verbose bool) *Printer {
+	return &Printer{verbose: verbose}
 }
 
 var (
@@ -24,7 +34,7 @@ func SetDefault(p *Printer) {
 }
 
 func init() {
-	defaultPrinter = New()
+	defaultPrinter = New(true)
 }
 
 func Debug(message string, params ...any) {
@@ -43,8 +53,13 @@ func Error(message string, params ...any) {
 	defaultPrinter.Error(message, params...)
 }
 
+func ToolCall(typeIcon string, message string, params ...any) {
+	defaultPrinter.ToolCall(typeIcon, message, params...)
+}
 func (p *Printer) Debug(message string, params ...any) {
-	p.Print("", message, params...)
+	if p.verbose {
+		p.Print("", message, params...)
+	}
 }
 
 func (p *Printer) Info(message string, params ...any) {
@@ -52,11 +67,17 @@ func (p *Printer) Info(message string, params ...any) {
 }
 
 func (p *Printer) Error(message string, params ...any) {
-	p.Print("", message, params...)
+	p.Print(IconError, message, params...)
 }
 
 func (p *Printer) Warn(message string, params ...any) {
-	p.Print("⚠️", message, params...)
+	p.Print(IconAlert, message, params...)
+}
+
+func (p *Printer) ToolCall(typeIcon string, message string, params ...any) {
+	if p.verbose {
+		p.Print(typeIcon, message, params...)
+	}
 }
 
 func (p *Printer) Print(typeIcon string, message string, params ...any) {
@@ -80,4 +101,14 @@ func (p *Printer) Print(typeIcon string, message string, params ...any) {
 		sb.WriteString("]")
 	}
 	fmt.Println(sb.String())
+}
+
+func ToolEmptyLine() {
+	defaultPrinter.ToolEmptyLine()
+}
+
+func (p *Printer) ToolEmptyLine() {
+	if p.verbose {
+		fmt.Println("")
+	}
 }

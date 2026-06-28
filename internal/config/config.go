@@ -2,14 +2,12 @@ package config
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
-	"github.com/lmittmann/tint"
 )
 
 // Config is the root configuration structure.
@@ -63,29 +61,6 @@ func (c *Config) Int(key string) int {
 // Float64 returns the float64 value for the given key.
 func (c *Config) Float64(key string) float64 {
 	return c.cfg.Float64(key)
-}
-
-// SetupLogger initialises the global slog logger based on the config level.
-// Output is written to stderr using tint for colourised, human-readable formatting.
-func SetupLogger(cfg *Config) {
-	var level slog.Level
-
-	switch cfg.String("log.level") {
-	case "debug":
-		level = slog.LevelDebug
-	case "warn":
-		level = slog.LevelWarn
-	case "error":
-		level = slog.LevelError
-	default:
-		level = slog.LevelInfo
-	}
-
-	handler := tint.NewHandler(os.Stderr, &tint.Options{
-		Level:   level,
-		NoColor: !isTerminal(os.Stderr),
-	})
-	slog.SetDefault(slog.New(handler))
 }
 
 // isTerminal reports whether f is connected to a terminal.
