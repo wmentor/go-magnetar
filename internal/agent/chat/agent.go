@@ -15,6 +15,7 @@ import (
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/sashabaranov/go-openai"
+	"golang.org/x/term"
 
 	"github.com/wmentor/go-magnetar/internal/agent/summarizer"
 	"github.com/wmentor/go-magnetar/internal/config"
@@ -345,12 +346,25 @@ var _ = promptStyle
 var _ = promptSymbol
 var _ = questionStyle
 
+func getTerminalWidth() int {
+	width, _, err := term.GetSize(int(os.Stdin.Fd()))
+	if err != nil {
+		return 80
+	}
+	if width <= 0 {
+		return 80
+	}
+	return width
+}
+
 func newInputModel() inputModel {
 	ti := textinput.New()
-	ti.Placeholder = "Ask anything..."
+	ti.Placeholder = "Ask anything... (Enter to submit)"
 	ti.PlaceholderStyle = lipgloss.NewStyle().Faint(true)
 	ti.Prompt = promptSymbol + " "
 	ti.Focus()
+	ti.CharLimit = 0
+	ti.Width = getTerminalWidth() - len(promptSymbol) - 2
 	return inputModel{input: ti}
 }
 
