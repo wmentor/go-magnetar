@@ -26,15 +26,24 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		return nil
 	}
 
+	tools, err := p.get()
+	if err != nil {
+		return err
+	}
+
 	hub.RegisterTool(plugin.LLMTool{
 		Definition:   jira.StaticDefinition,
 		IsSearchTool: true,
 		Execute: func(_ context.Context, args string) (string, error) {
-			t, err := p.get()
-			if err != nil {
-				return "", err
-			}
-			return t.Dispatch("jira_task_get", args), nil
+			return tools.Dispatch("jira_task_get", args), nil
+		},
+	})
+
+	hub.RegisterTool(plugin.LLMTool{
+		Definition:   jira.StaticDefinitionSearch,
+		IsSearchTool: true,
+		Execute: func(_ context.Context, args string) (string, error) {
+			return tools.Dispatch("jira_task_search", args), nil
 		},
 	})
 	return nil
