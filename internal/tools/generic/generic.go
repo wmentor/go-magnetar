@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"github.com/wmentor/go-magnetar/internal/printer"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -16,6 +15,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
+	"github.com/wmentor/go-magnetar/internal/printer"
 )
 
 // FileListOptions defines optional filters for listing files.
@@ -109,7 +109,7 @@ func (g *GenericTools) FileExists(filename string) bool {
 		printer.Debug("file_exists: file not found", "file", filename, "err", err)
 		return false
 	}
-		printer.Debug("file_exists: file found", "file", filename)
+	printer.Debug("file_exists: file found", "file", filename)
 	return true
 }
 
@@ -194,6 +194,7 @@ var allowedCommands = []CmdRecord{
 	// Simple commands allowed in read-only mode
 	{Command: []string{"find"}, ReadOnly: true},
 	{Command: []string{"grep"}, ReadOnly: true},
+	{Command: []string{"ls"}, ReadOnly: true},
 	{Command: []string{"wc"}, ReadOnly: true},
 	{Command: []string{"head"}, ReadOnly: true},
 	{Command: []string{"tail"}, ReadOnly: true},
@@ -207,6 +208,7 @@ var allowedCommands = []CmdRecord{
 	{Command: []string{"go", "mod"}, ReadOnly: false},
 	{Command: []string{"go", "run"}, ReadOnly: false},
 	{Command: []string{"go", "test"}, ReadOnly: true},
+	{Command: []string{"mkdir"}, ReadOnly: false},
 	{Command: []string{"uuidgen"}, ReadOnly: true},
 }
 
@@ -449,9 +451,9 @@ func (g *GenericTools) DefinitionSystemDate() openai.Tool {
 			Name:        "system_date",
 			Description: "Execute the date command to get the current system time",
 			Parameters: map[string]any{
-				"type": "object",
+				"type":       "object",
 				"properties": map[string]any{},
-				"required": []string{},
+				"required":   []string{},
 			},
 		},
 	}
@@ -687,9 +689,9 @@ func StaticDefinitionSystemDate() openai.Tool {
 			Name:        "system_date",
 			Description: "Execute the date command to get the current system time",
 			Parameters: map[string]any{
-				"type": "object",
+				"type":       "object",
 				"properties": map[string]any{},
-				"required": []string{},
+				"required":   []string{},
 			},
 		},
 	}
