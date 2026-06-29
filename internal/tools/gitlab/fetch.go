@@ -114,7 +114,7 @@ func (g *GitLabTools) FetchMergeRequest(projectPath string, mrID string) (string
 		return "", fmt.Errorf("gitlab: failed to parse response: %w", err)
 	}
 
-	printer.Debug("gitlab: MR fetched", "project_path", projectPath, "mr_id", mrID)
+	printer.ToolCall(printer.IconSearch, "gitlab: MR fetched", "project_path", projectPath, "mr_id", mrID)
 
 	// Fetch MR changes (diffs)
 	changesURL := fmt.Sprintf("%s/api/v4/projects/%s/merge_requests/%s/changes", g.cfg.String("gitlab.base_url"), encodedProjectPath, mrID)
@@ -158,7 +158,7 @@ func (g *GitLabTools) FetchMergeRequest(projectPath string, mrID string) (string
 		return "", fmt.Errorf("gitlab: failed to parse changes response: %w", err)
 	}
 
-	printer.Debug("gitlab: MR changes fetched", "project_path", projectPath, "mr_id", mrID, "changes_count", len(changesResult.Changes))
+	printer.ToolCall(printer.IconSearch, "gitlab: MR changes fetched", "project_path", projectPath, "mr_id", mrID, "changes_count", len(changesResult.Changes))
 
 	var sb strings.Builder
 	sb.WriteString("Project: ")

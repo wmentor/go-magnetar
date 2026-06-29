@@ -301,7 +301,7 @@ func (r *RAGTools) dedup(results []searchResult) []searchResult {
 			defer wg.Done()
 			vec, err := r.embed(text)
 			if err != nil {
-				printer.Debug("rag: dedup embed failed, skipping", "err", err)
+				printer.ToolCall(printer.IconAlert, "rag: dedup embed failed, skipping", "err", err)
 				return
 			}
 			mu.Lock()
@@ -324,7 +324,7 @@ func (r *RAGTools) dedup(results []searchResult) []searchResult {
 			}
 			sim := cosineSimilarity(embeddings[i], embeddings[j])
 			if sim >= float32(threshold) {
-				printer.Debug("rag: dedup suppressed near-duplicate",
+				printer.ToolCall(printer.IconDone, "rag: dedup suppressed near-duplicate",
 					"sim", fmt.Sprintf("%.3f", sim),
 					"kept", preview(results[i].text, 40),
 					"dropped", preview(results[j].text, 40),
