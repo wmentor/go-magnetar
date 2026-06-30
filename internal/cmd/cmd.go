@@ -79,6 +79,10 @@ func printEnabledModules(cfg *config.Config) {
 		printer.ToolCall(printer.IconModule, "gitlab plugin is enabled")
 		has = true
 	}
+	if cfg.String("github.base_url") != "" && !cfg.Bool("github.disable") {
+		printer.ToolCall(printer.IconModule, "github plugin is enabled")
+		has = true
+	}
 	if cfg.String("jira.base_url") != "" && !cfg.Bool("jira.disable") {
 		printer.ToolCall(printer.IconModule, "jira plugin is enabled")
 		has = true

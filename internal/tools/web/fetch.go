@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -19,6 +20,7 @@ import (
 	sanitizer "github.com/wmentor/go-magnetar/internal/agent/markdown"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/printer"
+	"github.com/wmentor/go-magnetar/internal/tools/github"
 	"github.com/wmentor/go-magnetar/internal/tools/gitlab"
 	"github.com/wmentor/go-magnetar/internal/tools/jira"
 )
@@ -132,6 +134,32 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 			projectPath, issueID, err := extractProjectAndMergeRequestFromGitLabURL(url, w.cfg.String("gitlab.base_url"))
 			if err == nil && projectPath != "" && issueID != "" {
 				return w.fetchGitLabMergeRequest(projectPath, issueID)
+			}
+		}
+	}
+
+	if w.cfg.String("github.base_url") != "" && !w.cfg.Bool("github.disable") {
+		if strings.Contains(url, "github.com/") {
+			if strings.Contains(url, "/blob/") {
+				owner, repo, branch, file, err := extractGitHubFileURL(url)
+				if err == nil && owner != "" && repo != "" && file != "" {
+					return github.New(w.cfg).FetchFile(owner+"/"+repo, branch, file)
+				}
+			}
+			if strings.Contains(url, "/tree/") || strings.Contains(url, "/commits/") || strings.HasSuffix(url, "/") {
+				owner, repo, branch, path, err := extractGitHubTreeURL(url)
+				if err == nil && owner != "" && repo != "" {
+					if branch == "" {
+						branch = "main"
+					}
+					return github.New(w.cfg).FetchTree(owner+"/"+repo, branch, path)
+				}
+			}
+			if !strings.Contains(url, "/blob/") && !strings.Contains(url, "/tree/") && !strings.Contains(url, "/commits/") {
+				owner, repo, err := extractGitHubRepoURL(url)
+				if err == nil && owner != "" && repo != "" {
+					return github.New(w.cfg).FetchRepository(owner + "/" + repo)
+				}
 			}
 		}
 	}
@@ -501,6 +529,65 @@ func (w *WebTools) fetchGitLabMergeRequest(projectPath string, mrID string) (str
 	return gitlab.New(w.cfg).FetchMergeRequest(projectPath, mrID)
 }
 
+// extractGitHubRepoURL extracts owner and repo from GitHub repository URL.
+func extractGitHubRepoURL(url string) (string, string, error) {
+	// Remove protocol prefix if present
+	url = strings.TrimPrefix(url, "https://github.com/")
+	url = strings.TrimPrefix(url, "http://github.com/")
+	url = strings.TrimPrefix(url, "github.com/")
+
+	// Split into owner and repo
+	parts := strings.Split(strings.Trim(url, "/"), "/")
+	if len(parts) < 2 {
+		return "", "", fmt.Errorf("invalid GitHub repository URL format")
+	}
+
+	owner := parts[0]
+	repo := parts[1]
+
+	// Remove .git suffix if present
+	repo = strings.TrimSuffix(repo, ".git")
+
+	return owner, repo, nil
+}
+
+// extractGitHubTreeURL extracts owner, repo, branch, and path from GitHub tree URL.
+func extractGitHubTreeURL(url string) (string, string, string, string, error) {
+	// Pattern: https://github.com/owner/repo/tree/branch/path or https://github.com/owner/repo/commits/branch
+	// Match: github.com/{owner}/{repo}/(tree|commits)/{branch}[/path]
+
+	re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/(tree|commits)/([^/]+)(?:/(.+))?`)
+	matches := re.FindStringSubmatch(url)
+	if matches != nil {
+		owner := matches[1]
+		repo := matches[2]
+		branch := matches[4]
+		path := ""
+		if len(matches) > 5 && matches[5] != "" {
+			path = matches[5]
+		}
+		return owner, repo, branch, path, nil
+	}
+
+	return "", "", "", "", fmt.Errorf("not a GitHub tree/commits URL")
+}
+
+// extractGitHubFileURL extracts owner, repo, branch, and file path from GitHub blob URL.
+func extractGitHubFileURL(url string) (string, string, string, string, error) {
+	// Pattern: https://github.com/owner/repo/blob/branch/path/to/file
+	re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)`)
+	matches := re.FindStringSubmatch(url)
+	if matches != nil {
+		owner := matches[1]
+		repo := matches[2]
+		branch := matches[3]
+		file := matches[4]
+		return owner, repo, branch, file, nil
+	}
+
+	return "", "", "", "", fmt.Errorf("not a GitHub blob URL")
+}
+
 // StaticDefinition returns the OpenAI tool schema for web_fetch without
 // requiring an initialised WebTools instance. Used by the plugin for lazy init.
 func StaticDefinition() openai.Tool {
@@ -508,13 +595,13 @@ func StaticDefinition() openai.Tool {
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
 			Name:        "web_fetch",
-			Description: "Fetch a web page and return clean Markdown content. Supports Confluence pages, JIRA issues, and GitLab merge requests with file changes.",
+			Description: "Fetch a web page and return clean Markdown content. Supports Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories.",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
 					"url": map[string]any{
 						"type":        "string",
-						"description": "URL of the web page, Confluence page, JIRA issue, or GitLab merge request to fetch",
+						"description": "URL of the web page, Confluence page, JIRA issue, GitLab merge request, or GitHub repository to fetch",
 					},
 				},
 				"required": []string{"url"},

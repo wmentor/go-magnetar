@@ -258,3 +258,50 @@ func (g *GitLabTools) Definition() openai.Tool {
 		},
 	}
 }
+
+// StaticDefinition returns the OpenAI tool schema for gitlab_fetch_mr without
+// requiring an initialised GitLabTools instance. Used by the plugin for lazy init.
+func StaticDefinition() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "gitlab_fetch_mr",
+			Description: "Fetch a GitLab merge request and return its details in Markdown format",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"project_path": map[string]any{
+						"type":        "string",
+						"description": "GitLab project path (e.g., 'namespace/project' or 'group/subgroup/project')",
+					},
+					"mr_id": map[string]any{
+						"type":        "string",
+						"description": "Merge request ID (numeric ID or 'iid')",
+					},
+				},
+				"required": []string{"project_path", "mr_id"},
+			},
+		},
+	}
+}
+
+// Dispatch handles a tool call by name, parsing JSON args and returning the result as a string.
+func (g *GitLabTools) Dispatch(name string, args string) string {
+	switch name {
+	case "gitlab_fetch_mr":
+		var params struct {
+			ProjectPath string `json:"project_path"`
+			MRID        string `json:"mr_id"`
+		}
+		if err := json.Unmarshal([]byte(args), &params); err != nil {
+			return "error: failed to parse arguments"
+		}
+		content, err := g.FetchMergeRequest(params.ProjectPath, params.MRID)
+		if err != nil {
+			return fmt.Sprintf("error: %v", err)
+		}
+		return content
+	default:
+		return "error: unknown tool " + name
+	}
+}

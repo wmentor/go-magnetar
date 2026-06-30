@@ -92,6 +92,11 @@ gitlab:
   base_url: https://gitlab.example.com
   api_key: YOUR_API_KEY
   disable: false
+
+github:
+  base_url: https://api.github.com
+  api_key: YOUR_GITHUB_TOKEN
+  disable: false
 ```
 
 > If the `webfetch` block is specified, the listed model parameters are used to clean HTML content obtained from web pages.
@@ -221,6 +226,9 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 | `rag_search` | `(query: string) -> string` | Returns top-N relevant fragments from Qdrant (N is set by `rag.search.limit`) |
 | `web_fetch` | `(url: string) -> string` | Fetches and cleans a web page (fallback if RAG returns no results); also fetches Confluence pages and JIRA issues when URL matches |
 | `ask` | `(question: string) -> string` | Asks the user a clarifying question and returns the answer |
+| `github_repo` | `(repo: string) -> string` | Fetches GitHub repository information and returns its details in Markdown format |
+| `github_file` | `(repo: string, branch: string, file: string) -> string` | Fetches a file from GitHub repository and returns its content |
+| `github_tree` | `(repo: string, branch: string, path: string) -> string` | Lists repository contents at root or specified path |
 
 ## Indexer (via `/index` command)
 

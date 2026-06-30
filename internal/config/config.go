@@ -26,6 +26,9 @@ var defaults = map[string]any{
 	"rag.search.dedup_threshold": 0.95, // near-duplicate suppression threshold
 	"gitlab.base_url":            "",   // GitLab base URL (optional)
 	"gitlab.api_key":             "",   // GitLab API key (optional)
+	"github.base_url":            "",   // GitHub base URL (optional)
+	"github.access_key":          "",   // GitHub access key (optional)
+	"github.disable":             false, // disable GitHub integration (default: false)
 }
 
 // Load reads and parses a YAML config file at the given path.

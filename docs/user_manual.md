@@ -7,7 +7,7 @@ go-magnetar — a knowledge base tool built on RAG (Retrieval-Augmented Generati
 - **Chat agent** — answers questions strictly based on indexed data (no hallucinations or guessing)
 - **Index command** — `/index <path|url> [-m <message>]` indexes documents directly from the chat REPL
 
-> If the `webfetch` block is configured, it is used to clean HTML content from ads, navigation, and other noise when processing web pages. Confluence URLs (both standard and short links) are also supported via the `confluence` block. JIRA issues are supported via the `jira` block. GitLab merge requests (including file changes) are supported via the `gitlab` block.
+> If the `webfetch` block is configured, it is used to clean HTML content from ads, navigation, and other noise when processing web pages. Confluence URLs (both standard and short links) are also supported via the `confluence` block. JIRA issues are supported via the `jira` block. GitLab merge requests (including file changes) are supported via the `gitlab` block. GitHub repositories, files, and directory trees are supported via the `github` block.
 
 ## Requirements
 
@@ -95,6 +95,11 @@ gitlab:
   base_url: https://gitlab.example.com
   api_key: YOUR_API_KEY
   disable: false
+
+github:
+  base_url: https://api.github.com
+  api_key: YOUR_GITHUB_TOKEN
+  disable: false
 ```
 
 > If the `webfetch` block is specified, the model parameters listed above are used to clean HTML content obtained from web pages.
@@ -104,6 +109,7 @@ gitlab:
 > The `jira` block enables fetching JIRA issues directly by URL.
 
 > The `gitlab` block enables fetching GitLab merge requests directly by URL, including file changes via the `/changes` endpoint.
+> The `github` block enables fetching GitHub repositories, files, and directory trees directly by repository path.
 
 ### 4. Index Documents
 
@@ -122,6 +128,9 @@ gitlab:
 
 # From GitLab merge request URL
 > /index https://gitlab.example.com/namespace/project/-/merge_requests/123
+
+# From GitHub URL (repository, file, or tree)
+> /index https://github.com/owner/repo
 ```
 
 > If the `webfetch` block is configured in the config, web pages are cleaned of ads and navigation using an AI agent before being converted to Markdown and indexed. Confluence pages are also indexed via the `confluence` block. JIRA issues are indexed via the `jira` block.
@@ -192,7 +201,7 @@ Use **↑/↓** arrows to navigate through previously entered commands. History 
 | `system_date` | Executes the date command to get the current system time |
 | `system_grep` | Executes system grep command with safe parameters |
 | `rag_search` | Returns relevant fragments from indexed data |
-| `web_fetch` | Fetches web pages (fallback if RAG returns no results); also fetches Confluence pages, JIRA issues, and GitLab merge requests (with file changes) when URL matches |
+| `web_fetch` | Fetches web pages (fallback if RAG returns no results); also fetches Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories when URL matches |
 | `ask` | Asks the user a clarifying question and returns the answer |
 
 ### Search tool call limit
@@ -232,6 +241,8 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 | `jira.api_key` | — | JIRA API key for fetching issues |
 | `gitlab.base_url` | — | GitLab instance base URL |
 | `gitlab.api_key` | — | GitLab API key for fetching merge requests and file changes |
+| `github.base_url` | — | GitHub API base URL (e.g. `https://api.github.com`) |
+| `github.api_key` | — | GitHub access token for fetching repositories, files, and trees |
 
 **Vector sizes for common embedding models:**
 

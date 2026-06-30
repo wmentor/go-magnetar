@@ -12,7 +12,7 @@ A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines a 
 
 **Search tool call limit** — to prevent infinite loops, each user request is limited to a maximum number of search-related tool calls (`rag_search` + `web_fetch`). By default, the limit is 10 calls per request. When the limit is reached, an error message is sent to the LLM.
 
-**HTML Preprocessing** — when `webfetch.*` parameters are configured, web pages fetched via `web_fetch` are cleaned of ads, navigation, cookie banners, and other noise using an AI agent before being converted to Markdown and indexed or returned to the agent. Confluence URLs are also handled via the `confluence` block to fetch pages by ID, JIRA issues via the `jira` block, and GitLab merge requests via the `gitlab` block to fetch MR details and file changes.
+**HTML Preprocessing** — when `webfetch.*` parameters are configured, web pages fetched via `web_fetch` are cleaned of ads, navigation, cookie banners, and other noise using an AI agent before being converted to Markdown and indexed or returned to the agent. Confluence URLs are also handled via the `confluence` block to fetch pages by ID, JIRA issues via the `jira` block, and GitHub repositories via the `github` block to fetch repository information, files, and directory trees.
 
 ## Requirements
 
@@ -99,6 +99,11 @@ jira:
 gitlab:
   base_url: https://gitlab.example.com
   api_key: YOUR_API_KEY
+  disable: false
+
+github:
+  base_url: https://api.github.com
+  api_key: YOUR_GITHUB_TOKEN
   disable: false
 ```
 
