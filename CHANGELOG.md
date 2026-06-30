@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.1.3] - 2026-06-30
+
+### Added
+
+- **GitHub integration** - Full GitHub API integration with three new tools:
+  - `github_repo` - Fetch repository information and README
+  - `github_file` - Fetch file content from any branch
+  - `github_tree` - List files and directories in current path
+  - Support for URLs: `https://github.com/{owner}/{repo}`, `https://github.com/{owner}/{repo}/blob/{branch}/{file}`, `https://github.com/{owner}/{repo}/tree/{branch}/{path}`
+  - Configurable via `github` block in config (base_url, access_key)
+  -Integrated with `web_fetch` for automatic URL resolution
+- **Documentation** - Comprehensive documentation for GitHub integration
+  - Example URLs and configuration
+  - Command examples in user_manual.md and README.md
+  - Tool signatures and parameters
+
+### Changed
+
+- **Refactor gitlab fetch** - Move common functionality to internal/tools/gitlab/fetch.go
+  - Improved code organization
+  - Better testability
+- **Refactor web fetch** - Extract URL routing to separate handlers
+  - Cleaner separation between web, confluence, jira, gitlab, github
+  - Easier to add new URL handlers
+
+### Fixed
+
+- Removed TODO.md from commit history (all tasks completed in v0.1.3)
+
 ## [v0.1.2] - 2026-06-28
 
 ### Added
@@ -117,7 +146,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Plugin architecture refactoring
 - Search enhancements
 
-[Unreleased]: https://github.com/wmentor/go-magnetar/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/wmentor/go-magnetar/compare/v0.1.3...HEAD
+[v0.1.3]: https://github.com/wmentor/go-magnetar/compare/v0.1.2...v0.1.3
 [v0.1.2]: https://github.com/wmentor/go-magnetar/compare/v0.1.1...v0.1.2
 [v0.1.1]: https://github.com/wmentor/go-magnetar/compare/v0.1.0...v0.1.1
 [v0.1.0]: https://github.com/wmentor/go-magnetar/releases/tag/v0.1.0
