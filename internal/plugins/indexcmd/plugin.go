@@ -73,14 +73,12 @@ func (p *Plugin) execute(ctx context.Context, agent plugin.AgentHandle, args str
 	}
 
 	if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") {
-		printer.Info("indexcmd: indexing URL", "url", target)
 		if err := p.idx.IndexURL(target, message); err != nil {
 			return fmt.Errorf("index URL failed: %w", err)
 		}
 		return nil
 	}
 
-	printer.Info("indexcmd: indexing file", "file", target)
 	if err := p.idx.IndexFile(target, message); err != nil {
 		return fmt.Errorf("index file failed: %w", err)
 	}
@@ -122,7 +120,6 @@ func (p *Plugin) executeTab(ctx context.Context, agent plugin.AgentHandle, args 
 		message := entry.Message
 
 		if strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://") {
-			printer.Info("indexcmd: indexing URL from tab", "url", source)
 			if err := p.idx.IndexURL(source, message); err != nil {
 				printer.Error("index URL failed", "url", source, "error", err)
 				continue
@@ -131,7 +128,6 @@ func (p *Plugin) executeTab(ctx context.Context, agent plugin.AgentHandle, args 
 			if !filepath.IsAbs(source) {
 				source = filepath.Join(workDir, source)
 			}
-			printer.Info("indexcmd: indexing file from tab", "file", source)
 			if err := p.idx.IndexFile(source, message); err != nil {
 				printer.Error("index file failed", "file", source, "error", err)
 				continue

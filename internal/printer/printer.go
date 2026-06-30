@@ -13,12 +13,14 @@ const (
 	IconAsk    = Icon("❓")
 	IconDone   = Icon("💫")
 	IconError  = Icon("❌")
+	IconFile   = Icon("📄")
 	IconIam    = Icon("👨")
 	IconModule = Icon("🛰️")
 	IconRobot  = Icon("🤖")
-	IconSave   = Icon("🚀")
+	IconSave   = Icon("📝")
 	IconSearch = Icon("🔭")
 	IconTool   = Icon("⚙️")
+	IconURL    = Icon("🌐")
 )
 
 type Printer struct {
@@ -55,6 +57,10 @@ func Warn(message string, params ...any) {
 
 func Error(message string, params ...any) {
 	defaultPrinter.Error(message, params...)
+}
+
+func Print(typeIcon string, message string, params ...any) {
+	defaultPrinter.Print(typeIcon, message, params...)
 }
 
 func ToolCall(typeIcon string, message string, params ...any) {

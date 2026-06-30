@@ -39,7 +39,7 @@ func New(cfg *config.Config, root *os.Root) (*Indexer, error) {
 
 // IndexFile indexes a single file into the RAG knowledge base.
 func (idx *Indexer) IndexFile(filename string, msg string) error {
-	printer.Info("indexer: indexing file", "file", filename)
+	printer.Print(printer.IconFile, "indexer: indexing file", "file", filename)
 
 	data, err := os.ReadFile(filename)
 	if err != nil {
@@ -51,7 +51,7 @@ func (idx *Indexer) IndexFile(filename string, msg string) error {
 
 // IndexURL fetches content from a URL, chunks it, and stores it in the RAG knowledge base.
 func (idx *Indexer) IndexURL(rawURL string, msg string) error {
-	printer.Info("indexer: indexing URL", "url", rawURL)
+	printer.Print(printer.IconURL, "indexer: indexing URL", "url", rawURL)
 
 	content, err := idx.web.WebFetch(rawURL)
 	if err != nil {
@@ -74,7 +74,6 @@ func (idx *Indexer) chunkAndSave(content string, msg string) error {
 		if idx.rag.RagSave(c, msg, i+1) {
 			saved++
 		}
-		printer.Debug("indexer: chunk saved", "chunk", i+1, "size", len(c))
 	}
 	return nil
 }
