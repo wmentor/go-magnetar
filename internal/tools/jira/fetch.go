@@ -97,7 +97,7 @@ func (j *JiraTools) FetchIssue(issueKey string) (string, error) {
 				Name string `json:"name"`
 			} `json:"project"`
 			Type struct {
-				Name string `json:"issuetype"`
+				Name string `json:"name"`
 			} `json:"issuetype"`
 			Created string `json:"created"`
 			Updated string `json:"updated"`
@@ -110,11 +110,92 @@ func (j *JiraTools) FetchIssue(issueKey string) (string, error) {
 					Created string `json:"created"`
 				} `json:"comments"`
 			} `json:"comment"`
+			Labels []string `json:"labels"`
+			Parent struct {
+				Key string `json:"key"`
+			} `json:"parent"`
 		} `json:"fields"`
 	}
 
 	if err := json.Unmarshal(body, &result); err != nil {
 		return "", fmt.Errorf("jira_task_get: failed to parse response: %w", err)
+	}
+
+	var children []struct {
+		Key    string `json:"key"`
+		ID     string `json:"id"`
+		Self   string `json:"self"`
+		Fields struct {
+			Summary string `json:"summary"`
+			Status  struct {
+				Name string `json:"name"`
+			} `json:"status"`
+			Type struct {
+				Name string `json:"name"`
+			} `json:"issuetype"`
+		} `json:"fields"`
+	}
+
+	if result.Fields.Type.Name == "Epic" {
+		childURL := fmt.Sprintf("%s/rest/api/2/search", j.cfg.String("jira.base_url"))
+		childQuery := fmt.Sprintf(`"Epic Link" = %s`, issueKey)
+		requestBody := struct {
+			JQL        string   `json:"jql"`
+			MaxResults int      `json:"maxResults"`
+			StartAt    int      `json:"startAt"`
+			Fields     []string `json:"fields"`
+		}{
+			JQL:        childQuery,
+			MaxResults: 100,
+			StartAt:    0,
+			Fields:     []string{"id", "key", "summary", "status", "issuetype"},
+		}
+
+		bodyBytes, err := json.Marshal(requestBody)
+		if err != nil {
+			return "", fmt.Errorf("jira_task_get: failed to marshal children request body: %w", err)
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, childURL, strings.NewReader(string(bodyBytes)))
+		if err != nil {
+			return "", fmt.Errorf("jira_task_get: failed to create children request: %w", err)
+		}
+
+		req.Header.Set("Authorization", "Bearer "+j.cfg.String("jira.api_key"))
+		req.Header.Set("Content-Type", "application/json")
+
+		resp, err := client.Do(req)
+		if err == nil {
+			defer resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				contentType := resp.Header.Get("Content-Type")
+				utf8, err := charset.NewReader(resp.Body, contentType)
+				if err == nil {
+					childBody, err := io.ReadAll(utf8)
+					if err == nil {
+						var childResult struct {
+							Issues []struct {
+								Key    string `json:"key"`
+								ID     string `json:"id"`
+								Self   string `json:"self"`
+								Fields struct {
+									Summary string `json:"summary"`
+									Status  struct {
+										Name string `json:"name"`
+									} `json:"status"`
+									Type struct {
+										Name string `json:"name"`
+									} `json:"issuetype"`
+								} `json:"fields"`
+							} `json:"issues"`
+						}
+						if err := json.Unmarshal(childBody, &childResult); err == nil {
+							children = childResult.Issues
+						}
+					}
+				}
+			}
+		}
 	}
 
 	var sb strings.Builder
@@ -138,6 +219,28 @@ func (j *JiraTools) FetchIssue(issueKey string) (string, error) {
 	sb.WriteString(result.Fields.Updated)
 	sb.WriteString("\nDescription:\n")
 	sb.WriteString(result.Fields.Description)
+
+	if len(result.Fields.Labels) > 0 {
+		sb.WriteString("\nLabels: ")
+		for i, label := range result.Fields.Labels {
+			if i > 0 {
+				sb.WriteString(", ")
+			}
+			sb.WriteString(label)
+		}
+	}
+
+	if len(result.Fields.Parent.Key) > 0 {
+		sb.WriteString("\nParent: ")
+		sb.WriteString(result.Fields.Parent.Key)
+	}
+
+	if len(children) > 0 {
+		sb.WriteString(fmt.Sprintf("\n\nChildren (%d):\n", len(children)))
+		for i, child := range children {
+			sb.WriteString(fmt.Sprintf("%d. [%s] %s (%s)\n", i+1, child.Key, child.Fields.Summary, child.Fields.Status.Name))
+		}
+	}
 
 	if len(result.Fields.Comment.Comments) > 0 {
 		sb.WriteString("\n\nComments:\n")
@@ -391,8 +494,8 @@ func StaticDefinitionSearch() openai.Tool {
 						"description": "Maximum number of results to return (default: 100)",
 					},
 				},
-		"required": []string{"jql"},
-	},
-},
+				"required": []string{"jql"},
+			},
+		},
 	}
 }
