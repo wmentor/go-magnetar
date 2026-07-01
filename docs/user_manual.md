@@ -192,17 +192,39 @@ Use **↑/↓** arrows to navigate through previously entered commands. History 
 
 ### Chat tools
 
-| Tool | Description |
+| Tool | Signature | Description |
+|---|---|---|
+| `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem |
+| `file_list` | `(options: object) -> []string` | Recursively lists files in the current directory |
+| `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem |
+| `system_exec` | `(command: string, args: []string) -> string` | Executes a system command with arguments; in read-only mode, only commands from the allowed list are permitted |
+| `system_date` | `() -> string` | Executes the date command to get the current system time |
+| `system_grep` | `(filename: string, pattern: string, case_insensitive: bool, recursive: bool) -> string` | Executes system grep command with safe parameters |
+| `rag_search` | `(query: string) -> string` | Returns relevant fragments from indexed data |
+| `web_fetch` | `(url: string) -> string` | Fetches web pages (fallback if RAG returns no results); also fetches Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories when URL matches |
+| `ask` | `(question: string) -> string` | Asks the user a clarifying question and returns the answer |
+| `search_replace` | `(filename: string, operations: array) -> string` | Applies regex-based search-and-replace operations to a file; supports optional context constraints and file length limits |
+
+#### Search replace functionality
+
+The `search_replace` tool allows for regex-based search-and-replace operations on files:
+
+| Parameter | Description |
 |---|---|
-| `file_read` | Reads file contents from the filesystem |
-| `file_list` | Recursively lists files in the current directory |
-| `file_write` | Writes content to a file in the filesystem |
-| `system_exec` | Executes a system command with arguments; in read-only mode, only commands from the allowed list are permitted |
-| `system_date` | Executes the date command to get the current system time |
-| `system_grep` | Executes system grep command with safe parameters |
-| `rag_search` | Returns relevant fragments from indexed data |
-| `web_fetch` | Fetches web pages (fallback if RAG returns no results); also fetches Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories when URL matches |
-| `ask` | Asks the user a clarifying question and returns the answer |
+| `filename` | Path to the file to modify |
+| `operations` | Array of search-and-replace operations |
+
+Each operation can contain the following fields:
+
+| Field | Type | Description |
+|---|---|---|
+| `search` | string | Regex pattern to search for (required) |
+| `replace` | string | Replacement string (supports $1, $2, etc.) (required) |
+| `before` | string | Optional context before the match (plain text, not regex) |
+| `after` | string | Optional context after the match (plain text, not regex) |
+| `max_len` | integer | Maximum file length allowed for this operation (0 = unlimited) |
+
+The tool validates regex patterns, checks context constraints, verifies file size limits, and applies all successful operations sequentially. It returns success status, modified content, and a list of any errors encountered.
 
 ### Search tool call limit
 

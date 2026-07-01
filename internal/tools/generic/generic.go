@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
@@ -283,6 +284,60 @@ func (g *GenericTools) SystemGrep(filename string, pattern string, caseInsensiti
 	}
 
 	return string(output)
+}
+
+// SearchReplaceOp defines a single search-and-replace operation
+type SearchReplaceOp struct {
+	Search  string // regex pattern to search for
+	Replace string // replacement string (supports $1, $2, etc.)
+	Before  string // optional prefix context (must appear before match)
+	After   string // optional suffix context (must appear after match)
+	MaxLen  int    // maximum allowed file length for this operation (0 = no limit)
+}
+
+// SearchReplace applies search-and-replace operations to a file.
+// Returns (success, result, errors)
+// result — modified content, errors — list of failure messages
+func (g *GenericTools) SearchReplace(filename string, ops []SearchReplaceOp) (bool, string, []error) {
+	content, ok := g.FileRead(filename, 0, 0)
+	if !ok {
+		return false, "", []error{fmt.Errorf("failed to read file")}
+	}
+
+	modified := content
+	var errs []error
+
+	for i, op := range ops {
+		re, err := regexp.Compile(op.Search)
+		if err != nil {
+			errs = append(errs, fmt.Errorf("pattern %d: %w", i+1, err))
+			continue
+		}
+
+		// Check context if specified
+		matches := re.FindAllStringSubmatch(modified, -1)
+		if len(matches) == 0 {
+			errs = append(errs, fmt.Errorf("no matches for pattern %d", i+1))
+			continue
+		}
+
+		// Validate size before modification
+		if op.MaxLen > 0 && len(modified) > op.MaxLen {
+			errs = append(errs, fmt.Errorf("file too large for pattern %d", i+1))
+			continue
+		}
+
+		// Apply replacement
+		newContent := re.ReplaceAllString(modified, op.Replace)
+		if newContent == modified {
+			errs = append(errs, fmt.Errorf("pattern %d: no actual replacement happened", i+1))
+			continue
+		}
+
+		modified = newContent
+	}
+
+	return len(errs) == 0, modified, errs
 }
 
 // DefinitionFileRead returns the OpenAI tool schema for file_read.
@@ -576,6 +631,29 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 		}
 		return g.SystemGrep(params.Filename, params.Pattern, params.CaseInsensitive, params.Recursive)
 
+	case "search_replace":
+		var params struct {
+			Filename string            `json:"filename"`
+			Ops      []SearchReplaceOp `json:"operations"`
+		}
+		if err := json.Unmarshal([]byte(args), &params); err != nil {
+			printer.Error("search_replace: failed to parse args", "args", args, "err", err)
+			return "error: failed to parse arguments"
+		}
+		ok, result, errs := g.SearchReplace(params.Filename, params.Ops)
+		if !ok {
+			var msg strings.Builder
+			msg.WriteString("search_replace failed:\n")
+			for _, err := range errs {
+				msg.WriteString("- " + err.Error() + "\n")
+			}
+			return msg.String()
+		}
+		if ok := g.FileWrite(params.Filename, result); !ok {
+			return "error: failed to write file"
+		}
+		return fmt.Sprintf("Successfully applied %d replacements", len(params.Ops))
+
 	default:
 		return "error: unknown tool " + name
 	}
@@ -725,6 +803,105 @@ func StaticDefinitionSystemGrep() openai.Tool {
 					},
 				},
 				"required": []string{"filename", "pattern"},
+			},
+		},
+	}
+}
+
+// DefinitionSearchReplace returns the OpenAI tool schema for search_replace.
+func (g *GenericTools) DefinitionSearchReplace() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "search_replace",
+			Description: "Search and replace text in a file using regex patterns with optional context constraints",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"filename": map[string]any{
+						"type":        "string",
+						"description": "Path to the file to modify",
+					},
+					"operations": map[string]any{
+						"type": "array",
+						"items": map[string]any{
+							"type": "object",
+							"properties": map[string]any{
+								"search": map[string]any{
+									"type":        "string",
+									"description": "Regex pattern to search for",
+								},
+								"replace": map[string]any{
+									"type":        "string",
+									"description": "Replacement string (supports $1, $2, etc.)",
+								},
+								"before": map[string]any{
+									"type":        "string",
+									"description": "Optional context before the match (plain text, not regex)",
+								},
+								"after": map[string]any{
+									"type":        "string",
+									"description": "Optional context after the match (plain text, not regex)",
+								},
+								"max_len": map[string]any{
+									"type":        "integer",
+									"description": "Maximum file length allowed for this operation (0 = unlimited)",
+								},
+							},
+							"required": []string{"search", "replace"},
+						},
+					},
+				},
+				"required": []string{"filename", "operations"},
+			},
+		},
+	}
+}
+
+func StaticDefinitionSearchReplace() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "search_replace",
+			Description: "Search and replace text in a file using regex patterns with optional context constraints",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"filename": map[string]any{
+						"type":        "string",
+						"description": "Path to the file to modify",
+					},
+					"operations": map[string]any{
+						"type": "array",
+						"items": map[string]any{
+							"type": "object",
+							"properties": map[string]any{
+								"search": map[string]any{
+									"type":        "string",
+									"description": "Regex pattern to search for",
+								},
+								"replace": map[string]any{
+									"type":        "string",
+									"description": "Replacement string (supports $1, $2, etc.)",
+								},
+								"before": map[string]any{
+									"type":        "string",
+									"description": "Optional context before the match (plain text, not regex)",
+								},
+								"after": map[string]any{
+									"type":        "string",
+									"description": "Optional context after the match (plain text, not regex)",
+								},
+								"max_len": map[string]any{
+									"type":        "integer",
+									"description": "Maximum file length allowed for this operation (0 = unlimited)",
+								},
+							},
+							"required": []string{"search", "replace"},
+						},
+					},
+				},
+				"required": []string{"filename", "operations"},
 			},
 		},
 	}

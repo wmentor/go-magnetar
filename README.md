@@ -290,7 +290,7 @@ internal/
   tools/
     rag/rag.go                   —     rag_save and rag_search tools — removed rag_save from dispatch
     web/fetch.go                 — web_fetch tool (HTML preprocessing, URL fetching)
-    generic/generic.go           — file_read, file_list, file_write, file_exists, system_grep tools
+    generic/generic.go           — file_read, file_list, file_write, file_exists, system_grep, search_replace tools
   agent/
     indexer/indexer.go           — indexer agent (used by /index command)
     chat/agent.go                — chat agent, REPL, tool-use loop
@@ -323,7 +323,7 @@ cmd.Execute()
 | `ask` | LLM tool | `ask` tool — allows the agent to ask clarifying questions to the user |
 | `rag` | LLM tool | `rag_search` tool — searches the knowledge base for relevant information |
 | `web` | LLM tool | `web_fetch` tool — fetches and cleans web pages, Confluence pages, JIRA issues, and GitLab merge requests |
-| `generic` | LLM tools | `file_read`, `file_list`, `file_write`, `file_exists`, `system_grep` tools |
+| `generic` | LLM tools | `file_read`, `file_list`, `file_write`, `file_exists`, `system_grep`, `search_replace` tools |
 | `indexcmd` | Chat command | `/index` command for document indexing |
 | `chatcmd/help` | Chat command | `/help` command |
 | `chatcmd/exit` | Chat command | `/exit` command |
