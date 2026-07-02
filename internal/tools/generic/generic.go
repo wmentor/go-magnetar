@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"slices"
 	"strings"
 
@@ -203,14 +202,36 @@ var allowedCommands = []CmdRecord{
 	{Command: []string{"git", "show"}, ReadOnly: true},
 	{Command: []string{"git", "log"}, ReadOnly: true},
 	{Command: []string{"git", "status"}, ReadOnly: true},
+	{Command: []string{"git", "checkout"}, ReadOnly: false},
 	{Command: []string{"go", "build"}, ReadOnly: false},
 	{Command: []string{"go", "fix"}, ReadOnly: false},
 	{Command: []string{"go", "get"}, ReadOnly: false},
 	{Command: []string{"go", "mod"}, ReadOnly: false},
 	{Command: []string{"go", "run"}, ReadOnly: false},
 	{Command: []string{"go", "test"}, ReadOnly: true},
+	{Command: []string{"go", "version"}, ReadOnly: true},
 	{Command: []string{"mkdir"}, ReadOnly: false},
 	{Command: []string{"uuidgen"}, ReadOnly: true},
+	{Command: []string{"curl"}, ReadOnly: true},
+	{Command: []string{"wget"}, ReadOnly: true},
+	{Command: []string{"ping"}, ReadOnly: true},
+	{Command: []string{"cat"}, ReadOnly: true},
+	{Command: []string{"echo"}, ReadOnly: true},
+	{Command: []string{"sort"}, ReadOnly: true},
+	{Command: []string{"uniq"}, ReadOnly: true},
+	{Command: []string{"sed"}, ReadOnly: true},
+	{Command: []string{"awk"}, ReadOnly: true},
+	{Command: []string{"jq"}, ReadOnly: true},
+	{Command: []string{"yq"}, ReadOnly: true},
+	{Command: []string{"make"}, ReadOnly: false},
+	{Command: []string{"npm"}, ReadOnly: false},
+	{Command: []string{"yarn"}, ReadOnly: false},
+	{Command: []string{"pnpm"}, ReadOnly: false},
+	{Command: []string{"cargo"}, ReadOnly: false},
+	{Command: []string{"python"}, ReadOnly: false},
+	{Command: []string{"python3"}, ReadOnly: false},
+	{Command: []string{"pip"}, ReadOnly: false},
+	{Command: []string{"pip3"}, ReadOnly: false},
 }
 
 // isCommandAllowed checks if a command is allowed in the current mode.
@@ -285,8 +306,6 @@ func (g *GenericTools) SystemGrep(filename string, pattern string, caseInsensiti
 
 	return string(output)
 }
-
-
 
 // SearchReplace applies search-and-replace operations to a file.
 // DefinitionFileRead returns the OpenAI tool schema for file_read.
