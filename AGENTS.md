@@ -220,8 +220,8 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 |---|---|---|
 | `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem; `limit` and `offset` specify line range (0 = read all) |
 | `file_list` | `(options: object) -> []string` | Recursively lists files in the current directory |
-| `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem |
-| `exec` | `(command: string, stdin: string) -> string` | Executes a shell command via `sh -c` with clean environment and current working directory |
+| `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem (blocked in read-only mode) |
+| `exec` | `(command: string, stdin: string) -> string` | Executes a shell command via `sh -c` with clean environment, current working directory, and built-in safety guard |
 | `system_date` | `() -> string` | Executes the date command to get the current system time |
 | `system_grep` | `(filename: string, pattern: string, case_insensitive: bool, recursive: bool) -> string` | Executes system grep command with safe parameters: -n (always), -i/-r (optional) |
 | `rag_search` | `(query: string) -> string` | Returns top-N relevant fragments from Qdrant (N is set by `rag.search.limit`) |
@@ -232,11 +232,23 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 
 ## Security restrictions
 
-The following commands are automatically blocked by the `exec` tool:
+### Command safety guard
 
-- **Destructive commands**: `rm -rf /`, `sudo`, `mkfs`, `dd` with `/dev/`
-- **Untrusted script execution**: `curl ... | bash`, `wget ... | sh`, `zsh`
-- **Git modifications**: `git commit`, `git push`, `git rebase`, `git pull`, `git cherry-pick`, `git reset`, `git stash`, `git clean`, `git reflog`
+All commands executed via the `exec` tool are analyzed by a built-in security guard before execution. The guard uses an LLM to evaluate whether a command is safe based on several criteria:
+
+- **Destructive commands**: `rm -rf /`, `sudo`, `mkfs`, `dd` with `/dev/`, `chmod 777`
+- **Shell pipes**: `| bash`, `| sh`, `| zsh`
+- **Git modifications**: `git commit`, `push`, `rebase`, `pull`, `cherry-pick`, `reset`, `stash`, `clean`, `reflog`
+- **Untrusted script execution**: `curl ... | bash`, `wget ... | sh`
+
+When the system is in read-only mode, **NO modification operations are allowed** — all such commands are automatically rejected.
+
+### Read-only mode
+
+The read-only mode can be toggled via the `/readonly` chat command. In this mode:
+- File writes (`file_write`) are blocked
+- Command execution that modifies files or system state is blocked
+- Only read-only operations are permitted
 
 No output is ever displayed from blocked commands — they return an error message instead.
 
@@ -519,3 +531,28 @@ printer.ToolCall(printer.IconError, "rag_save failed", "id", id, "err", err)
 | `github.com/google/uuid` | UUID v5 for deterministic chunk IDs |
 | `github.com/knadh/koanf/v2` | YAML config loading |
 | `github.com/charmbracelet/glamour` | Markdown rendering in terminal |
+| `log/slog` | Structured logging (stdlib, replaced by internal/printer) |
+
+## Security restrictions
+
+### Command safety guard
+
+All commands executed via the `exec` tool are analyzed by a built-in security guard before execution. The guard uses an LLM to evaluate whether a command is safe based on several criteria:
+
+- **Destructive commands**: `rm -rf /`, `sudo`, `mkfs`, `dd` with `/dev/`, `chmod 777`
+- **Shell pipes**: `| bash`, `| sh`, `| zsh`
+- **Git modifications**: `git commit`, `push`, `rebase`, `pull`, `cherry-pick`, `reset`, `stash`, `clean`, `reflog`
+- **Untrusted script execution**: `curl ... | bash`, `wget ... | sh`
+
+When the system is in read-only mode, **NO modification operations are allowed** — all such commands are automatically rejected.
+
+### Read-only mode
+
+The read-only mode can be toggled via the `/readonly` chat command. In this mode:
+- File writes (`file_write`) are blocked
+- Command execution that modifies files or system state is blocked
+- Only read-only operations are permitted
+
+No output is ever displayed from blocked commands — they return an error message instead.
+
+## Dependencies

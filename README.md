@@ -290,7 +290,9 @@ internal/
   tools/
     rag/rag.go                   —     rag_save and rag_search tools — removed rag_save from dispatch
     web/fetch.go                 — web_fetch tool (HTML preprocessing, URL fetching)
-    generic/generic.go           — file_read, file_list, file_write, file_exists, system_grep, tools
+    generic/generic.go           — file_read, file_list, file_write, file_exists, system_grep, exec with guard
+    agent/
+      guard/agent.go             — security guard for exec commands
   agent/
     indexer/indexer.go           — indexer agent (used by /index command)
     chat/agent.go                — chat agent, REPL, tool-use loop
@@ -334,6 +336,7 @@ cmd.Execute()
 | `chatcmd/write` | Chat command | `/write` command |
 | `chatcmd/version` | Chat command | `/version` command |
 | `chatcmd/readonly` | Chat command | `/readonly` command |
+| `guard` | LLM tool | Security guard for exec commands — analyzes shell commands before execution |
 | `jira` | LLM tool | `jira_task_get` tool — fetches JIRA issues by issue key |
 
 ### Indexing flow
@@ -424,6 +427,28 @@ Set `verbose: true` in the config for verbose output.
 | [`github.com/knadh/koanf/v2`](https://github.com/knadh/koanf) | YAML config loading |
 | [`github.com/charmbracelet/glamour`](https://github.com/charmbracelet/glamour) | Markdown rendering in terminal |
 | `log/slog` | Structured logging (stdlib, replaced by internal/printer) |
+
+## Security restrictions
+
+### Command safety guard
+
+All commands executed via the `exec` tool are analyzed by a built-in security guard before execution. The guard uses an LLM to evaluate whether a command is safe based on several criteria:
+
+- **Destructive commands**: `rm -rf /`, `sudo`, `mkfs`, `dd` with `/dev/`, `chmod 777`
+- **Shell pipes**: `| bash`, `| sh`, `| zsh`
+- **Git modifications**: `git commit`, `push`, `rebase`, `pull`, `cherry-pick`, `reset`, `stash`, `clean`, `reflog`
+- **Untrusted script execution**: `curl ... | bash`, `wget ... | sh`
+
+When the system is in read-only mode, **NO modification operations are allowed** — all such commands are automatically rejected.
+
+### Read-only mode
+
+The read-only mode can be toggled via the `/readonly` chat command. In this mode:
+- File writes (`file_write`) are blocked
+- Command execution that modifies files or system state is blocked
+- Only read-only operations are permitted
+
+No output is ever displayed from blocked commands — they return an error message instead.
 
 ## License
 

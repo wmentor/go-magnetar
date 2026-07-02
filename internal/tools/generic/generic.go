@@ -15,6 +15,7 @@ import (
 
 	"github.com/sashabaranov/go-openai"
 
+	"github.com/wmentor/go-magnetar/internal/agent/guard"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
@@ -42,13 +43,15 @@ type fixedSizeWriter struct {
 }
 
 func newFixedSizeWriter(limit int) *fixedSizeWriter {
-	return &fixedSizeWriter{limit: limit}
+	return &fixedSizeWriter{limit: limit, data: make([]byte, limit)}
 }
 
-func (w *fixedSizeWriter) Write(p []byte) (n int, err error) {
+func (w *fixedSizeWriter) Write(p []byte) (int, error) {
 	if w.full {
 		return len(p), nil
 	}
+
+	ret := len(p)
 
 	remain := w.limit - w.written
 	if len(p) > remain {
@@ -56,9 +59,9 @@ func (w *fixedSizeWriter) Write(p []byte) (n int, err error) {
 		w.full = true
 	}
 
-	n = copy(w.data[w.written:], p)
+	n := copy(w.data[w.written:], p)
 	w.written += n
-	return n, nil
+	return ret, nil
 }
 
 func (w *fixedSizeWriter) String() string {
@@ -89,11 +92,17 @@ type GenericTools struct {
 	cfg   *config.Config
 	root  *os.Root
 	state *plugin.State
+	guard *guard.Guard
 }
 
 // New creates a new GenericTools instance.
 func New(cfg *config.Config, root *os.Root, state *plugin.State) *GenericTools {
-	return &GenericTools{cfg: cfg, root: root, state: state}
+	return &GenericTools{
+		cfg:   cfg,
+		root:  root,
+		state: state,
+		guard: guard.New(cfg),
+	}
 }
 
 // Root returns the sandboxed filesystem root used by this instance.
@@ -104,6 +113,8 @@ func (g *GenericTools) Root() *os.Root {
 // FileRead reads a file and returns its content and a success flag.
 // If limit > 0, reads at most limit lines starting from offset line.
 func (g *GenericTools) FileRead(filename string, limit int, offset int) (string, bool) {
+	printer.ToolCall(printer.IconTool, "file_read", "filename", filename)
+
 	if limit <= 0 && offset <= 0 {
 		data, err := g.root.ReadFile(filename)
 		if err != nil {
@@ -149,8 +160,9 @@ func (g *GenericTools) FileRead(filename string, limit int, offset int) (string,
 // FileWrite writes content to a file and returns a success flag.
 // Returns false if read-only mode is enabled.
 func (g *GenericTools) FileWrite(filename string, content string) bool {
+	printer.ToolCall(printer.IconSave, "file_write: file written successfully", "file", filename)
 	if g.state.ReadOnly {
-		printer.Info("file_write: blocked by read-only mode", "file", filename)
+		printer.Error("file_write: blocked by read-only mode", "file", filename)
 		return false
 	}
 	err := g.root.WriteFile(filename, []byte(content), 0644)
@@ -158,7 +170,6 @@ func (g *GenericTools) FileWrite(filename string, content string) bool {
 		printer.Error("file_write: failed to write file", "file", filename, "err", err)
 		return false
 	}
-	printer.Info("file_write: file written successfully", "file", filename)
 	return true
 }
 
@@ -253,6 +264,16 @@ func (g *GenericTools) Exec(command string, stdin string) string {
 		return "error: dangerous command blocked"
 	}
 
+	allowed, reason, err := g.guard.CheckSecurity(command, g.state.ReadOnly)
+	if err != nil {
+		printer.Print(printer.IconBlocked, "exec: security check failed", "command", command, "err", err)
+		return fmt.Sprintf("error: security check failed: %v", err)
+	}
+	if !allowed {
+		printer.Print(printer.IconBlocked, "exec: security blocked", "command", command, "reason", reason)
+		return "error: security check failed: " + reason
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), execTimeout)
 	defer cancel()
 
@@ -267,9 +288,9 @@ func (g *GenericTools) Exec(command string, stdin string) string {
 	cmd.Stdout = w
 	cmd.Stderr = w
 
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
-		printer.Error("exec: command failed", "command", command, "err", err)
+		printer.Error("exec: command failed", "command", command, "error", err)
 		if w.Truncated() {
 			return fmt.Sprintf("error: %v\n(output truncated to %d bytes)", err, execOutputMaxSize)
 		}
@@ -300,6 +321,8 @@ func (g *GenericTools) SystemDate() string {
 // SystemGrep executes the system grep command with a limited set of safe arguments:
 // pattern (required), -i (case-insensitive), -r (recursive), and always adds -n (line numbers).
 func (g *GenericTools) SystemGrep(filename string, pattern string, caseInsensitive bool, recursive bool) string {
+	printer.ToolCall(printer.IconTool, "system_grep", "pattern", pattern)
+
 	cmd := []string{"grep", "-n"}
 
 	if caseInsensitive {
@@ -311,7 +334,6 @@ func (g *GenericTools) SystemGrep(filename string, pattern string, caseInsensiti
 	}
 
 	cmd = append(cmd, "-E", pattern, filename)
-	fmt.Println(pattern)
 
 	output, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 	if err != nil {

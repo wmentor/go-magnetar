@@ -15,6 +15,7 @@ const (
 	IconDone    = Icon("💫")
 	IconError   = Icon("❌")
 	IconFile    = Icon("📄")
+	IconGuard   = Icon("🔒")
 	IconIam     = Icon("👨")
 	IconModule  = Icon("🛰️")
 	IconRobot   = Icon("🤖")

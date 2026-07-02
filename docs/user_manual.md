@@ -203,40 +203,23 @@ Use **↑/↓** arrows to navigate through previously entered commands. History 
 | `rag_search` | `(query: string) -> string` | Returns relevant fragments from indexed data |
 | `web_fetch` | `(url: string) -> string` | Fetches web pages (fallback if RAG returns no results); also fetches Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories when URL matches |
 | `ask` | `(question: string) -> string` | Asks the user a clarifying question and returns the answer |
-| | `(filename: string, operations: array) -> string` | Applies regex-based search-and-replace operations to a file; supports optional context constraints and file length limits |
 
-## Security restrictions
+### Security restrictions
 
-The following commands are automatically blocked by the `exec` tool:
+The `exec` tool includes a built-in security guard that analyzes all commands before execution using an LLM.
 
-- **Destructive commands**: `rm -rf /`, `sudo`, `mkfs`, `dd` with `/dev/`
-- **Untrusted script execution**: `curl ... | bash`, `wget ... | sh`, `zsh`
+**Blocked operations:**
+- **Destructive commands**: `rm -rf /`, `sudo`, `mkfs`, `dd` with `/dev/`, `chmod 777`
+- **Shell pipes**: `| bash`, `| sh`, `| zsh`
 - **Git modifications**: `git commit`, `git push`, `git rebase`, `git pull`, `git cherry-pick`, `git reset`, `git stash`, `git clean`, `git reflog`
+- **Untrusted script execution**: `curl ... | bash`, `wget ... | sh`
+
+**Read-only mode:**
+When the system is in read-only mode (toggled via `/readonly`), NO operations are allowed that modify files, directories, or system state. All modification attempts must be rejected immediately.
 
 No output is ever displayed from blocked commands — they return an error message instead.
 
-#### Search replace functionality
-
-The tool allows for regex-based search-and-replace operations on files:
-
-| Parameter | Description |
-|---|---|
-| `filename` | Path to the file to modify |
-| `operations` | Array of search-and-replace operations |
-
-Each operation can contain the following fields:
-
-| Field | Type | Description |
-|---|---|---|
-| `search` | string | Regex pattern to search for (required) |
-| `replace` | string | Replacement string (supports $1, $2, etc.) (required) |
-| `before` | string | Optional context before the match (plain text, not regex) |
-| `after` | string | Optional context after the match (plain text, not regex) |
-| `max_len` | integer | Maximum file length allowed for this operation (0 = unlimited) |
-
-The tool validates regex patterns, checks context constraints, verifies file size limits, and applies all successful operations sequentially. It returns success status, modified content, and a list of any errors encountered.
-
-### Search tool call limit
+## Search tool call limit
 
 To prevent infinite loops, each user request is limited to a maximum number of search-related tool calls (`rag_search` + `web_fetch`). By default, the limit is 10 calls per request. When the limit is exceeded, an error message is sent to the LLM and no more search tools are invoked for that request.
 
@@ -321,6 +304,28 @@ To disable the new features (single-query, no dedup):
 
 Set `verbose: true` in the config for verbose output.
 
-## License
+## Security restrictions
+
+### Command safety guard
+
+All commands executed via the `exec` tool are analyzed by a built-in security guard before execution. The guard uses an LLM to evaluate whether a command is safe based on several criteria:
+
+- **Destructive commands**: `rm -rf /`, `sudo`, `mkfs`, `dd` with `/dev/`, `chmod 777`
+- **Shell pipes**: `| bash`, `| sh`, `| zsh`
+- **Git modifications**: `git commit`, `push`, `rebase`, `pull`, `cherry-pick`, `reset`, `stash`, `clean`, `reflog`
+- **Untrusted script execution**: `curl ... | bash`, `wget ... | sh`
+
+When the system is in read-only mode, **NO modification operations are allowed** — all such commands are automatically rejected.
+
+### Read-only mode
+
+The read-only mode can be toggled via the `/readonly` chat command. In this mode:
+- File writes (`file_write`) are blocked
+- Command execution that modifies files or system state is blocked
+- Only read-only operations are permitted
+
+No output is ever displayed from blocked commands — they return an error message instead.
+
+## Dependencies
 
 See [LICENSE](../LICENSE).
