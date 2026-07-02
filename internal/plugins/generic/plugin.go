@@ -73,12 +73,6 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 			},
 		})
 	}
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: generic.StaticDefinitionSearchReplace,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return p.get().Dispatch("search_replace", args), nil
-		},
-	})
 	return nil
 }
 

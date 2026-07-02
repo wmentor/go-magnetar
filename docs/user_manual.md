@@ -203,11 +203,11 @@ Use **↑/↓** arrows to navigate through previously entered commands. History 
 | `rag_search` | `(query: string) -> string` | Returns relevant fragments from indexed data |
 | `web_fetch` | `(url: string) -> string` | Fetches web pages (fallback if RAG returns no results); also fetches Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories when URL matches |
 | `ask` | `(question: string) -> string` | Asks the user a clarifying question and returns the answer |
-| `search_replace` | `(filename: string, operations: array) -> string` | Applies regex-based search-and-replace operations to a file; supports optional context constraints and file length limits |
+| | `(filename: string, operations: array) -> string` | Applies regex-based search-and-replace operations to a file; supports optional context constraints and file length limits |
 
 #### Search replace functionality
 
-The `search_replace` tool allows for regex-based search-and-replace operations on files:
+The tool allows for regex-based search-and-replace operations on files:
 
 | Parameter | Description |
 |---|---|

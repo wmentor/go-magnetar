@@ -229,28 +229,6 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 | `github_repo` | `(repo: string) -> string` | Fetches GitHub repository information and returns its details in Markdown format |
 | `github_file` | `(repo: string, branch: string, file: string) -> string` | Fetches a file from GitHub repository and returns its content |
 | `github_tree` | `(repo: string, branch: string, path: string) -> string` | Lists repository contents at root or specified path |
-| `search_replace` | `(filename: string, operations: array) -> string` | Applies regex-based search-and-replace operations to a file; supports optional context constraints and file length limits |
-
-#### Search replace functionality
-
-The `search_replace` tool allows for regex-based search-and-replace operations on files:
-
-| Parameter | Description |
-|---|---|
-| `filename` | Path to the file to modify |
-| `operations` | Array of search-and-replace operations |
-
-Each operation can contain the following fields:
-
-| Field | Type | Description |
-|---|---|---|
-| `search` | string | Regex pattern to search for (required) |
-| `replace` | string | Replacement string (supports $1, $2, etc.) (required) |
-| `before` | string | Optional context before the match (plain text, not regex) |
-| `after` | string | Optional context after the match (plain text, not regex) |
-| `max_len` | integer | Maximum file length allowed for this operation (0 = unlimited) |
-
-The tool validates regex patterns, checks context constraints, verifies file size limits, and applies all successful operations sequentially. It returns success status, modified content, and a list of any errors encountered.
 
 ## Indexer (via `/index` command)
 
@@ -327,7 +305,7 @@ internal/
   plugins/
     rag/plugin.go                — rag_search LLM tool (init → Register)
     web/plugin.go                — web_fetch LLM tool (init → Register)
-    generic/plugin.go            — file_read/list/write/exists/system_grep/search_replace LLM tools (init → Register)
+    generic/plugin.go            — file_read/list/write/exists/system_grep/LLM tools (init → Register)
      indexcmd/plugin.go           — /index chat command plugin
     chatcmd/
       help/plugin.go             — /help  (assembles output from plugin.ChatCommands())
@@ -345,7 +323,7 @@ internal/
   tools/
     rag/rag.go                   —     rag_save and rag_search tools — removed rag_save from dispatch
     web/fetch.go                 — web_fetch tool; HTML fetching and cleaning
-    generic/generic.go           — file_read, file_list, file_write, file_exists, system_grep, search_replace tools
+    generic/generic.go           — file_read, file_list, file_write, file_exists, system_grep, tools
   agent/
     indexer/indexer.go           — indexer agent (used by /index command)
     chat/agent.go                — chat agent, REPL, tool-use loop, agentHandle adapter
@@ -442,7 +420,6 @@ When both `limit` and `offset` are `0`, the entire file is read using the optimi
 
 ## Search replace functionality (`internal/tools/generic`)
 
-The `search_replace` tool allows for regex-based search-and-replace operations on files.
 
 | Parameter | Default | Description |
 |---|---|---|
