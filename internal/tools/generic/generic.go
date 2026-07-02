@@ -232,6 +232,15 @@ var allowedCommands = []CmdRecord{
 	{Command: []string{"python3"}, ReadOnly: false},
 	{Command: []string{"pip"}, ReadOnly: false},
 	{Command: []string{"pip3"}, ReadOnly: false},
+	{Command: []string{"make"}, ReadOnly: false},
+	{Command: []string{"npm"}, ReadOnly: false},
+	{Command: []string{"yarn"}, ReadOnly: false},
+	{Command: []string{"pnpm"}, ReadOnly: false},
+	{Command: []string{"cargo"}, ReadOnly: false},
+	{Command: []string{"python"}, ReadOnly: false},
+	{Command: []string{"python3"}, ReadOnly: false},
+	{Command: []string{"pip"}, ReadOnly: false},
+	{Command: []string{"pip3"}, ReadOnly: false},
 }
 
 // isCommandAllowed checks if a command is allowed in the current mode.
