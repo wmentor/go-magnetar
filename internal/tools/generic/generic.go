@@ -2,14 +2,16 @@ package generic
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/fs"
 	"os"
 	"os/exec"
 	"path/filepath"
-	"slices"
+	"regexp"
 	"strings"
+	"time"
 
 	"github.com/sashabaranov/go-openai"
 
@@ -17,6 +19,64 @@ import (
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 )
+
+const execTimeout = 1 * time.Minute
+const execOutputMaxSize = 64 * 1024
+
+var blockList = []*regexp.Regexp{
+	regexp.MustCompile(`(?i)^\s*rm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+)*(/\s*$|/\s+)`),
+	regexp.MustCompile(`(?i)\|\s*bash\b`),
+	regexp.MustCompile(`(?i)\|\s*sh\b`),
+	regexp.MustCompile(`(?i)\|\s*zsh\b`),
+	regexp.MustCompile(`(?i)^\s*sudo\b`),
+	regexp.MustCompile(`(?i)^\s*mkfs\b`),
+	regexp.MustCompile(`(?i)^\s*dd\s+.*of=/dev/`),
+	regexp.MustCompile(`(?i)^\s*git\s+(commit|push|rebase|pull|cherry-pick|amend|reset|stash|clean|reflog)`),
+}
+
+type fixedSizeWriter struct {
+	data    []byte
+	written int
+	limit   int
+	full    bool
+}
+
+func newFixedSizeWriter(limit int) *fixedSizeWriter {
+	return &fixedSizeWriter{limit: limit}
+}
+
+func (w *fixedSizeWriter) Write(p []byte) (n int, err error) {
+	if w.full {
+		return len(p), nil
+	}
+
+	remain := w.limit - w.written
+	if len(p) > remain {
+		p = p[:remain]
+		w.full = true
+	}
+
+	n = copy(w.data[w.written:], p)
+	w.written += n
+	return n, nil
+}
+
+func (w *fixedSizeWriter) String() string {
+	return string(w.data[:w.written])
+}
+
+func (w *fixedSizeWriter) Truncated() bool {
+	return w.full
+}
+
+func (g *GenericTools) isCommandBlocked(command string) bool {
+	for _, re := range blockList {
+		if re.MatchString(command) {
+			return true
+		}
+	}
+	return false
+}
 
 // FileListOptions defines optional filters for listing files.
 type FileListOptions struct {
@@ -182,100 +242,46 @@ func (g *GenericTools) FileList(opts *FileListOptions) []string {
 	return results
 }
 
-// CmdRecord defines a command that can be used in specific modes.
-type CmdRecord struct {
-	Command  []string // Command name and optional subcommand(s)
-	ReadOnly bool     // If true, command is allowed in read-only mode
-}
+// Exec executes a shell command via "sh -c".
+// The command is executed with a clean environment and the current working directory.
+// Stdin can be provided via the stdin parameter.
+func (g *GenericTools) Exec(command string, stdin string) string {
+	printer.ToolCall(printer.IconTool, "exec", "command", command)
 
-// allowedCommands holds the list of commands with mode restrictions.
-// Each record specifies whether the command is allowed in read-only mode.
-var allowedCommands = []CmdRecord{
-	// Simple commands allowed in read-only mode
-	{Command: []string{"find"}, ReadOnly: true},
-	{Command: []string{"grep"}, ReadOnly: true},
-	{Command: []string{"ls"}, ReadOnly: true},
-	{Command: []string{"wc"}, ReadOnly: true},
-	{Command: []string{"head"}, ReadOnly: true},
-	{Command: []string{"tail"}, ReadOnly: true},
-	{Command: []string{"git", "diff"}, ReadOnly: true},
-	{Command: []string{"git", "show"}, ReadOnly: true},
-	{Command: []string{"git", "log"}, ReadOnly: true},
-	{Command: []string{"git", "status"}, ReadOnly: true},
-	{Command: []string{"git", "checkout"}, ReadOnly: false},
-	{Command: []string{"go", "build"}, ReadOnly: false},
-	{Command: []string{"go", "fix"}, ReadOnly: false},
-	{Command: []string{"go", "get"}, ReadOnly: false},
-	{Command: []string{"go", "mod"}, ReadOnly: false},
-	{Command: []string{"go", "run"}, ReadOnly: false},
-	{Command: []string{"go", "test"}, ReadOnly: true},
-	{Command: []string{"go", "version"}, ReadOnly: true},
-	{Command: []string{"mkdir"}, ReadOnly: false},
-	{Command: []string{"uuidgen"}, ReadOnly: true},
-	{Command: []string{"curl"}, ReadOnly: true},
-	{Command: []string{"wget"}, ReadOnly: true},
-	{Command: []string{"ping"}, ReadOnly: true},
-	{Command: []string{"cat"}, ReadOnly: true},
-	{Command: []string{"echo"}, ReadOnly: true},
-	{Command: []string{"sort"}, ReadOnly: true},
-	{Command: []string{"uniq"}, ReadOnly: true},
-	{Command: []string{"sed"}, ReadOnly: true},
-	{Command: []string{"awk"}, ReadOnly: true},
-	{Command: []string{"jq"}, ReadOnly: true},
-	{Command: []string{"yq"}, ReadOnly: true},
-	{Command: []string{"make"}, ReadOnly: false},
-	{Command: []string{"npm"}, ReadOnly: false},
-	{Command: []string{"yarn"}, ReadOnly: false},
-	{Command: []string{"pnpm"}, ReadOnly: false},
-	{Command: []string{"cargo"}, ReadOnly: false},
-	{Command: []string{"python"}, ReadOnly: false},
-	{Command: []string{"python3"}, ReadOnly: false},
-	{Command: []string{"pip"}, ReadOnly: false},
-	{Command: []string{"pip3"}, ReadOnly: false},
-	{Command: []string{"make"}, ReadOnly: false},
-	{Command: []string{"npm"}, ReadOnly: false},
-	{Command: []string{"yarn"}, ReadOnly: false},
-	{Command: []string{"pnpm"}, ReadOnly: false},
-	{Command: []string{"cargo"}, ReadOnly: false},
-	{Command: []string{"python"}, ReadOnly: false},
-	{Command: []string{"python3"}, ReadOnly: false},
-	{Command: []string{"pip"}, ReadOnly: false},
-	{Command: []string{"pip3"}, ReadOnly: false},
-}
-
-// isCommandAllowed checks if a command is allowed in the current mode.
-// Commands not in the allowedCommands list are always blocked.
-func isCommandAllowed(command string, args []string, readOnly bool) bool {
-	search := append([]string{command}, args...)
-	for _, rec := range allowedCommands {
-		if len(rec.Command) <= len(search) {
-			if slices.Equal(rec.Command, search[:len(rec.Command)]) {
-				return !readOnly || rec.ReadOnly
-			}
-		}
-	}
-	return false
-}
-
-// SystemExec executes a system command with arguments.
-// If read-only mode is enabled, only commands in the allowed list are permitted.
-func (g *GenericTools) SystemExec(command string, args []string) string {
-	cmdPath := command
-
-	if !isCommandAllowed(command, args, g.state.ReadOnly) {
-		printer.Info("system_exec: blocked", "command", command, "args", args)
-		return fmt.Sprintf("error: command '%s' is not allowed in current mode", command)
+	if g.isCommandBlocked(command) {
+		printer.Print(printer.IconBlocked, "exec: blocked dangerous command", "command", command)
+		return "error: dangerous command blocked"
 	}
 
-	cmd := exec.Command(cmdPath, args...)
+	ctx, cancel := context.WithTimeout(context.Background(), execTimeout)
+	defer cancel()
 
-	output, err := cmd.CombinedOutput()
+	cmd := exec.CommandContext(ctx, "sh", "-c", command)
+	cmd.Stdin = strings.NewReader(stdin)
+	cmd.Dir = g.root.Name()
+
+	env := []string{}
+	cmd.Env = env
+
+	w := newFixedSizeWriter(execOutputMaxSize)
+	cmd.Stdout = w
+	cmd.Stderr = w
+
+	err := cmd.Run()
 	if err != nil {
-		printer.Error("system_exec: command failed", "command", command, "args", args, "err", err, "output", string(output))
-		return fmt.Sprintf("error: %v\n%s", err, output)
+		printer.Error("exec: command failed", "command", command, "err", err)
+		if w.Truncated() {
+			return fmt.Sprintf("error: %v\n(output truncated to %d bytes)", err, execOutputMaxSize)
+		}
+		return fmt.Sprintf("error: %v\n%s", err, w.String())
 	}
 
-	return string(output)
+	if w.Truncated() {
+		printer.Print(printer.IconAlert, "exec truncated output", "command", command)
+		return w.String() + fmt.Sprintf("\n(output truncated to %d bytes)", execOutputMaxSize)
+	}
+
+	return w.String()
 }
 
 // SystemDate executes the date command and returns the output.
@@ -449,27 +455,26 @@ func (g *GenericTools) DefinitionFileGrep() openai.Tool {
 	}
 }
 
-// DefinitionSystemExec returns the OpenAI tool schema for system_exec.
-func (g *GenericTools) DefinitionSystemExec() openai.Tool {
+// DefinitionExec returns the OpenAI tool schema for exec.
+func (g *GenericTools) DefinitionExec() openai.Tool {
 	return openai.Tool{
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
-			Name:        "system_exec",
-			Description: "Execute a system command with arguments. In read-only mode, only commands from the allowed list are permitted.",
+			Name:        "exec",
+			Description: "Execute a shell command via \"sh -c\". The command runs with a clean environment and the current working directory. Stdin can be provided for input.",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
 					"command": map[string]any{
 						"type":        "string",
-						"description": "Name or path of the command to execute",
+						"description": "The shell command to execute",
 					},
-					"args": map[string]any{
-						"type":        "array",
-						"items":       map[string]any{"type": "string"},
-						"description": "List of arguments to pass to the command",
+					"stdin": map[string]any{
+						"type":        "string",
+						"description": "Standard input to pass to the command (optional)",
 					},
 				},
-				"required": []string{"command", "args"},
+				"required": []string{"command"},
 			},
 		},
 	}
@@ -581,16 +586,16 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 		}
 		return "File exists."
 
-	case "system_exec":
+	case "exec":
 		var params struct {
-			Command string   `json:"command"`
-			Args    []string `json:"args"`
+			Command string `json:"command"`
+			Stdin   string `json:"stdin,omitempty"`
 		}
 		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			printer.Error("system_exec: failed to parse args", "args", args, "err", err)
+			printer.Error("exec: failed to parse args", "args", args, "err", err)
 			return "error: failed to parse arguments"
 		}
-		return g.SystemExec(params.Command, params.Args)
+		return g.Exec(params.Command, params.Stdin)
 
 	case "system_date":
 		return g.SystemDate()
@@ -687,27 +692,26 @@ func StaticDefinitionFileExists() openai.Tool {
 	}
 }
 
-// StaticDefinitionSystemExec returns the OpenAI tool schema for system_exec without instance.
-func StaticDefinitionSystemExec() openai.Tool {
+// StaticDefinitionExec returns the OpenAI tool schema for exec without instance.
+func StaticDefinitionExec() openai.Tool {
 	return openai.Tool{
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
-			Name:        "system_exec",
-			Description: "Execute a system command with arguments. In read-only mode, only commands from the allowed list are permitted.",
+			Name:        "exec",
+			Description: "Execute a shell command via \"sh -c\". The command runs with a clean environment and the current working directory. Stdin can be provided for input.",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
 					"command": map[string]any{
 						"type":        "string",
-						"description": "Name or path of the command to execute",
+						"description": "The shell command to execute",
 					},
-					"args": map[string]any{
-						"type":        "array",
-						"items":       map[string]any{"type": "string"},
-						"description": "List of arguments to pass to the command",
+					"stdin": map[string]any{
+						"type":        "string",
+						"description": "Standard input to pass to the command (optional)",
 					},
 				},
-				"required": []string{"command", "args"},
+				"required": []string{"command"},
 			},
 		},
 	}

@@ -9,18 +9,19 @@ import (
 type Icon = string
 
 const (
-	IconAlert  = Icon("⚠️")
-	IconAsk    = Icon("❓")
-	IconDone   = Icon("💫")
-	IconError  = Icon("❌")
-	IconFile   = Icon("📄")
-	IconIam    = Icon("👨")
-	IconModule = Icon("🛰️")
-	IconRobot  = Icon("🤖")
-	IconSave   = Icon("📝")
-	IconSearch = Icon("🔭")
-	IconTool   = Icon("⚙️")
-	IconURL    = Icon("🌐")
+	IconAlert   = Icon("⚠️")
+	IconAsk     = Icon("❓")
+	IconBlocked = Icon("🚫")
+	IconDone    = Icon("💫")
+	IconError   = Icon("❌")
+	IconFile    = Icon("📄")
+	IconIam     = Icon("👨")
+	IconModule  = Icon("🛰️")
+	IconRobot   = Icon("🤖")
+	IconSave    = Icon("📝")
+	IconSearch  = Icon("🔭")
+	IconTool    = Icon("⚙️")
+	IconURL     = Icon("🌐")
 )
 
 type Printer struct {

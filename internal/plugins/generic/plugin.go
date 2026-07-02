@@ -60,9 +60,9 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		})
 	}
 	hub.RegisterTool(plugin.LLMTool{
-		Definition: generic.StaticDefinitionSystemExec,
+		Definition: generic.StaticDefinitionExec,
 		Execute: func(_ context.Context, args string) (string, error) {
-			return p.get().Dispatch("system_exec", args), nil
+			return p.get().Dispatch("exec", args), nil
 		},
 	})
 	if _, err := exec.LookPath("date"); err == nil {

@@ -108,11 +108,12 @@ github:
 > `vector_size` must match the dimensionality of the chosen embedding model.
 > For `text-embedding-3-small` — 1536, for `text-embedding-ada-002` — 1536, for `text-embedding-3-large` — 3072.
 
-### Parameters `allowed_read_only_commands`
+### Parameters `exec`
 
 | Parameter | Default | Description |
 |---|---|---|
-| `allowed_read_only_commands.commands` | `[]` | List of commands allowed in read-only mode. When read-only mode is enabled and this list is non-empty, only commands in the list can be executed via `system_exec`. Empty list (default) blocks all commands in read-only mode. |
+| `exec.command` | — | Shell command to execute (via `sh -c`) |
+| `exec.stdin` | `""` | Standard input to pass to the command |
 
 ### Parameters `rag.chunk`
 
@@ -220,7 +221,7 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 | `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem; `limit` and `offset` specify line range (0 = read all) |
 | `file_list` | `(options: object) -> []string` | Recursively lists files in the current directory |
 | `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem |
-| `system_exec` | `(command: string, args: []string) -> string` | Executes a system command with arguments; in read-only mode, only commands from the allowed list are permitted |
+| `exec` | `(command: string, stdin: string) -> string` | Executes a shell command via `sh -c` with clean environment and current working directory |
 | `system_date` | `() -> string` | Executes the date command to get the current system time |
 | `system_grep` | `(filename: string, pattern: string, case_insensitive: bool, recursive: bool) -> string` | Executes system grep command with safe parameters: -n (always), -i/-r (optional) |
 | `rag_search` | `(query: string) -> string` | Returns top-N relevant fragments from Qdrant (N is set by `rag.search.limit`) |
@@ -228,6 +229,16 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 | `github_repo` | `(repo: string) -> string` | Fetches GitHub repository information and returns its details in Markdown format |
 | `github_file` | `(repo: string, branch: string, file: string) -> string` | Fetches a file from GitHub repository and returns its content |
 | `github_tree` | `(repo: string, branch: string, path: string) -> string` | Lists repository contents at root or specified path |
+
+## Security restrictions
+
+The following commands are automatically blocked by the `exec` tool:
+
+- **Destructive commands**: `rm -rf /`, `sudo`, `mkfs`, `dd` with `/dev/`
+- **Untrusted script execution**: `curl ... | bash`, `wget ... | sh`, `zsh`
+- **Git modifications**: `git commit`, `git push`, `git rebase`, `git pull`, `git cherry-pick`, `git reset`, `git stash`, `git clean`, `git reflog`
+
+No output is ever displayed from blocked commands — they return an error message instead.
 
 ## Indexer (via `/index` command)
 

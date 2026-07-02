@@ -34,7 +34,17 @@ Rules:
 - Only use web_fetch if rag_search returned no relevant results and the user explicitly needs up-to-date or external information.
 - Do not invent, assume, or extrapolate facts beyond what the tools return.
 - If neither rag_search nor web_fetch provides relevant information, tell the user honestly that you don't have information on this topic.
-- Be concise and precise.`
+- Be concise and precise.
+
+SECURITY WARNING: You are FORBIDDEN from executing destructive commands such as:
+- rm -rf /, rm -rf *, sudo, chmod 777, dd, mkfs, fdisk, or any command that could delete/modify/system files.
+- curl ... | bash, wget ... | sh, zsh, or any pipe to shell execution.
+
+You are FORBIDDEN from downloading and executing untrusted scripts:
+- Never execute curl ... | bash, wget ... -O - | sh, or similar patterns.
+- Always verify script sources and contents before execution.
+
+IMPORTANT: The exec tool will BLOCK any command matching security patterns (rm -rf, sudo, mkfs, dd with /dev/, pipe to bash/sh/zsh, git commit/push/rebase/pull/cherry-pick/reset/stash/clean/reflog). DO NOT attempt to bypass these protections.`
 
 // charsPerToken is a rough approximation used for context-window budget estimation.
 // OpenAI models average ~4 UTF-8 characters per token.

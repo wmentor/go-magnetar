@@ -197,13 +197,23 @@ Use **↑/↓** arrows to navigate through previously entered commands. History 
 | `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem |
 | `file_list` | `(options: object) -> []string` | Recursively lists files in the current directory |
 | `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem |
-| `system_exec` | `(command: string, args: []string) -> string` | Executes a system command with arguments; in read-only mode, only commands from the allowed list are permitted |
+| `exec` | `(command: string, stdin: string) -> string` | Executes a shell command via `sh -c` with clean environment and current working directory |
 | `system_date` | `() -> string` | Executes the date command to get the current system time |
 | `system_grep` | `(filename: string, pattern: string, case_insensitive: bool, recursive: bool) -> string` | Executes system grep command with safe parameters |
 | `rag_search` | `(query: string) -> string` | Returns relevant fragments from indexed data |
 | `web_fetch` | `(url: string) -> string` | Fetches web pages (fallback if RAG returns no results); also fetches Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories when URL matches |
 | `ask` | `(question: string) -> string` | Asks the user a clarifying question and returns the answer |
 | | `(filename: string, operations: array) -> string` | Applies regex-based search-and-replace operations to a file; supports optional context constraints and file length limits |
+
+## Security restrictions
+
+The following commands are automatically blocked by the `exec` tool:
+
+- **Destructive commands**: `rm -rf /`, `sudo`, `mkfs`, `dd` with `/dev/`
+- **Untrusted script execution**: `curl ... | bash`, `wget ... | sh`, `zsh`
+- **Git modifications**: `git commit`, `git push`, `git rebase`, `git pull`, `git cherry-pick`, `git reset`, `git stash`, `git clean`, `git reflog`
+
+No output is ever displayed from blocked commands — they return an error message instead.
 
 #### Search replace functionality
 

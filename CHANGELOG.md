@@ -92,9 +92,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **system_exec tool** - Execute system commands with arguments
+- **exec tool** - Execute shell commands via `sh -c` with clean environment and stdin support
+- **Security restrictions** - Block list for dangerous commands (rm -rf, sudo, mkfs, dd, git operations, shell pipes)
 - **system_date tool** - Execute the `date` command to get current system time
-- **Read-only mode** - Prevent file modifications with configurable allowed commands
+- **Read-only mode** - Prevent file modifications
 - **/readonly chat command** - Toggle read-only mode (`/readonly on|off`)
 - **/index command** - Unified document indexing from REPL (replaces separate CLI subcommands)
   - Auto-detects file vs URL
