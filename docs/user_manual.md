@@ -183,6 +183,7 @@ The REPL reads questions from stdin. Press `Ctrl+D` to exit.
 | `/index` | `/i` | Index file or URL into RAG knowledge base (auto-detects URL vs file) |
 | `/idxtab` | — | Index multiple files/URLs from a JSON lines file (one per line, format: `{"source":"path\|url","message":"text"}`) |
 | `/write` | `/w` | Write content to a file |
+| `/readonly` | — | Toggle read-only mode (blocks all modification operations) |
 
 Commands are case-insensitive, processed locally, and never sent to the LLM.
 
@@ -197,27 +198,40 @@ Use **↑/↓** arrows to navigate through previously entered commands. History 
 | `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem |
 | `file_list` | `(options: object) -> []string` | Recursively lists files in the current directory |
 | `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem |
-| `exec` | `(command: string, stdin: string) -> string` | Executes a shell command via `sh -c` with clean environment and current working directory |
+| `exec` | `(command: string, stdin: string) -> string` | Executes a shell command via `sh -c` with clean environment and current working directory; security guard analyzes all commands before execution |
 | `system_date` | `() -> string` | Executes the date command to get the current system time |
 | `system_grep` | `(filename: string, pattern: string, case_insensitive: bool, recursive: bool) -> string` | Executes system grep command with safe parameters |
 | `rag_search` | `(query: string) -> string` | Returns relevant fragments from indexed data |
 | `web_fetch` | `(url: string) -> string` | Fetches web pages (fallback if RAG returns no results); also fetches Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories when URL matches |
 | `ask` | `(question: string) -> string` | Asks the user a clarifying question and returns the answer |
 
-### Security restrictions
+## Security restrictions
 
-The `exec` tool includes a built-in security guard that analyzes all commands before execution using an LLM.
+### Command safety guard
 
-**Blocked operations:**
-- **Destructive commands**: `rm -rf /`, `sudo`, `mkfs`, `dd` with `/dev/`, `chmod 777`
+All commands executed via the `exec` tool are analyzed by a built-in security guard before execution. The guard uses an LLM to evaluate whether a command is safe based on several criteria:
+
+- **Destructive commands**: `rm -rf /`, `sudo`, `mkfs`, `dd` with `/dev/`, `fdisk`, `chmod 777`
 - **Shell pipes**: `| bash`, `| sh`, `| zsh`
-- **Git modifications**: `git commit`, `git push`, `git rebase`, `git pull`, `git cherry-pick`, `git reset`, `git stash`, `git clean`, `git reflog`
+- **Git modifications**: `git commit`, `push`, `rebase`, `pull`, `cherry-pick`, `reset`, `stash`, `clean`, `reflog`, `clone`
+- **System-level operations**: `su`, `chmod`, `chown`, `dscl`, `fdisk`, `format`, `dseditgroup`, `brew`, `dpkg`, `apt`, `cargo`, `rpm`, `npm`, `apt-get`, `groupadd`, `usermod`, `gpasswd`, `useradd`, `adduser`, `userdel`, `deluser`, `passwd`, `systemctl`, `sysadminctl`
 - **Untrusted script execution**: `curl ... | bash`, `wget ... | sh`
+- **Environment variable filtering**: Sensitive environment variables containing patterns like `PASS`, `SEC`, `CRED`, `TOKEN`, `KEY`, `AUTH`, `PWD`, `CERT`, `SIGN`, `SALT`, `BEARER`, `AMQP`, `CONNECT` are filtered out before command execution
 
-**Read-only mode:**
-When the system is in read-only mode (toggled via `/readonly`), NO operations are allowed that modify files, directories, or system state. All modification attempts must be rejected immediately.
+When the system is in read-only mode, **NO modification operations are allowed** — all such commands are automatically rejected.
+
+### Read-only mode
+
+The read-only mode can be toggled via the `/readonly` chat command. In this mode:
+- File writes (`file_write`) are blocked
+- Command execution that modifies files or system state is blocked
+- Only read-only operations are permitted
 
 No output is ever displayed from blocked commands — they return an error message instead.
+
+### Root user prevention
+
+The application **cannot be run as root user**. If the current user is `root` (username or UID 0), the application prints an error message and exits immediately to prevent accidental system-wide modifications.
 
 ## Search tool call limit
 
@@ -303,28 +317,6 @@ To disable the new features (single-query, no dedup):
 ## Logging
 
 Set `verbose: true` in the config for verbose output.
-
-## Security restrictions
-
-### Command safety guard
-
-All commands executed via the `exec` tool are analyzed by a built-in security guard before execution. The guard uses an LLM to evaluate whether a command is safe based on several criteria:
-
-- **Destructive commands**: `rm -rf /`, `sudo`, `mkfs`, `dd` with `/dev/`, `chmod 777`
-- **Shell pipes**: `| bash`, `| sh`, `| zsh`
-- **Git modifications**: `git commit`, `push`, `rebase`, `pull`, `cherry-pick`, `reset`, `stash`, `clean`, `reflog`
-- **Untrusted script execution**: `curl ... | bash`, `wget ... | sh`
-
-When the system is in read-only mode, **NO modification operations are allowed** — all such commands are automatically rejected.
-
-### Read-only mode
-
-The read-only mode can be toggled via the `/readonly` chat command. In this mode:
-- File writes (`file_write`) are blocked
-- Command execution that modifies files or system state is blocked
-- Only read-only operations are permitted
-
-No output is ever displayed from blocked commands — they return an error message instead.
 
 ## Dependencies
 

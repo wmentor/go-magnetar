@@ -187,6 +187,7 @@ Exit — `Ctrl+D` (EOF) or `/exit` command. Empty lines are ignored.
 | `/index` | `/i` | Index file or URL into RAG knowledge base (auto-detects URL vs file) |
 | `/idxtab` | — | Index multiple files/URLs from a JSON lines file (one per line, format: `{"source":"path|url","message":"text"}`) |
 | `/write` | `/w` | Write content to a file |
+| `/readonly` | — | Toggle read-only mode (blocks all modification operations) |
 
 Commands are dispatched in `handleCommand` (`internal/agent/chat/agent.go`) by iterating over `plugin.ChatCommands()`. Input is split into `name` + `args` on the first space; matching is case-insensitive against `Name` and `Aliases`. Commands are never added to the message history.
 
@@ -236,9 +237,11 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 
 All commands executed via the `exec` tool are analyzed by a built-in security guard before execution. The guard uses an LLM to evaluate whether a command is safe based on several criteria:
 
-- **Destructive commands**: `rm -rf /`, `sudo`, `mkfs`, `dd` with `/dev/`, `chmod 777`
+- **Destructive commands**: `rm -rf /`, `sudo`, `mkfs`, `dd` with `/dev/`, `fdisk`, `chmod 777`
 - **Shell pipes**: `| bash`, `| sh`, `| zsh`
-- **Git modifications**: `git commit`, `push`, `rebase`, `pull`, `cherry-pick`, `reset`, `stash`, `clean`, `reflog`
+- **Git modifications**: `git commit`, `push`, `rebase`, `pull`, `cherry-pick`, `reset`, `stash`, `clean`, `reflog`, `clone`
+- **System-level operations**: `su`, `chmod`, `chown`, `dscl`, `fdisk`, `format`, `dseditgroup`, `brew`, `dpkg`, `apt`, `cargo`, `rpm`, `npm`, `apt-get`, `groupadd`, `usermod`, `gpasswd`, `useradd`, `adduser`, `userdel`, `deluser`, `passwd`, `systemctl`, `sysadminctl`
+- **Environment variable filtering**: Sensitive environment variables containing patterns like `PASS`, `SEC`, `CRED`, `TOKEN`, `KEY`, `AUTH`, `PWD`, `CERT`, `SIGN`, `SALT`, `BEARER`, `AMQP`, `CONNECT` are filtered out before command execution
 - **Untrusted script execution**: `curl ... | bash`, `wget ... | sh`
 
 When the system is in read-only mode, **NO modification operations are allowed** — all such commands are automatically rejected.
@@ -251,6 +254,10 @@ The read-only mode can be toggled via the `/readonly` chat command. In this mode
 - Only read-only operations are permitted
 
 No output is ever displayed from blocked commands — they return an error message instead.
+
+### Root user prevention
+
+The application **cannot be run as root user**. If the current user is `root` (username or UID 0), the application prints an error message and exits immediately to prevent accidental system-wide modifications.
 
 ## Indexer (via `/index` command)
 
@@ -347,6 +354,7 @@ internal/
     web/fetch.go                 — web_fetch tool; HTML fetching and cleaning
     generic/generic.go           — file_read, file_list, file_write, file_exists, system_grep, tools
   agent/
+    guard/agent.go               — security guard for exec commands
     indexer/indexer.go           — indexer agent (used by /index command)
     chat/agent.go                — chat agent, REPL, tool-use loop, agentHandle adapter
     summarizer/summarizer.go     — history compression agent
@@ -539,9 +547,11 @@ printer.ToolCall(printer.IconError, "rag_save failed", "id", id, "err", err)
 
 All commands executed via the `exec` tool are analyzed by a built-in security guard before execution. The guard uses an LLM to evaluate whether a command is safe based on several criteria:
 
-- **Destructive commands**: `rm -rf /`, `sudo`, `mkfs`, `dd` with `/dev/`, `chmod 777`
+- **Destructive commands**: `rm -rf /`, `sudo`, `mkfs`, `dd` with `/dev/`, `fdisk`, `chmod 777`
 - **Shell pipes**: `| bash`, `| sh`, `| zsh`
-- **Git modifications**: `git commit`, `push`, `rebase`, `pull`, `cherry-pick`, `reset`, `stash`, `clean`, `reflog`
+- **Git modifications**: `git commit`, `push`, `rebase`, `pull`, `cherry-pick`, `reset`, `stash`, `clean`, `reflog`, `clone`
+- **System-level operations**: `su`, `chmod`, `chown`, `dscl`, `fdisk`, `format`, `dseditgroup`, `brew`, `dpkg`, `apt`, `cargo`, `rpm`, `npm`, `apt-get`, `groupadd`, `usermod`, `gpasswd`, `useradd`, `adduser`, `userdel`, `deluser`, `passwd`, `systemctl`, `sysadminctl`
+- **Environment variable filtering**: Sensitive environment variables containing patterns like `PASS`, `SEC`, `CRED`, `TOKEN`, `KEY`, `AUTH`, `PWD`, `CERT`, `SIGN`, `SALT`, `BEARER`, `AMQP`, `CONNECT` are filtered out before command execution
 - **Untrusted script execution**: `curl ... | bash`, `wget ... | sh`
 
 When the system is in read-only mode, **NO modification operations are allowed** — all such commands are automatically rejected.
@@ -554,5 +564,9 @@ The read-only mode can be toggled via the `/readonly` chat command. In this mode
 - Only read-only operations are permitted
 
 No output is ever displayed from blocked commands — they return an error message instead.
+
+### Root user prevention
+
+The application **cannot be run as root user**. If the current user is `root` (username or UID 0), the application prints an error message and exits immediately to prevent accidental system-wide modifications.
 
 ## Dependencies
