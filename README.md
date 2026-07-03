@@ -10,9 +10,11 @@ A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines a 
 
 **Indexing via chat** — the `/index` command (alias `/i`) replaces the separate indexer CLI subcommand. Simply type `/index <path|url>` in the REPL to index documents directly.
 
+**Fetch content** — the `/fetch` command (alias `/f`) retrieves content from URLs, cleans HTML, and displays it in the terminal (using `less` if available) or saves it to a file.
+
 **Search tool call limit** — to prevent infinite loops, each user request is limited to a maximum number of search-related tool calls (`rag_search` + `web_fetch`). By default, the limit is 10 calls per request. When the limit is reached, an error message is sent to the LLM.
 
-**HTML Preprocessing** — when `webfetch.*` parameters are configured, web pages fetched via `web_fetch` are cleaned of ads, navigation, cookie banners, and other noise using an AI agent before being converted to Markdown and indexed or returned to the agent. Confluence URLs are also handled via the `confluence` block to fetch pages by ID, JIRA issues via the `jira` block, and GitHub repositories via the `github` block to fetch repository information, files, and directory trees.
+**HTML Preprocessing** — when `webfetch.*` parameters are configured, web pages fetched via `web_fetch` are cleaned of ads, navigation, cookie banners, and other noise using an AI agent before being converted to Markdown and indexed or returned to the agent. Confluence URLs are also handled via the `confluence` block to fetch pages by ID, JIRA issues via the `jira` block, GitHub repositories via the `github` block to fetch repository information, files, and directory trees, and GitLab merge requests via the `gitlab` block to fetch MR details and file changes.
 
 ## Requirements
 
@@ -124,9 +126,24 @@ github:
 
 # From GitLab merge request URL
 > /index https://gitlab.example.com/namespace/project/-/merge_requests/123
+
+# From GitHub URL (repository, file, or tree)
+> /index https://github.com/owner/repo
 ```
 
-### 5. Ask questions
+### 5. Fetch content from URLs
+
+The `/fetch` command retrieves content from URLs, cleans HTML, and displays it in the terminal:
+
+```bash
+./bin/go-magnetar -c my-config.yaml agent
+> /fetch https://example.com/article
+
+# Save to file
+> /fetch https://example.com/article output.md
+```
+
+### 6. Ask questions
 
 ```bash
 ./bin/go-magnetar -c my-config.yaml agent
@@ -137,7 +154,7 @@ github:
 go-magnetar is a RAG-based knowledge base tool...
 
 > What commands does it support?
-It supports the /index command and chat commands like /help, /exit...
+It supports the /index and /fetch commands and chat commands like /help, /exit...
 
 > ^D
 ```
@@ -184,20 +201,11 @@ The chat agent maintains command history in `~/.go-magnetar-history.json`. Use *
 | `jira.api_key` | — | JIRA API key for fetching issues |
 | `gitlab.base_url` | — | GitLab instance base URL |
 | `gitlab.api_key` | — | GitLab API key for fetching merge requests and file changes |
+| `github.base_url` | — | GitHub API base URL (e.g. `https://api.github.com`) |
+| `github.api_key` | — | GitHub access token for fetching repositories, files, and trees |
 | `verbose` | `true` | Enable verbose output (tool calls, debug messages) |
 | `compact.threshold` | `0` | Token count that triggers history summarization. `0` = auto: 80 % of `llm.context` |
 | `compact.save_tail` | `6` | Number of most-recent messages kept verbatim during summarization |
-| `webfetch.base_url` | — | Endpoint of the OpenAI-compatible API for web page preprocessing model |
-| `webfetch.api_key` | — | API key for web page preprocessing model |
-| `webfetch.model` | — | Model name for web page preprocessing (e.g. `gpt-4o`) |
-| `webfetch.context` | — | Token limit of the model's context window for web preprocessing |
-| `confluence.base_url` | — | Confluence instance base URL (e.g. `https://your-domain.atlassian.net`) |
-| `confluence.api_key` | — | Confluence API key for fetching pages |
-| `jira.base_url` | — | JIRA instance base URL |
-| `jira.api_key` | — | JIRA API key for fetching issues |
-| `gitlab.base_url` | — | GitLab instance base URL |
-| `gitlab.api_key` | — | GitLab API key for fetching merge requests and file changes |
-| `verbose` | `true` | Enable verbose output (tool calls, debug messages) |
 
 **Vector sizes for common embedding models:**
 
@@ -238,6 +246,7 @@ The REPL reads questions from stdin. Press `Ctrl+D` to exit.
 | `/idxtab` | — | Index multiple files/URLs from a JSON lines file (one per line, format: `{"source":"path\|url","message":"text"}`) |
 | `/write` | `/w` | Write content to a file |
 | `/readonly` | — | Toggle read-only mode (blocks all modification operations) |
+| `/fetch` | `/f` | Fetch content from a URL, optionally save to file |
 
 Commands are case-insensitive, processed locally, and never sent to the LLM.
 
@@ -286,6 +295,7 @@ internal/
       write/plugin.go            — /write chat command plugin
       version/plugin.go          — /version chat command plugin
       readonly/plugin.go         — /readonly chat command plugin
+      fetch/plugin.go            — /fetch chat command plugin
   cmd/
     cmd.go                       — root CLI (kong); config load; plugin.InitAll; defer Stop
   tools/
@@ -323,9 +333,8 @@ cmd.Execute()
 
 | Plugin | Type | Description |
 |---|---|---|
-| `ask` | LLM tool | `ask` tool — allows the agent to ask clarifying questions to the user |
 | `rag` | LLM tool | `rag_search` tool — searches the knowledge base for relevant information |
-| `web` | LLM tool | `web_fetch` tool — fetches and cleans web pages, Confluence pages, JIRA issues, and GitLab merge requests |
+| `web` | LLM tool | `web_fetch` tool — fetches and cleans web pages, Confluence pages, JIRA issues, GitLab merge requests, GitHub repositories |
 | `generic` | LLM tools | `file_read`, `file_list`, `file_write`, `file_exists`, `system_grep`, tools |
 | `indexcmd` | Chat command | `/index` command for document indexing |
 | `chatcmd/help` | Chat command | `/help` command |
@@ -337,6 +346,7 @@ cmd.Execute()
 | `chatcmd/write` | Chat command | `/write` command |
 | `chatcmd/version` | Chat command | `/version` command |
 | `chatcmd/readonly` | Chat command | `/readonly` command |
+| `chatcmd/fetch` | Chat command | `/fetch` command — fetch URL content and display/save |
 | `guard` | LLM tool | Security guard for exec commands — analyzes shell commands before execution |
 | `jira` | LLM tool | `jira_task_get` tool — fetches JIRA issues by issue key |
 
@@ -357,6 +367,15 @@ cmd.Execute()
   └── web.WebFetch(url)               — fetch + HTML cleanup -> Markdown
         └── chunk.Split(content)
               └── (same as above)
+```
+
+### Fetching flow
+
+```
+/fetch https://example.com [output.md]
+  └── web.WebFetch(url)               — fetch + HTML cleanup -> Markdown
+        └── if filename:  → os.WriteFile(filename, content)
+        └── else:        → display in terminal (with less if available)
 ```
 
 ### Chat flow
@@ -439,8 +458,8 @@ All commands executed via the `exec` tool are analyzed by a built-in security gu
 - **Shell pipes**: `| bash`, `| sh`, `| zsh`
 - **Git modifications**: `git commit`, `push`, `rebase`, `pull`, `cherry-pick`, `reset`, `stash`, `clean`, `reflog`, `clone`
 - **System-level operations**: `su`, `chmod`, `chown`, `dscl`, `fdisk`, `format`, `dseditgroup`, `brew`, `dpkg`, `apt`, `cargo`, `rpm`, `npm`, `apt-get`, `groupadd`, `usermod`, `gpasswd`, `useradd`, `adduser`, `userdel`, `deluser`, `passwd`, `systemctl`, `sysadminctl`
-- **Untrusted script execution**: `curl ... | bash`, `wget ... | sh`
 - **Environment variable filtering**: Sensitive environment variables containing patterns like `PASS`, `SEC`, `CRED`, `TOKEN`, `KEY`, `AUTH`, `PWD`, `CERT`, `SIGN`, `SALT`, `BEARER`, `AMQP`, `CONNECT` are filtered out before command execution
+- **Untrusted script execution**: `curl ... | bash`, `wget ... | sh`
 
 When the system is in read-only mode, **NO modification operations are allowed** — all such commands are automatically rejected.
 

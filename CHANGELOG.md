@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Fetch command** — new `/fetch` command (alias `/f`) to retrieve and display content from URLs
+  - Fetches content from URLs using configured `webfetch` block
+  - Cleans HTML and converts to Markdown
+  - Displays in terminal (using `less` if available)
+  - Optional file saving with `file` argument
+  - Example: `/fetch https://example.com/article [output.md]`
+  - Based on `web.WebFetch()` functionality
+- **Plugin system** — new `internal/plugins/chatcmd/fetch/plugin.go` plugin
+  - Implements `/fetch` command as chat command
+  - Integration with existing web fetch tools
+  - Automatic `less` availability detection for terminal display
+- **CLI integration** — registered `/fetch` command in main.go
+  - Blank import in `cmd/go-magnetar/main.go` triggers plugin initialization
+
 ## [v0.1.3] - 2026-06-30
 
 ### Added
@@ -88,7 +104,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Separate indexer CLI subcommand (`go-magnetar index`)
 - CLI agent subcommand (functionality merged into unified agent)
 
-## [v0.1.1] - 2026-06-25
+## [v0.1.1] - 2026-06-23
 
 ### Added
 

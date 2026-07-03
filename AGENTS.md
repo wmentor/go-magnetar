@@ -188,6 +188,7 @@ Exit — `Ctrl+D` (EOF) or `/exit` command. Empty lines are ignored.
 | `/idxtab` | — | Index multiple files/URLs from a JSON lines file (one per line, format: `{"source":"path|url","message":"text"}`) |
 | `/write` | `/w` | Write content to a file |
 | `/readonly` | — | Toggle read-only mode (blocks all modification operations) |
+| `/fetch` | `/f` | Fetch content from a URL, optionally save to file |
 
 Commands are dispatched in `handleCommand` (`internal/agent/chat/agent.go`) by iterating over `plugin.ChatCommands()`. Input is split into `name` + `args` on the first space; matching is case-insensitive against `Name` and `Aliases`. Commands are never added to the message history.
 
@@ -204,6 +205,22 @@ The `/index` command replaces the separate indexer CLI subcommand:
 | `/index <path|url> [-m <message>]` | `/i` | Index file or URL into RAG knowledge base (auto-detects URL vs file) |
 
 The command auto-detects whether the argument is a file path or URL based on protocol prefix. Supports `-m <message>` to prepend context to each chunk.
+
+### Fetching from URLs
+
+The `/fetch` command retrieves and displays content from URLs:
+
+| Command | Aliases | Description |
+|---|---|---|
+| `/fetch <url> [file]` | `/f` | Fetch content from URL, display or save to file |
+
+The command uses the configured `webfetch` block to clean HTML content and convert it to Markdown. If a filename is provided, the content is saved to that file; otherwise, it's displayed in the terminal (using `less` if available).
+
+Example:
+```bash
+> /fetch https://example.com/article
+> /fetch https://example.com/article output.md
+```
 
 ### Search strategy
 
@@ -346,6 +363,7 @@ internal/
       write/plugin.go            — /write (write content to file)
       version/plugin.go          — /version (print version)
       readonly/plugin.go         — /readonly (toggle readonly mode)
+      fetch/plugin.go            — /fetch (fetch URL content and display/save)
     jira/plugin.go               — jira_task_get LLM tool (init → Register)
   cmd/
     cmd.go                       — root CLI (kong); config load; plugin.InitAll; defer Stop
@@ -403,6 +421,15 @@ cmd.Execute()
          --> web.WebFetch(url)       — fetch + HTML cleanup -> Markdown
          --> chunk.Split(content, cfg)
          --> (same as for file)
+```
+
+### Data flow: URL fetching (via /fetch)
+
+```
+/fetch https://example.com [output.md]
+         --> web.WebFetch(url)       — fetch + HTML cleanup -> Markdown
+         --> if filename specified:  → os.WriteFile(filename, content)
+         --> else:                   → display in terminal (with less if available)
 ```
 
 ### Data flow: chat
@@ -568,5 +595,3 @@ No output is ever displayed from blocked commands — they return an error messa
 ### Root user prevention
 
 The application **cannot be run as root user**. If the current user is `root` (username or UID 0), the application prints an error message and exits immediately to prevent accidental system-wide modifications.
-
-## Dependencies
