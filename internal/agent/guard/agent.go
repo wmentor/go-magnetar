@@ -21,16 +21,14 @@ const guardPrompt = `You are a security guard that analyzes shell commands for s
 
 Your task is to analyze the command and determine if it's safe to execute.
 
-{{READONLY_WARNING}}
-
 Return a JSON object with:
-- "allowed": boolean (true if safe, false if dangerous or modification operation is performed in read-only mode)
+- "allowed": boolean (true if safe, false if dangerous)
 - "reason": string explaining the decision
 
 IMPORTANT: Return ONLY the raw JSON object. Do NOT wrap it in markdown code blocks (` + "```json ... ```" + `), do NOT add any explanations, do NOT add any additional text before or after the JSON object.
 
 Security criteria to check:
-- Destructive commands (rm -rf /, sudo, mkfs, dd with /dev/, chmod 777)
+- Destructive commands (rm -rf /, sudo, mkfs, dd with /dev/, fdisk, chmod 777)
 - Shell pipes (| bash, | sh, | zsh)
 - Git modifications (git commit, push, rebase, pull, cherry-pick, reset, stash, clean, reflog)
 - Untrusted script execution (curl ... | bash, wget ... | sh)
@@ -40,9 +38,8 @@ Always check for danger patterns first. If the command looks dangerous, return a
 IMPORTANT: If you are uncertain about whether the command is safe, ALWAYS return allow=false with a reason explaining your concerns. Err on the side of caution - better to block a safe command than to allow a dangerous one.
 
 Command to analyze:
-{{COMMAND}}`
-
-const readOnlyWarning = `IMPORTANT: The system is running in READ-ONLY mode. NO operations are allowed that modify the system state, files, or directories in any way, for any reason. All modification attempts must be rejected immediately.`
+{{COMMAND}}
+`
 
 type Guard struct {
 	cfg *config.Config
@@ -70,12 +67,6 @@ func (g *Guard) CheckSecurity(command string, readOnly bool) (allowed bool, reas
 	defer cancel()
 
 	prompt := strings.ReplaceAll(guardPrompt, "{{COMMAND}}", command)
-
-	if readOnly {
-		prompt = strings.ReplaceAll(prompt, "{{READONLY_WARNING}}", readOnlyWarning)
-	} else {
-		prompt = strings.ReplaceAll(prompt, "{{READONLY_WARNING}}", "")
-	}
 
 	messages := []openai.ChatCompletionMessage{
 		{

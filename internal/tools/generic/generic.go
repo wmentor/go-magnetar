@@ -30,10 +30,37 @@ var blockList = []*regexp.Regexp{
 	regexp.MustCompile(`(?i)\|\s*sh\b`),
 	regexp.MustCompile(`(?i)\|\s*zsh\b`),
 	regexp.MustCompile(`(?i)^\s*sudo\b`),
+	regexp.MustCompile(`(?i)^\s*su\b`),
 	regexp.MustCompile(`(?i)^\s*mkfs\b`),
+	regexp.MustCompile(`(?i)^\s*chmod\b`),
+	regexp.MustCompile(`(?i)^\s*chown\b`),
+	regexp.MustCompile(`(?i)^\s*dscl\b`),
+	regexp.MustCompile(`(?i)^\s*fdisk\b`),
+	regexp.MustCompile(`(?i)^\s*format\b`),
+	regexp.MustCompile(`(?i)^\s*dseditgroup\b`),
+	regexp.MustCompile(`(?i)^\s*brew\b`),
+	regexp.MustCompile(`(?i)^\s*dpkg\b`),
+	regexp.MustCompile(`(?i)^\s*apt\b`),
+	regexp.MustCompile(`(?i)^\s*cargo\b`),
+	regexp.MustCompile(`(?i)^\s*rpm\b`),
+	regexp.MustCompile(`(?i)^\s*npm\b`),
+	regexp.MustCompile(`(?i)^\s*ssh\b`),
+	regexp.MustCompile(`(?i)^\s*apt\-get\b`),
+	regexp.MustCompile(`(?i)^\s*groupadd\b`),
+	regexp.MustCompile(`(?i)^\s*usermod\b`),
+	regexp.MustCompile(`(?i)^\s*gpasswd\b`),
+	regexp.MustCompile(`(?i)^\s*useradd\b`),
+	regexp.MustCompile(`(?i)^\s*adduser\b`),
+	regexp.MustCompile(`(?i)^\s*userdel\b`),
+	regexp.MustCompile(`(?i)^\s*deluser\b`),
+	regexp.MustCompile(`(?i)^\s*passwd\b`),
+	regexp.MustCompile(`(?i)^\s*systemctl\b`),
+	regexp.MustCompile(`(?i)^\s*sysadminctl\b`),
 	regexp.MustCompile(`(?i)^\s*dd\s+.*of=/dev/`),
-	regexp.MustCompile(`(?i)^\s*git\s+(commit|push|rebase|pull|cherry-pick|amend|reset|stash|clean|reflog)`),
+	regexp.MustCompile(`(?i)^\s*git\s+(commit|push|rebase|pull|cherry-pick|amend|reset|stash|clean|reflog|clone)`),
 }
+
+var envFilter = regexp.MustCompile(`(?i)(pass|secr|cred|token|key|auth|pwd|cert|sign|salt|bearer|amqp|connect)`)
 
 type fixedSizeWriter struct {
 	data    []byte
@@ -78,6 +105,7 @@ func (g *GenericTools) isCommandBlocked(command string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -253,11 +281,30 @@ func (g *GenericTools) FileList(opts *FileListOptions) []string {
 	return results
 }
 
+func makeEnvs() []string {
+	envs := []string{}
+	for _, rec := range os.Environ() {
+		pair := strings.SplitN(rec, "=", 2)
+		key := pair[0]
+
+		if envFilter.MatchString(key) {
+			continue
+		}
+		envs = append(envs, rec)
+	}
+	return envs
+}
+
 // Exec executes a shell command via "sh -c".
 // The command is executed with a clean environment and the current working directory.
 // Stdin can be provided via the stdin parameter.
 func (g *GenericTools) Exec(command string, stdin string) string {
 	printer.ToolCall(printer.IconTool, "exec", "command", command)
+
+	if g.state.ReadOnly {
+		printer.ToolCall(printer.IconBlocked, "the exec tool is fobbidden in read-only mode", "command", command)
+		return "error: the exec tool is fobbidden in read-only mode"
+	}
 
 	if g.isCommandBlocked(command) {
 		printer.Print(printer.IconBlocked, "exec: blocked dangerous command", "command", command)
@@ -270,7 +317,7 @@ func (g *GenericTools) Exec(command string, stdin string) string {
 		return fmt.Sprintf("error: security check failed: %v", err)
 	}
 	if !allowed {
-		printer.Print(printer.IconBlocked, "exec: security blocked", "command", command, "reason", reason)
+		printer.Print(printer.IconBlocked, "exec: blocked dangerous command", "command", command, "reason", reason)
 		return "error: security check failed: " + reason
 	}
 
@@ -281,8 +328,7 @@ func (g *GenericTools) Exec(command string, stdin string) string {
 	cmd.Stdin = strings.NewReader(stdin)
 	cmd.Dir = g.root.Name()
 
-	env := []string{}
-	cmd.Env = env
+	cmd.Env = makeEnvs()
 
 	w := newFixedSizeWriter(execOutputMaxSize)
 	cmd.Stdout = w
