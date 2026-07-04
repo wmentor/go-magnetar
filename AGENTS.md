@@ -222,6 +222,20 @@ Example:
 > /fetch https://example.com/article output.md
 ```
 
+### Testing
+
+go-magnetar uses the **[Bubble Tea](https://github.com/charmbracelet/bubbletea)** framework for its interactive REPL, which requires a real terminal interface with keyboard input. Therefore, **you cannot test go-magnetar by piping data to stdin**.
+
+The Bubble Tea program uses `tea.WithOutput(os.Stderr)` and expects interactive key presses to collect user input via `readInput()` function. Attempting to pipe or redirect input (e.g., `echo "test" | go-magnetar agent`) will not work because Bubble Tea takes control of stdin for keyboard events.
+
+To test go-magnetar, run it interactively:
+
+```bash
+./bin/go-magnetar -c my-config.yaml agent
+> /help
+> What is go-magnetar?
+```
+
 ### Search strategy
 
 The agent **always** first calls `rag_search`, even if it believes it already knows the answer. If `rag_search` returns relevant results, the answer is formed exclusively based on those results, `web_fetch` is not called. `web_fetch` is used only as a fallback: when `rag_search` returns no relevant results and the user needs external or up-to-date information. If neither tool provides a result, the agent explicitly states this.
