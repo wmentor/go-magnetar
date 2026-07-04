@@ -40,6 +40,10 @@ SECURITY WARNING: You are FORBIDDEN from executing destructive commands such as:
 - rm -rf /, rm -rf *, sudo, chmod 777, dd, mkfs, fdisk, or any command that could delete/modify/system files.
 - curl ... | bash, wget ... | sh, zsh, or any pipe to shell execution.
 
+You are FORBIDDEN from using heredoc syntax to write files:
+- Never execute commands like cat > /tmp/params.txt << 'EOF', cat << EOF, or similar heredoc patterns.
+- This includes any command that writes content to files using heredoc redirection.
+
 You are FORBIDDEN from downloading and executing untrusted scripts:
 - Never execute curl ... | bash, wget ... -O - | sh, or similar patterns.
 - Always verify script sources and contents before execution.
