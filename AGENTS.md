@@ -97,7 +97,10 @@ github:
   base_url: https://api.github.com
   api_key: YOUR_GITHUB_TOKEN
   disable: false
-```
+
+guard:
+  disable: false    # disable guard agent for exec commands (default: false)
+  ask: false        # ask user for confirmation when guard blocks a command (default: false)
 
 > If the `webfetch` block is specified, the listed model parameters are used to clean HTML content obtained from web pages.
 
@@ -107,6 +110,13 @@ github:
 
 > `vector_size` must match the dimensionality of the chosen embedding model.
 > For `text-embedding-3-small` — 1536, for `text-embedding-ada-002` — 1536, for `text-embedding-3-large` — 3072.
+
+### Parameters `guard`
+
+| Parameter | Default | Description |
+|---|---|---|
+| `guard.disable` | `false` | Disable guard agent for exec commands. When true, security checks via guard are skipped |
+| `guard.ask` | `false` | If true and guard blocks a command, ask user for confirmation before executing |
 
 ### Parameters `exec`
 
@@ -289,6 +299,20 @@ No output is ever displayed from blocked commands — they return an error messa
 ### Root user prevention
 
 The application **cannot be run as root user**. If the current user is `root` (username or UID 0), the application prints an error message and exits immediately to prevent accidental system-wide modifications.
+
+### Guard configuration
+
+The guard can be configured via `guard.disable` and `guard.ask` parameters:
+
+- **`guard.disable`** (default: `false`): When set to `true`, skips all security checks via the guard agent and executes commands directly.
+- **`guard.ask`** (default: `false`): When set to `true` and guard blocks a command, the user is prompted for confirmation before execution. If user confirms with 'y', the command executes; otherwise, it is blocked.
+
+Example configuration:
+```yaml
+guard:
+  disable: false    # Set to true to skip guard checks
+  ask: true         # Set to true to prompt user when guard blocks commands
+```
 
 ## Indexer (via `/index` command)
 

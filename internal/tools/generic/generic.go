@@ -311,14 +311,26 @@ func (g *GenericTools) Exec(command string, stdin string) string {
 		return "error: dangerous command blocked"
 	}
 
-	allowed, reason, err := g.guard.CheckSecurity(command, g.state.ReadOnly)
-	if err != nil {
-		printer.Print(printer.IconBlocked, "exec: security check failed", "command", command, "err", err)
-		return fmt.Sprintf("error: security check failed: %v", err)
-	}
-	if !allowed {
-		printer.Print(printer.IconBlocked, "exec: blocked dangerous command", "command", command, "reason", reason)
-		return "error: security check failed: " + reason
+	if !g.cfg.Bool("guard.disable") {
+		allowed, reason, err := g.guard.CheckSecurity(command, g.state.ReadOnly)
+		if err != nil {
+			printer.Print(printer.IconBlocked, "exec: security check failed", "command", command, "err", err)
+			return fmt.Sprintf("error: security check failed: %v", err)
+		}
+		if !allowed {
+			if g.cfg.Bool("guard.ask") {
+				printer.Print(printer.IconBlocked, "exec: blocked dangerous command", "command", command, "reason", reason)
+				if askUserForCommand(command, reason) {
+					printer.Print(printer.IconDone, "exec: user confirmed command execution", "command", command)
+				} else {
+					printer.Print(printer.IconBlocked, "exec: user declined command", "command", command)
+					return "error: user declined command execution"
+				}
+			} else {
+				printer.Print(printer.IconBlocked, "exec: blocked dangerous command", "command", command, "reason", reason)
+				return "error: security check failed: " + reason
+			}
+		}
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), execTimeout)
@@ -334,13 +346,13 @@ func (g *GenericTools) Exec(command string, stdin string) string {
 	cmd.Stdout = w
 	cmd.Stderr = w
 
-	err = cmd.Run()
-	if err != nil {
-		printer.Error("exec: command failed", "command", command, "error", err)
+	cmdErr := cmd.Run()
+	if cmdErr != nil {
+		printer.Error("exec: command failed", "command", command, "error", cmdErr)
 		if w.Truncated() {
-			return fmt.Sprintf("error: %v\n(output truncated to %d bytes)", err, execOutputMaxSize)
+			return fmt.Sprintf("error: %v\n(output truncated to %d bytes)", cmdErr, execOutputMaxSize)
 		}
-		return fmt.Sprintf("error: %v\n%s", err, w.String())
+		return fmt.Sprintf("error: %v\n%s", cmdErr, w.String())
 	}
 
 	if w.Truncated() {
@@ -349,6 +361,26 @@ func (g *GenericTools) Exec(command string, stdin string) string {
 	}
 
 	return w.String()
+}
+
+func askUserForCommand(command, reason string) bool {
+	fmt.Printf("Security guard blocked this command:\n\n")
+	fmt.Printf("Command: %s\n", command)
+	fmt.Printf("Reason: %s\n\n", reason)
+
+	var answer string
+
+	for {
+		fmt.Printf("Do you want to execute it anyway? (y/N): ")
+		answer = ""
+		fmt.Scanln(&answer)
+		answer = strings.ToLower(strings.TrimSpace(answer))
+		if answer == "y" || answer == "n" {
+			break
+		}
+	}
+
+	return answer == "y"
 }
 
 // SystemDate executes the date command and returns the output.

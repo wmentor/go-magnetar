@@ -29,6 +29,8 @@ var defaults = map[string]any{
 	"github.base_url":            "",   // GitHub base URL (optional)
 	"github.access_key":          "",   // GitHub access key (optional)
 	"github.disable":             false, // disable GitHub integration (default: false)
+	"guard.disable":              false, // disable guard agent for exec commands (default: false)
+	"guard.ask":                  false, // ask user for confirmation when guard blocks a command (default: false)
 }
 
 // Load reads and parses a YAML config file at the given path.

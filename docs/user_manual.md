@@ -101,6 +101,10 @@ github:
   base_url: https://api.github.com
   api_key: YOUR_GITHUB_TOKEN
   disable: false
+
+guard:
+  disable: false    # disable guard agent for exec commands (default: false)
+  ask: false        # ask user for confirmation when guard blocks a command (default: false)
 ```
 
 > If the `webfetch` block is specified, the model parameters listed above are used to clean HTML content obtained from web pages.
@@ -246,6 +250,29 @@ The read-only mode can be toggled via the `/readonly` chat command. In this mode
 
 No output is ever displayed from blocked commands — they return an error message instead.
 
+### Guard configuration
+
+The guard can be configured via `guard.disable` and `guard.ask` parameters:
+
+- **`guard.disable`** (default: `false`): When set to `true`, skips all security checks via the guard agent and executes commands directly.
+- **`guard.ask`** (default: `false`): When set to `true` and guard blocks a command, the user is prompted for confirmation before execution. If user confirms with 'y', the command executes; otherwise, it is blocked.
+
+Example configuration:
+```yaml
+guard:
+  disable: false    # Set to true to skip guard checks
+  ask: true         # Set to true to prompt user when guard blocks commands
+```
+
+### Read-only mode
+
+The read-only mode can be toggled via the `/readonly` chat command. In this mode:
+- File writes (`file_write`) are blocked
+- Command execution that modifies files or system state is blocked
+- Only read-only operations are permitted
+
+No output is ever displayed from blocked commands — they return an error message instead.
+
 ### Root user prevention
 
 The application **cannot be run as root user**. If the current user is `root` (username or UID 0), the application prints an error message and exits immediately to prevent accidental system-wide modifications.
@@ -289,6 +316,8 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 | `gitlab.api_key` | — | GitLab API key for fetching merge requests and file changes |
 | `github.base_url` | — | GitHub API base URL (e.g. `https://api.github.com`) |
 | `github.api_key` | — | GitHub access token for fetching repositories, files, and trees |
+| `guard.disable` | `false` | Disable guard agent for exec commands. When true, skips all security checks |
+| `guard.ask` | `false` | If true, prompts user for confirmation when guard blocks a command |
 
 **Vector sizes for common embedding models:**
 
