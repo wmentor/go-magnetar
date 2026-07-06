@@ -7,21 +7,102 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.1.4] - 2026-07-06
+
 ### Added
 
-- **Fetch command** — new `/fetch` command (alias `/f`) to retrieve and display content from URLs
-  - Fetches content from URLs using configured `webfetch` block
-  - Cleans HTML and converts to Markdown
-  - Displays in terminal (using `less` if available)
-  - Optional file saving with `file` argument
+- **Language parameter** — new `language` parameter for agent responses
+  - Default: `english`
+  - Configurable via `language` field in config
+  - Injected into system prompt instead of hardcoded English
+  - Updated in configs/config.yaml, README.md, AGENTS.md, docs/user_manual.md
+- **llm.temperature and llm.top_p** — new LLM parameters
+  - Default values: 0.5 and 0.95
+  - Passed to OpenAI API in CreateChatCompletion request
+  - Documented in all configuration examples
+- **/fetch chat command** — new command for URL content retrieval
+  - Alias: `/f`
+  - Fetches and displays content from URLs
+  - HTML cleanup and Markdown conversion via webfetch
+  - Terminal display with `less` if available, or save to file
   - Example: `/fetch https://example.com/article [output.md]`
-  - Based on `web.WebFetch()` functionality
-- **Plugin system** — new `internal/plugins/chatcmd/fetch/plugin.go` plugin
-  - Implements `/fetch` command as chat command
-  - Integration with existing web fetch tools
-  - Automatic `less` availability detection for terminal display
-- **CLI integration** — registered `/fetch` command in main.go
-  - Blank import in `cmd/go-magnetar/main.go` triggers plugin initialization
+- **JIRA Epic child issues** — fetch child issues in Epic tasks
+  - Fetch child issues via JQL search when issue type is "Epic"
+  - Add labels and parent issue fields to output
+  - Include child count and summary in Markdown output
+
+### Changed
+
+- **Refactor exec tool** — security-focused refactoring
+  - Renamed `system_exec` to `exec` with simplified API (command + stdin)
+  - Execute via `sh -c` with clean environment and current working directory
+  - Added 1-minute timeout and 64KB output size limit
+  - Implement blocklist: rm -rf, sudo, mkfs, dd, git ops, shell pipes (bash/sh/zsh)
+  - Remove allowedCommands and read-only mode support
+- **Security hardening** — comprehensive security improvements
+  - Block execution when running as root user
+  - Expand blocklist with privileged commands: su, chmod, chown, fdisk, format, brew, apt, dpkg, npm, systemctl, useradd/userdel, passwd, etc.
+  - Add environment variable filtering to prevent credential leakage
+  - Support read-only mode check in exec tool
+  - Updated documentation and security guidelines
+
+### FIXED
+
+- **Search replace tool** — removed from generic plugin
+  - Removed `search_replace` tool from internal/tools/generic
+  - Updated documentation in AGENTS.md, README.md, docs/user_manual.md
+- **Type cast bug** — fix float64 args in file_read tool
+  - Changed limit/offset params from int to *float64 in generic tool args parsing
+  - Support JSON numbers with decimal points (e.g., 100.0)
+- **Ask tool** — removed from codebase
+  - Delete internal/plugins/ask/plugin.go
+  - Remove ask import from cmd/go-magnetar/main.go
+  - Remove ask tool documentation from AGENTS.md
+
+### Deprecated
+
+- **Search replace tool** — removed from generic plugin (functionality replaced by internal/tools/generic)
+
+### Security
+
+- **Command safety guard** — LLM-based security analysis for exec commands
+  - Implement guard agent with safety analysis
+  - Block destructive commands (rm -rf, sudo, mkfs, dd, fdisk, etc.)
+  - Block shell pipes (| bash, | sh, | zsh)
+  - Block heredoc syntax to prevent unauthorized file writes
+  - Block git operations (commit, push, rebase, etc.)
+  - Add read-only mode support
+  - Environment variable filtering to prevent credential leakage
+- **Read-only mode** — toggle via `/readonly` chat command
+  - Prevent all modifications when enabled
+  - Block file writes and command execution that modifies state
+  - Comprehensive protection via guard agent
+
+### Removed
+
+- **Ask tool** — removed from codebase
+  - Delete internal/plugins/ask/plugin.go
+  - Remove ask import from cmd/go-magnetar/main.go
+  - Remove ask tool documentation from AGENTS.md
+- **Search replace tool** — removed from generic plugin
+  - Removed from internal/tools/generic/generic.go
+  - Updated documentation in AGENTS.md, README.md, docs/user_manual.md
+- **Guard ask flag** — simplified guard configuration
+  - Removed ask flag from guard configuration (replaced with unified guard)
+
+### Documentation
+
+- **Security documentation** — new docs/security.md
+  - Comprehensive security guidelines
+  - Command safety guard details
+  - Read-only mode explanation
+  - Root user prevention
+- **Updated documentation** — for new features
+  - AGENTS.md, README.md, docs/user_manual.md updates
+  - Command examples for /fetch and /readonly
+  - Configuration parameters for language, temperature, top_p
+  - Updated data flow diagrams
+  - Added warning about stdin input limitations (Bubble Tea requires interactive terminal)
 
 ## [v0.1.3] - 2026-06-30
 
@@ -163,7 +244,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Plugin architecture refactoring
 - Search enhancements
 
-[Unreleased]: https://github.com/wmentor/go-magnetar/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/wmentor/go-magnetar/compare/v0.1.4...HEAD
 [v0.1.3]: https://github.com/wmentor/go-magnetar/compare/v0.1.2...v0.1.3
 [v0.1.2]: https://github.com/wmentor/go-magnetar/compare/v0.1.1...v0.1.2
 [v0.1.1]: https://github.com/wmentor/go-magnetar/compare/v0.1.0...v0.1.1
