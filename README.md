@@ -52,6 +52,8 @@ llm:
   api_key: sk-...
   model: gpt-4o
   context: 128000
+  temperature: 0.5   # LLM temperature for response generation (default: 0.5)
+  top_p: 0.95        # LLM top_p for response generation (default: 0.95)
 
 rag:
   disable: false
@@ -183,6 +185,8 @@ The chat agent maintains command history in `~/.go-magnetar-history.json`. Use *
 | `llm.api_key` | — | API key for the chat model |
 | `llm.model` | — | Chat model name (e.g. `gpt-4o`) |
 | `llm.context` | — | Token limit of the model's context window |
+| `llm.temperature` | `0.5` | LLM temperature for response generation |
+| `llm.top_p` | `0.95` | LLM top_p for response generation |
 | `rag.llm.base_url` | — | Endpoint for the embedding model |
 | `rag.llm.api_key` | — | API key for the embedding model |
 | `rag.llm.model` | — | Embedding model name (e.g. `text-embedding-3-small`) |

@@ -41,6 +41,8 @@ llm:
   api_key: YOUR_API_KEY
   model: gpt-4o
   context: 128000                        # token limit of the context window
+  temperature: 0.5                       # LLM temperature for response generation (default: 0.5)
+  top_p: 0.95                            # LLM top_p for response generation (default: 0.95)
 
 rag:
   disable: false
