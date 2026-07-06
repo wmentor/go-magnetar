@@ -25,7 +25,10 @@ import (
 	"github.com/wmentor/go-magnetar/internal/tools/generic"
 )
 
-const systemPrompt = `You are a helpful assistant that answers questions strictly based on the knowledge base.
+	const systemPromptTemplate = `You are a helpful assistant that answers questions strictly based on the knowledge base.
+
+Parameters:
+- language: %s
 
 Rules:
 - Always try rag_search first for every question, even if you think you already know the answer.
@@ -85,13 +88,14 @@ func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
 		return nil, fmt.Errorf("chat: failed to initialise markdown renderer: %w", err)
 	}
 
-	systemContent := systemPrompt
+	language := cfg.String("language")
+	systemContent := fmt.Sprintf(systemPromptTemplate, language)
 	if root != nil {
 		state := &plugin.State{Config: cfg}
 		genTools := generic.New(cfg, root, state)
-		if _, statErr := root.Stat(agentsFile); statErr == nil {
+ 		if _, statErr := root.Stat(agentsFile); statErr == nil {
 			if agentsContent, ok := genTools.FileRead(agentsFile, 0, 0); ok {
-				systemContent = systemPrompt + "\n\n# Project context (from AGENTS.md)\n\n" + agentsContent
+				systemContent = systemContent + "\n\n# Project context (from AGENTS.md)\n\n" + agentsContent
 				printer.ToolCall(printer.IconDone, "AGENTS.md has been loaded")
 				printer.ToolEmptyLine()
 			}

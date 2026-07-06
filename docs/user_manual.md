@@ -48,6 +48,8 @@ llm:
   context: 128000
   temperature: 0.5   # LLM temperature for response generation (default: 0.5)
   top_p: 0.95        # LLM top_p for response generation (default: 0.95)
+  
+language: english  # language for agent responses (default: english)
 
 rag:
   llm:
@@ -293,6 +295,7 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 | `llm.context` | — | Model context token limit |
 | `llm.temperature` | `0.5` | LLM temperature for response generation |
 | `llm.top_p` | `0.95` | LLM top_p for response generation |
+| `language` | `english` | Language used for agent responses in chat conversations (does not affect code comments, documentation, or other technical writing) |
 | `rag.llm.base_url` | — | Endpoint for embedding model |
 | `rag.llm.api_key` | — | API key for embedding model |
 | `rag.llm.model` | — | Embedding model name (e.g. `text-embedding-3-small`) |

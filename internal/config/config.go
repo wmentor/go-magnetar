@@ -26,6 +26,7 @@ type Config struct {
 	"rag.search.dedup_threshold": 0.95, // near-duplicate suppression threshold
 	"llm.temperature":            0.5,  // LLM temperature for response generation
 	"llm.top_p":                  0.95, // LLM top_p for response generation
+	"language":                   "english", // language for agent responses (default: english)
 	"gitlab.base_url":            "",   // GitLab base URL (optional)
 	"gitlab.api_key":             "",   // GitLab API key (optional)
 	"github.base_url":            "",   // GitHub base URL (optional)

@@ -44,6 +44,8 @@ llm:
   temperature: 0.5                       # LLM temperature for response generation (default: 0.5)
   top_p: 0.95                            # LLM top_p for response generation (default: 0.95)
 
+language: english                      # language for agent responses (default: english)
+
 rag:
   disable: false
   llm:
@@ -113,12 +115,17 @@ guard:
 > `vector_size` must match the dimensionality of the chosen embedding model.
 > For `text-embedding-3-small` — 1536, for `text-embedding-ada-002` — 1536, for `text-embedding-3-large` — 3072.
 
-### Parameters `guard`
+### Parameter `language`
 
 | Parameter | Default | Description |
 |---|---|---|
-| `guard.disable` | `false` | Disable guard agent for exec commands. When true, security checks via guard are skipped |
+| `language` | `english` | Language used for agent responses in chat conversations (does not affect code comments, documentation, or other technical writing) |
 | `guard.ask` | `false` | If true and guard blocks a command, ask user for confirmation before executing |
+
+| Parameter | Description |
+|---|---|
+| `guard.disable` | Disable guard agent for exec commands. When true, security checks via guard are skipped |
+| `guard.ask` | If true and guard blocks a command, ask user for confirmation before executing |
 
 ### Parameters `exec`
 
