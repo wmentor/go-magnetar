@@ -262,11 +262,11 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Hour)
 		resp, err := a.llm.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-			Model:      a.cfg.String("llm.model"),
-			Messages:   trimmed,
-			Tools:      tools,
-			Temperature: a.cfg.Float64("llm.temperature"),
-			TopP:       a.cfg.Float64("llm.top_p"),
+			Model:       a.cfg.String("llm.model"),
+			Messages:    trimmed,
+			Tools:       tools,
+			Temperature: float32(a.cfg.Float64("llm.temperature")),
+			TopP:        float32(a.cfg.Float64("llm.top_p")),
 		})
 		cancel()
 
