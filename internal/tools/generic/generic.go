@@ -634,15 +634,23 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 	switch name {
 	case "file_read":
 		var params struct {
-			Filename string `json:"filename"`
-			Limit    int    `json:"limit,omitempty"`
-			Offset   int    `json:"offset,omitempty"`
+			Filename string    `json:"filename"`
+			Limit    *float64  `json:"limit,omitempty"`
+			Offset   *float64  `json:"offset,omitempty"`
 		}
 		if err := json.Unmarshal([]byte(args), &params); err != nil {
 			printer.Error("file_read: failed to parse args", "args", args, "err", err)
 			return "error: failed to parse arguments"
 		}
-		content, ok := g.FileRead(params.Filename, params.Limit, params.Offset)
+		limit := 0
+		offset := 0
+		if params.Limit != nil {
+			limit = int(*params.Limit)
+		}
+		if params.Offset != nil {
+			offset = int(*params.Offset)
+		}
+		content, ok := g.FileRead(params.Filename, limit, offset)
 		if !ok {
 			return "error: failed to read file"
 		}
