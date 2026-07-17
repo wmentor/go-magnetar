@@ -261,6 +261,17 @@ The REPL reads questions from stdin. Press `Ctrl+D` to exit.
 | `/readonly` | — | Toggle read-only mode (blocks all modification operations) |
 | `/fetch` | `/f` | Fetch content from a URL, optionally save to file |
 
+#### Text preprocessing
+
+The agent applies text preprocessors to user input before processing. The built-in generic plugin provide the following placeholders that are automatically expanded:
+
+| Placeholder | Description |
+|---|---|
+| `{{home}}` | Your home directory path |
+| `{{uuid}}` | A random UUID v4 |
+| `{{date}}` | Current date in `YYYY-MM-DD` format |
+| `{{now}}` | Current date and time in `YYYY-MM-DD HH:MM:SS` format |
+
 Commands are case-insensitive, processed locally, and never sent to the LLM.
 
 #### Command history
