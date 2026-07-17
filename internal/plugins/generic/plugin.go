@@ -2,8 +2,13 @@ package genericplugin
 
 import (
 	"context"
+	"os"
 	"os/exec"
+	"strings"
 	"sync"
+	"time"
+
+	"github.com/google/uuid"
 
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/tools/generic"
@@ -18,10 +23,11 @@ func init() {
 // The GenericTools instance is created lazily on first use so that the
 // agent's working-directory Root (set via plugin.SetRoot) is available.
 type Plugin struct {
-	mu       sync.Mutex
-	state    *plugin.State
-	tools    *generic.GenericTools
-	grepOnce sync.Once
+	mu             sync.Mutex
+	state          *plugin.State
+	tools          *generic.GenericTools
+	grepOnce       sync.Once
+	preprocessOnce sync.Once
 }
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
@@ -73,7 +79,30 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 			},
 		})
 	}
+	p.registerPreprocessor(hub)
 	return nil
+}
+
+func (p *Plugin) registerPreprocessor(hub plugin.Hub) {
+	hub.RegisterPreprocessor(func(ctx context.Context, text string) (string, error) {
+		if home, err := os.UserHomeDir(); err == nil {
+			text = replaceAll(text, "{{home}}", home)
+		}
+
+		text = replaceAll(text, "{{uuid}}", uuid.New().String())
+
+		text = replaceAll(text, "{{date}}", time.Now().Format("2006-01-02"))
+		text = replaceAll(text, "{{now}}", time.Now().Format("2006-01-02 15:04:05"))
+
+		return text, nil
+	})
+}
+
+func replaceAll(s, old, new string) string {
+	if old == "" {
+		return s
+	}
+	return strings.ReplaceAll(s, old, new)
 }
 
 func (p *Plugin) get() *generic.GenericTools {
