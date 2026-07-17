@@ -86,23 +86,84 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 func (p *Plugin) registerPreprocessor(hub plugin.Hub) {
 	hub.RegisterPreprocessor(func(ctx context.Context, text string) (string, error) {
 		if home, err := os.UserHomeDir(); err == nil {
-			text = replaceAll(text, "{{home}}", home)
+			text = strings.ReplaceAll(text, "{{home}}", home)
 		}
 
-		text = replaceAll(text, "{{uuid}}", uuid.New().String())
+		text = strings.ReplaceAll(text, "{{uuid}}", uuid.New().String())
 
-		text = replaceAll(text, "{{date}}", time.Now().Format("2006-01-02"))
-		text = replaceAll(text, "{{now}}", time.Now().Format("2006-01-02 15:04:05"))
+		text = strings.ReplaceAll(text, "{{date}}", time.Now().Format("2006-01-02"))
+		text = strings.ReplaceAll(text, "{{now}}", time.Now().Format("2006-01-02 15:04:05"))
+
+		text = processFiles(text)
 
 		return text, nil
 	})
 }
 
-func replaceAll(s, old, new string) string {
-	if old == "" {
-		return s
+func processFiles(text string) string {
+	// Process {{file:filename}} patterns
+	// Pattern: {{file:...}} where ... can be absolute path or ~/path
+	repl := func(match string) string {
+		// Extract filename from {{file:filename}}
+		start := strings.Index(match, "{{file:")
+		if start == -1 {
+			return match
+		}
+		start += len("{{file:")
+		end := strings.Index(match[start:], "}}")
+		if end == -1 {
+			return match
+		}
+		end += start
+
+		filename := match[start:end]
+
+		// Expand ~/ to home directory
+		if strings.HasPrefix(filename, "~/") {
+			home, err := os.UserHomeDir()
+			if err == nil {
+				filename = home + filename[1:]
+			}
+		}
+
+		// Read file and return its content
+		content := readFile(filename)
+		if content == "" {
+			return match // Return original if file couldn't be read
+		}
+		return content
 	}
-	return strings.ReplaceAll(s, old, new)
+
+	// Find and replace all {{file:...}} patterns
+	return replaceAllPatterns(text, "{{file:", "}}", repl)
+}
+
+func replaceAllPatterns(s, prefix, suffix string, repl func(string) string) string {
+	result := s
+	for {
+		start := strings.Index(result, prefix)
+		if start == -1 {
+			break
+		}
+		end := strings.Index(result[start+len(prefix):], suffix)
+		if end == -1 {
+			break
+		}
+		end += start + len(prefix)
+
+		match := result[start:end+len(suffix)]
+		replacement := repl(match)
+		result = result[:start] + replacement + result[end+len(suffix):]
+	}
+	return result
+}
+
+func readFile(filename string) string {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return ""
+	}
+	return string(data)
 }
 
 func (p *Plugin) get() *generic.GenericTools {

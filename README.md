@@ -272,6 +272,16 @@ The agent applies text preprocessors to user input before processing. The built-
 | `{{date}}` | Current date in `YYYY-MM-DD` format |
 | `{{now}}` | Current date and time in `YYYY-MM-DD HH:MM:SS` format |
 
+#### Reading file contents
+
+The agent supports inline file content injection using the `{{file:filename}}` placeholder:
+
+| Placeholder | Description |
+|---|---|
+| `{{file:filename}}` | Reads file content and replaces placeholder with the file contents. Supports absolute paths and `~/` home directory prefix |
+
+Example: `{{file:~/documents/notes.md}}` will be replaced with the content of that file.
+
 Commands are case-insensitive, processed locally, and never sent to the LLM.
 
 #### Command history
