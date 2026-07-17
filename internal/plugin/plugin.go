@@ -32,6 +32,10 @@ type State struct {
 	ReadOnly bool // if true, disable file write operations
 }
 
+// PreprocessorFunc is a function that preprocesses text.
+// It is called with the raw text and should return the processed text.
+type PreprocessorFunc func(ctx context.Context, text string) (string, error)
+
 // Hub is the registration and lifecycle interface passed to Plugin.Init.
 // A plugin calls the Register* methods to contribute functionality,
 // and Go to enqueue managed background goroutines.
@@ -45,6 +49,11 @@ type Hub interface {
 	// RegisterCLICommand adds a subcommand to the CLI.
 	// cmd must be a pointer to a kong-annotated struct with a Run() method.
 	RegisterCLICommand(cmd any)
+
+	// RegisterPreprocessor adds a text preprocessor that will be applied
+	// to text content before it is displayed or processed further.
+	// Preprocessors are applied in the order they are registered.
+	RegisterPreprocessor(fn PreprocessorFunc)
 
 	// Go enqueues a background goroutine to be started after all plugins
 	// have finished Init (i.e. after InitAll returns).

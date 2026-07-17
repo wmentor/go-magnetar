@@ -539,6 +539,14 @@ func (a *ChatAgent) Run() error {
 		fmt.Fprintln(os.Stdout, questionStyle.Render(line))
 		fmt.Fprintln(os.Stdout)
 
+		for _, preprocessor := range plugin.Preprocessors() {
+			if str, err := preprocessor(context.Background(), line); err == nil {
+				line = str
+			} else {
+				printer.Error("chat: preprocessor error", "err", err)
+			}
+		}
+
 		if handled, exit := a.handleCommand(line); handled {
 			if exit {
 				break

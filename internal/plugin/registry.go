@@ -20,9 +20,10 @@ type entry struct {
 type hub struct {
 	mu sync.Mutex
 
-	tools    []LLMTool
-	commands []ChatCommand
-	cli      []any
+	tools       []LLMTool
+	commands    []ChatCommand
+	cli         []any
+	preprocessors []PreprocessorFunc
 
 	goroutines  []func(ctx context.Context)
 	initialised bool
@@ -51,6 +52,12 @@ func (h *hub) RegisterCLICommand(cmd any) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.cli = append(h.cli, cmd)
+}
+
+func (h *hub) RegisterPreprocessor(fn PreprocessorFunc) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	h.preprocessors = append(h.preprocessors, fn)
 }
 
 // Go enqueues f to be started after all plugins have been initialised.
@@ -208,6 +215,15 @@ func ChatCommands() []ChatCommand {
 	defer globalHub.mu.Unlock()
 	out := make([]ChatCommand, len(globalHub.commands))
 	copy(out, globalHub.commands)
+	return out
+}
+
+// Preprocessors returns all registered preprocessors in registration order.
+func Preprocessors() []PreprocessorFunc {
+	globalHub.mu.Lock()
+	defer globalHub.mu.Unlock()
+	out := make([]PreprocessorFunc, len(globalHub.preprocessors))
+	copy(out, globalHub.preprocessors)
 	return out
 }
 

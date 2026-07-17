@@ -558,6 +558,26 @@ go-magnetar uses a plugin architecture modelled after `database/sql` drivers.
 Same pattern but call `hub.RegisterChatCommand(plugin.ChatCommand{...})` in `Init`.
 Return `plugin.ErrExit` from `Execute` to signal the REPL to quit.
 
+### Adding a text preprocessor
+
+Text preprocessors allow plugins to transform user input before it's processed by the agent (commands or LLM). 
+Preprocessors are applied sequentially in registration order.
+
+1. Create a preprocessor function with signature: `func(ctx context.Context, text string) (string, error)`
+2. Call `hub.RegisterPreprocessor(fn)` in your plugin's `Init()` method
+3. Preprocessors run after user input is displayed but before command matching or LLM processing
+
+Example:
+```go
+func (p *MyPlugin) Init(s plugin.State, hub plugin.Hub) error {
+    hub.RegisterPreprocessor(func(ctx context.Context, text string) (string, error) {
+        // Transform text (e.g., normalize, expand abbreviations, etc.)
+        return strings.ToUpper(text), nil
+    })
+    return nil
+}
+```
+
 ### Key interfaces
 
 ```go
@@ -569,6 +589,7 @@ type Hub interface {
     RegisterTool(tool LLMTool)
     RegisterChatCommand(cmd ChatCommand)
     RegisterCLICommand(cmd any)
+    RegisterPreprocessor(fn PreprocessorFunc)
     Go(f func(ctx context.Context))  // background goroutine; started after all Init calls
     Stop()
 }
