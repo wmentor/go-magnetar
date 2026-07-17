@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -25,7 +26,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/tools/generic"
 )
 
-	const systemPromptTemplate = `You are a helpful assistant that answers questions strictly based on the knowledge base.
+const systemPromptTemplate = `You are a helpful assistant that answers questions strictly based on the knowledge base.
 
 Parameters:
 - language: %s
@@ -38,6 +39,7 @@ Rules:
 - Do not invent, assume, or extrapolate facts beyond what the tools return.
 - If neither rag_search nor web_fetch provides relevant information, tell the user honestly that you don't have information on this topic.
 - Be concise and precise.
+- You may execute multiple tools in parallel when the response contains multiple tool calls.
 
 SECURITY WARNING: You are FORBIDDEN from executing destructive commands such as:
 - rm -rf /, rm -rf *, sudo, chmod 777, dd, mkfs, fdisk, or any command that could delete/modify/system files.
@@ -93,7 +95,7 @@ func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
 	if root != nil {
 		state := &plugin.State{Config: cfg}
 		genTools := generic.New(cfg, root, state)
- 		if _, statErr := root.Stat(agentsFile); statErr == nil {
+		if _, statErr := root.Stat(agentsFile); statErr == nil {
 			if agentsContent, ok := genTools.FileRead(agentsFile, 0, 0); ok {
 				systemContent = systemContent + "\n\n# Project context (from AGENTS.md)\n\n" + agentsContent
 				printer.ToolCall(printer.IconDone, "AGENTS.md has been loaded")
@@ -286,19 +288,41 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 		a.messages = append(a.messages, choice.Message)
 
 		if choice.FinishReason == openai.FinishReasonToolCalls {
-			for _, toolCall := range choice.Message.ToolCalls {
-				name := toolCall.Function.Name
-				args := toolCall.Function.Arguments
+			type toolResult struct {
+				toolCall openai.ToolCall
+				result   string
+				err      error
+			}
 
-				var result string
-				t, ok := toolMap[name]
-				if !ok {
-					result = "error: unknown tool " + name
-				} else {
-					if t.IsSearchTool {
-						toolCallCount++
-						if toolCallCount > maxSearchToolCalls {
-							result = fmt.Sprintf("error: reached maximum number of search tool calls (%d)", maxSearchToolCalls)
+			results := make(chan toolResult, len(choice.Message.ToolCalls))
+
+			var wg sync.WaitGroup
+
+			for _, toolCall := range choice.Message.ToolCalls {
+				wg.Add(1)
+				go func(tc openai.ToolCall) {
+					defer wg.Done()
+
+					name := tc.Function.Name
+					args := tc.Function.Arguments
+
+					var result string
+					t, ok := toolMap[name]
+					if !ok {
+						result = "error: unknown tool " + name
+					} else {
+						if t.IsSearchTool {
+							toolCallCount++
+							if toolCallCount > maxSearchToolCalls {
+								result = fmt.Sprintf("error: reached maximum number of search tool calls (%d)", maxSearchToolCalls)
+							} else {
+								r, err := t.Execute(context.Background(), args)
+								if err != nil {
+									result = "error: " + err.Error()
+								} else {
+									result = r
+								}
+							}
 						} else {
 							r, err := t.Execute(context.Background(), args)
 							if err != nil {
@@ -307,20 +331,22 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 								result = r
 							}
 						}
-					} else {
-						r, err := t.Execute(context.Background(), args)
-						if err != nil {
-							result = "error: " + err.Error()
-						} else {
-							result = r
-						}
 					}
-				}
+					results <- toolResult{toolCall: tc, result: result}
+				}(toolCall)
+			}
 
+			wg.Wait()
+			close(results)
+
+			for r := range results {
+				if r.err != nil {
+					printer.Error("chat: tool execution failed", "tool", r.toolCall.Function.Name, "err", r.err)
+				}
 				a.messages = append(a.messages, openai.ChatCompletionMessage{
 					Role:       openai.ChatMessageRoleTool,
-					Content:    result,
-					ToolCallID: toolCall.ID,
+					Content:    r.result,
+					ToolCallID: r.toolCall.ID,
 				})
 			}
 			continue
