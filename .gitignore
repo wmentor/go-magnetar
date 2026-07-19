@@ -1,2 +1,4 @@
 bin/
 *.env
+.DS_Store
+
