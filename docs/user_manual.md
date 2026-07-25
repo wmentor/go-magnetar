@@ -245,7 +245,7 @@ Use **↑/↓** arrows to navigate through previously entered commands. History 
 | `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem |
 | `exec` | `(command: string, stdin: string) -> string` | Executes a shell command via `sh -c` with clean environment and current working directory; security guard analyzes all commands before execution |
 | `system_date` | `() -> string` | Executes the date command to get the current system time |
-| `system_grep` | `(filename: string, pattern: string, case_insensitive: bool, recursive: bool) -> string` | Executes system grep command with safe parameters |
+| `system_grep` | `(filename: string, pattern: string) -> string` | Executes system grep command with safe parameters: -n (always), -i (case-insensitive), -r (recursive), -E (extended regex) |
 | `rag_search` | `(query: string) -> string` | Returns relevant fragments from indexed data |
 | `web_fetch` | `(url: string) -> string` | Fetches web pages (fallback if RAG returns no results); also fetches Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories when URL matches |
 | `ask` | `(question: string) -> string` | Asks the user a clarifying question and returns the answer |

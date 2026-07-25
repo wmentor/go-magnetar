@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/wmentor/go-magnetar/internal/agent/guard"
@@ -188,7 +189,7 @@ func (g *GenericTools) FileRead(filename string, limit int, offset int) (string,
 // FileWrite writes content to a file and returns a success flag.
 // Returns false if read-only mode is enabled.
 func (g *GenericTools) FileWrite(filename string, content string) bool {
-	printer.ToolCall(printer.IconSave, "file_write: file written successfully", "file", filename)
+	printer.ToolCall(printer.IconSave, "file_write", "file", filename)
 	if g.state.ReadOnly {
 		printer.Error("file_write: blocked by read-only mode", "file", filename)
 		return false
@@ -212,10 +213,20 @@ func (g *GenericTools) FileExists(filename string) bool {
 	return true
 }
 
-// FileList returns a list of files in the current directory recursively,
+// FileList returns a list of files in the current directory recursively,s
 // filtered by name and/or extension.
 func (g *GenericTools) FileList(opts *FileListOptions) []string {
 	var results []string
+
+	logParams := []any{}
+	if len(opts.Extensions) > 0 {
+		logParams = append(logParams, "extensions", opts.Extensions)
+	}
+	if len(opts.Names) > 0 {
+		logParams = append(logParams, "names", opts.Names)
+	}
+
+	printer.ToolCall(printer.IconTool, "file_list", logParams...)
 
 	err := filepath.WalkDir(g.root.Name(), func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
@@ -397,26 +408,22 @@ func (g *GenericTools) SystemDate() string {
 }
 
 // SystemGrep executes the system grep command with a limited set of safe arguments:
-// pattern (required), -i (case-insensitive), -r (recursive), and always adds -n (line numbers).
-func (g *GenericTools) SystemGrep(filename string, pattern string, caseInsensitive bool, recursive bool) string {
+// pattern (required), always uses -i (case-insensitive), -r (recursive), and -n (line numbers).
+func (g *GenericTools) SystemGrep(filename string, pattern string) string {
 	printer.ToolCall(printer.IconTool, "system_grep", "pattern", pattern)
 
-	cmd := []string{"grep", "-n"}
-
-	if caseInsensitive {
-		cmd = append(cmd, "-i")
-	}
-
-	if recursive {
-		cmd = append(cmd, "-r")
-	}
-
-	cmd = append(cmd, "-E", pattern, filename)
+	cmd := []string{"grep", "-n", "-i", "-r", "-E", pattern, filename}
 
 	output, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
 	if err != nil {
-		printer.Error("system_grep: command failed", "cmd", cmd, "err", err, "output", string(output))
-		return fmt.Sprintf("error: %v\n%s", err, output)
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			if code := exitErr.ExitCode(); code == 1 {
+				return "No match found"
+			}
+		}
+		printer.Error("system_grep error", "err", err)
+		return fmt.Sprintf("error: %v", err)
 	}
 
 	return string(output)
@@ -602,7 +609,7 @@ func (g *GenericTools) DefinitionSystemGrep() openai.Tool {
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
 			Name:        "system_grep",
-			Description: "Execute system grep command with safe parameters: -n (always), optional -i (case-insensitive) and -r (recursive)",
+			Description: "Execute system grep command with safe parameters: -n (always), -i (case-insensitive), and -r (recursive)",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
@@ -613,14 +620,6 @@ func (g *GenericTools) DefinitionSystemGrep() openai.Tool {
 					"pattern": map[string]any{
 						"type":        "string",
 						"description": "Regular expression pattern to search for",
-					},
-					"case_insensitive": map[string]any{
-						"type":        "boolean",
-						"description": "If true, perform case-insensitive matching (default: false)",
-					},
-					"recursive": map[string]any{
-						"type":        "boolean",
-						"description": "If true, search recursively in directories (default: false)",
 					},
 				},
 				"required": []string{"filename", "pattern"},
@@ -634,9 +633,9 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 	switch name {
 	case "file_read":
 		var params struct {
-			Filename string    `json:"filename"`
-			Limit    *float64  `json:"limit,omitempty"`
-			Offset   *float64  `json:"offset,omitempty"`
+			Filename string   `json:"filename"`
+			Limit    *float64 `json:"limit,omitempty"`
+			Offset   *float64 `json:"offset,omitempty"`
 		}
 		if err := json.Unmarshal([]byte(args), &params); err != nil {
 			printer.Error("file_read: failed to parse args", "args", args, "err", err)
@@ -710,16 +709,14 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 
 	case "system_grep":
 		var params struct {
-			Filename        string `json:"filename"`
-			Pattern         string `json:"pattern"`
-			CaseInsensitive bool   `json:"case_insensitive,omitempty"`
-			Recursive       bool   `json:"recursive,omitempty"`
+			Filename string `json:"filename"`
+			Pattern  string `json:"pattern"`
 		}
 		if err := json.Unmarshal([]byte(args), &params); err != nil {
 			printer.Error("system_grep: failed to parse args", "args", args, "err", err)
 			return "error: failed to parse arguments"
 		}
-		return g.SystemGrep(params.Filename, params.Pattern, params.CaseInsensitive, params.Recursive)
+		return g.SystemGrep(params.Filename, params.Pattern)
 
 	default:
 		return "error: unknown tool " + name
@@ -847,7 +844,7 @@ func StaticDefinitionSystemGrep() openai.Tool {
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
 			Name:        "system_grep",
-			Description: "Execute system grep command with safe parameters: -n (always), optional -i (case-insensitive) and -r (recursive)",
+			Description: "Execute system grep command with safe parameters: -n (always), -i (case-insensitive), and -r (recursive)",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
@@ -858,14 +855,6 @@ func StaticDefinitionSystemGrep() openai.Tool {
 					"pattern": map[string]any{
 						"type":        "string",
 						"description": "Regular expression pattern to search for",
-					},
-					"case_insensitive": map[string]any{
-						"type":        "boolean",
-						"description": "If true, perform case-insensitive matching (default: false)",
-					},
-					"recursive": map[string]any{
-						"type":        "boolean",
-						"description": "If true, search recursively in directories (default: false)",
 					},
 				},
 				"required": []string{"filename", "pattern"},
