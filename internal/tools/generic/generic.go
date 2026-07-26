@@ -110,10 +110,9 @@ func (g *GenericTools) isCommandBlocked(command string) bool {
 	return false
 }
 
-// FileListOptions defines optional filters for listing files.
-type FileListOptions struct {
-	Extensions []string `json:"extensions,omitempty"`
-	Names      []string `json:"names,omitempty"`
+// FileList filter parameter.
+type FileListFilter struct {
+	Filter string `json:"filter,omitempty"`
 }
 
 // GenericTools provides basic file system operations as LLM tools.
@@ -213,17 +212,14 @@ func (g *GenericTools) FileExists(filename string) bool {
 	return true
 }
 
-// FileList returns a list of files in the current directory recursively,s
-// filtered by name and/or extension.
-func (g *GenericTools) FileList(opts *FileListOptions) []string {
+// FileList returns a list of files in the current directory recursively,
+// filtered by glob pattern.
+func (g *GenericTools) FileList(filter *FileListFilter) []string {
 	var results []string
 
 	logParams := []any{}
-	if len(opts.Extensions) > 0 {
-		logParams = append(logParams, "extensions", opts.Extensions)
-	}
-	if len(opts.Names) > 0 {
-		logParams = append(logParams, "names", opts.Names)
+	if filter != nil && filter.Filter != "" {
+		logParams = append(logParams, "filter", filter.Filter)
 	}
 
 	printer.ToolCall(printer.IconTool, "file_list", logParams...)
@@ -251,32 +247,14 @@ func (g *GenericTools) FileList(opts *FileListOptions) []string {
 			return nil
 		}
 
-		if opts != nil {
-			if len(opts.Extensions) > 0 {
-				ext := filepath.Ext(p)
-				matched := false
-				for _, e := range opts.Extensions {
-					if strings.EqualFold(ext, e) || strings.EqualFold(ext, "."+e) {
-						matched = true
-						break
-					}
-				}
-				if !matched {
-					return nil
-				}
+		if filter != nil && filter.Filter != "" {
+			matched, err := filepath.Match(filter.Filter, base)
+			if err != nil {
+				printer.Error("file_list: invalid filter pattern", "pattern", filter.Filter, "err", err)
+				return nil
 			}
-
-			if len(opts.Names) > 0 {
-				matched := false
-				for _, n := range opts.Names {
-					if strings.EqualFold(base, n) {
-						matched = true
-						break
-					}
-				}
-				if !matched {
-					return nil
-				}
+			if !matched {
+				return nil
 			}
 		}
 
@@ -513,25 +491,9 @@ func (g *GenericTools) DefinitionFileList() openai.Tool {
 			Name:        "file_list",
 			Description: "List all files in the current directory tree",
 			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"options": map[string]any{
-						"type":        "object",
-						"description": "Optional filtering criteria",
-						"properties": map[string]any{
-							"extensions": map[string]any{
-								"type":        "array",
-								"items":       map[string]any{"type": "string"},
-								"description": "File extensions to include (e.g., ['.md', '.txt'])",
-							},
-							"names": map[string]any{
-								"type":        "array",
-								"items":       map[string]any{"type": "string"},
-								"description": "File names to include (exact matches)",
-							},
-						},
-					},
-				},
+				"type":       "object",
+				"properties": map[string]any{},
+				"required":   []string{},
 			},
 		},
 	}
@@ -657,13 +619,13 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 
 	case "file_list":
 		var params struct {
-			Options *FileListOptions `json:"options,omitempty"`
+			Filter string `json:"filter,omitempty"`
 		}
 		if err := json.Unmarshal([]byte(args), &params); err != nil {
 			printer.Error("file_list: failed to parse args", "args", args, "err", err)
 			return "error: failed to parse arguments"
 		}
-		results := g.FileList(params.Options)
+		results := g.FileList(&FileListFilter{Filter: params.Filter})
 		return strings.Join(results, "\n")
 
 	case "file_write":
@@ -872,21 +834,9 @@ func StaticDefinitionFileList() openai.Tool {
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
-					"options": map[string]any{
-						"type":        "object",
-						"description": "Optional filtering criteria",
-						"properties": map[string]any{
-							"extensions": map[string]any{
-								"type":        "array",
-								"items":       map[string]any{"type": "string"},
-								"description": "File extensions to include (e.g., ['.md', '.txt'])",
-							},
-							"names": map[string]any{
-								"type":        "array",
-								"items":       map[string]any{"type": "string"},
-								"description": "File names to include (exact matches)",
-							},
-						},
+					"filter": map[string]any{
+						"type":        "string",
+						"description": "Glob pattern to match file names (e.g., '*.go', 'test_*.py')",
 					},
 				},
 			},

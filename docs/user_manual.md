@@ -241,7 +241,7 @@ Use **↑/↓** arrows to navigate through previously entered commands. History 
 | Tool | Signature | Description |
 |---|---|---|
 | `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem |
-| `file_list` | `(options: object) -> []string` | Recursively lists files in the current directory |
+| `file_list` | `(filter: string) -> []string` | Recursively lists files in the current directory using glob pattern (e.g. `*.go`) |
 | `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem |
 | `exec` | `(command: string, stdin: string) -> string` | Executes a shell command via `sh -c` with clean environment and current working directory; security guard analyzes all commands before execution |
 | `system_date` | `() -> string` | Executes the date command to get the current system time |
