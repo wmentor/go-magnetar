@@ -18,6 +18,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/agent/guard"
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/docx"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 )
@@ -142,6 +143,17 @@ func (g *GenericTools) Root() *os.Root {
 // If limit > 0, reads at most limit lines starting from offset line.
 func (g *GenericTools) FileRead(filename string, limit int, offset int) (string, bool) {
 	printer.ToolCall(printer.IconTool, "file_read", "filename", filename)
+
+	ext := strings.ToLower(filepath.Ext(filename))
+
+	if ext == ".docx" {
+		text, err := docx.ReadFile(filename)
+		if err != nil {
+			printer.Error("file_read: failed to read docx file", "file", filename, "err", err)
+			return "", false
+		}
+		return text, true
+	}
 
 	if limit <= 0 && offset <= 0 {
 		data, err := g.root.ReadFile(filename)

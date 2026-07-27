@@ -228,7 +228,7 @@ The agent supports inline file content injection using the `{{file:filename}}` p
 |---|---|
 | `{{file:filename}}` | Reads file content and replaces placeholder with the file contents. Supports absolute paths and `~/` home directory prefix |
 
-Example: `{{file:~/documents/notes.md}}` will be replaced with the content of that file.
+Example: `{{file:~/documents/notes.md}}` or `{{file:~/documents/report.docx}}` will be replaced with the content of that file.
 
 Commands are case-insensitive, processed locally, and never sent to the LLM.
 
@@ -240,7 +240,7 @@ Use **↑/↓** arrows to navigate through previously entered commands. History 
 
 | Tool | Signature | Description |
 |---|---|---|
-| `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem |
+| `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem (supports `.md`, `.txt`, `.docx`) |
 | `file_list` | `(filter: string) -> []string` | Recursively lists files in the current directory using glob pattern (e.g. `*.go`) |
 | `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem |
 | `exec` | `(command: string, stdin: string) -> string` | Executes a shell command via `sh -c` with clean environment and current working directory; security guard analyzes all commands before execution |

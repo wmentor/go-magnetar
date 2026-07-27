@@ -4,12 +4,14 @@ import (
 	"context"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/google/uuid"
 
+	"github.com/wmentor/go-magnetar/internal/docx"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/tools/generic"
 )
@@ -159,6 +161,16 @@ func replaceAllPatterns(s, prefix, suffix string, repl func(string) string) stri
 }
 
 func readFile(filename string) string {
+	ext := strings.ToLower(filepath.Ext(filename))
+
+	if ext == ".docx" {
+		text, err := docx.ReadFile(filename)
+		if err != nil {
+			return ""
+		}
+		return text
+	}
+
 	data, err := os.ReadFile(filename)
 	if err != nil {
 		return ""

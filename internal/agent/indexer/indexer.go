@@ -3,9 +3,12 @@ package indexer
 import (
 	"fmt"
 	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/wmentor/go-magnetar/internal/chunk"
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/docx"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
 	"github.com/wmentor/go-magnetar/internal/tools/web"
@@ -41,9 +44,22 @@ func New(cfg *config.Config, root *os.Root) (*Indexer, error) {
 func (idx *Indexer) IndexFile(filename string, msg string) error {
 	printer.Print(printer.IconFile, "indexer: indexing file", "file", filename)
 
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return fmt.Errorf("indexer: failed to read file %q: %w", filename, err)
+	ext := strings.ToLower(filepath.Ext(filename))
+
+	var data []byte
+	var err error
+
+	if ext == ".docx" {
+		text, err := docx.ReadFile(filename)
+		if err != nil {
+			return fmt.Errorf("indexer: failed to read docx file %q: %w", filename, err)
+		}
+		data = []byte(text)
+	} else {
+		data, err = os.ReadFile(filename)
+		if err != nil {
+			return fmt.Errorf("indexer: failed to read file %q: %w", filename, err)
+		}
 	}
 
 	return idx.chunkAndSave(string(data), msg)

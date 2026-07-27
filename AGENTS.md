@@ -325,13 +325,16 @@ guard:
 
 ## Indexer (via `/index` command)
 
-The indexer reads `.md` and `.txt` files or web pages (by URL), splits content into overlapping chunks respecting paragraph and Markdown heading boundaries, computes embedding vectors and stores them in Qdrant. Each chunk is identified by a deterministic UUID v5 derived from its content — re-indexing the same file does not create duplicates.
+The indexer reads `.md`, `.txt`, and `.docx` files or web pages (by URL), splits content into overlapping chunks respecting paragraph and Markdown heading boundaries, computes embedding vectors and stores them in Qdrant. Each chunk is identified by a deterministic UUID v5 derived from its content — re-indexing the same file does not create duplicates.
+
+**Note:** If you need to read a `.docx` file directly in your code, use the `internal/docx.ReadFile` package function instead of `os.ReadFile`.
 
 ### Index a single file
 
 ```bash
 ./bin/go-magnetar -c my-config.yaml agent
 > /index path/to/document.md
+> /index path/to/document.docx
 ```
 
 ### Index a URL
