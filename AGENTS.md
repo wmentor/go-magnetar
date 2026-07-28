@@ -269,7 +269,7 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 
 | Tool | Signature | Description |
 |---|---|---|
-| `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem; `limit` and `offset` specify line range (0 = read all) |
+| `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem; supports `.txt`, `.md`, `.docx`, `.pdf`; `limit` and `offset` specify line range (0 = read all) |
 | `file_list` | `(filter: string) -> []string` | Recursively lists files in the current directory using glob pattern (e.g. `*.go`) |
 | `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem (blocked in read-only mode) |
 | `exec` | `(command: string, stdin: string) -> string` | Executes a shell command via `sh -c` with clean environment, current working directory, and built-in safety guard |
@@ -325,9 +325,9 @@ guard:
 
 ## Indexer (via `/index` command)
 
-The indexer reads `.md`, `.txt`, and `.docx` files or web pages (by URL), splits content into overlapping chunks respecting paragraph and Markdown heading boundaries, computes embedding vectors and stores them in Qdrant. Each chunk is identified by a deterministic UUID v5 derived from its content — re-indexing the same file does not create duplicates.
+The indexer reads `.md`, `.txt`, `.docx`, and `.pdf` files or web pages (by URL), splits content into overlapping chunks respecting paragraph and Markdown heading boundaries, computes embedding vectors and stores them in Qdrant. Each chunk is identified by a deterministic UUID v5 derived from its content — re-indexing the same file does not create duplicates.
 
-**Note:** If you need to read a `.docx` file directly in your code, use the `internal/docx.ReadFile` package function instead of `os.ReadFile`.
+**Note:** If you need to read a `.docx` or `.pdf` file directly in your code, use the `internal/docx.ReadFile` or `internal/pdf.ReadFile` package functions instead of `os.ReadFile`.
 
 ### Index a single file
 
@@ -335,6 +335,7 @@ The indexer reads `.md`, `.txt`, and `.docx` files or web pages (by URL), splits
 ./bin/go-magnetar -c my-config.yaml agent
 > /index path/to/document.md
 > /index path/to/document.docx
+> /index path/to/document.pdf
 ```
 
 ### Index a URL
@@ -524,6 +525,28 @@ The `file_read` tool supports reading file contents by line range to avoid loadi
 | `offset` | `0` | Number of lines to skip from the beginning (`0` = start from beginning) |
 
 When both `limit` and `offset` are `0`, the entire file is read using the optimized `ReadFile` path. When either parameter is non-zero, the tool uses `bufio.Scanner` to read line-by-line without loading the entire file into memory, then returns the specified range.
+
+### Supported file formats
+
+The `file_read` tool supports the following file formats:
+
+| Format | Description |
+|---|---|
+| `.txt` | Plain text files |
+| `.md` | Markdown files |
+| `.docx` | Microsoft Word documents (via `internal/docx.ReadFile`) |
+| `.pdf` | PDF documents (via `internal/pdf.ReadFile`) |
+
+### File preprocessor
+
+The preprocessor supports reading file contents via the `{{file:filename}}` syntax. This is useful for injecting file contents directly into user prompts. The preprocessor automatically detects file type and uses the appropriate reader:
+
+| Format | Description |
+|---|---|
+| `.txt` | Plain text files (via `os.ReadFile`) |
+| `.md` | Markdown files (via `os.ReadFile`) |
+| `.docx` | Microsoft Word documents (via `internal/docx.ReadFile`) |
+| `.pdf` | PDF documents (via `internal/pdf.ReadFile`) |
 
 ## Search replace functionality (`internal/tools/generic`)
 

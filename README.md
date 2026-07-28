@@ -4,7 +4,7 @@ A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines a 
 
 ## How it works
 
-**Indexing** — reads `.md`, `.txt`, `.docx` files or web pages (via URL), splits content into overlapping chunks respecting paragraph and Markdown heading boundaries, computes embedding vectors and stores each chunk in Qdrant. Each chunk is identified by a deterministic UUID v5 derived from its content, making re-indexing idempotent: the same chunk is never stored twice.
+**Indexing** — reads `.md`, `.txt`, `.docx`, and `.pdf` files or web pages (via URL), splits content into overlapping chunks respecting paragraph and Markdown heading boundaries, computes embedding vectors and stores each chunk in Qdrant. Each chunk is identified by a deterministic UUID v5 derived from its content, making re-indexing idempotent: the same chunk is never stored twice.
 
 **Chat** — an interactive REPL with multi-turn conversation support. The agent always tries `rag_search` first; if the knowledge base returns relevant results, the answer is based exclusively on those results. `web_fetch` is used only as a fallback when the knowledge base has no relevant information and the user needs external or up-to-date data. If neither source has an answer, the agent says so explicitly. Conversation history is automatically managed to stay within the configured context window: when history approaches the token threshold it is compacted by the built-in summarizer, which replaces older turns with a concise summary while keeping the most recent ones verbatim.
 
@@ -278,9 +278,9 @@ The agent supports inline file content injection using the `{{file:filename}}` p
 
 | Placeholder | Description |
 |---|---|
-| `{{file:filename}}` | Reads file content and replaces placeholder with the file contents. Supports `.md`, `.txt`, `.docx` files, absolute paths and `~/` home directory prefix |
+| `{{file:filename}}` | Reads file content and replaces placeholder with the file contents. Supports `.md`, `.txt`, `.docx`, and `.pdf` files, absolute paths and `~/` home directory prefix |
 
-Example: `{{file:~/documents/notes.md}}` or `{{file:~/documents/report.docx}}` will be replaced with the content of that file.
+Example: `{{file:~/documents/notes.md}}` or `{{file:~/documents/report.docx}}` or `{{file:~/documents/paper.pdf}}` will be replaced with the content of that file.
 
 Commands are case-insensitive, processed locally, and never sent to the LLM.
 

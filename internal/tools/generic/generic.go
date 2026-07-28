@@ -19,6 +19,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/agent/guard"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/docx"
+	"github.com/wmentor/go-magnetar/internal/pdf"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 )
@@ -150,6 +151,15 @@ func (g *GenericTools) FileRead(filename string, limit int, offset int) (string,
 		text, err := docx.ReadFile(filename)
 		if err != nil {
 			printer.Error("file_read: failed to read docx file", "file", filename, "err", err)
+			return "", false
+		}
+		return text, true
+	}
+
+	if ext == ".pdf" {
+		text, err := pdf.ReadFile(filename)
+		if err != nil {
+			printer.Error("file_read: failed to read pdf file", "file", filename, "err", err)
 			return "", false
 		}
 		return text, true
