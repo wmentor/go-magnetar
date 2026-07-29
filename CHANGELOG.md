@@ -7,6 +7,64 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.1.5] - 2026-07-29
+
+### Added
+
+- **DOCX file support** — full support for Microsoft Word documents
+  - Add `internal/docx` package with `ReadFile` function for parsing `.docx` documents
+  - Update `file_read` tool to support `.docx` files via `internal/docx.ReadFile`
+  - Update indexer to index `.docx` files
+  - Update `{{file:filename}}` preprocessor to read `.docx` files
+  - Update documentation in README.md, AGENTS.md, docs/user_manual.md
+- **PDF file support** — full support for PDF documents
+  - Add `internal/pdf` package with `ReadFile` function for parsing `.pdf` documents
+  - Update `file_read` tool to support `.pdf` files via `internal/pdf.ReadFile`
+  - Update indexer to index `.pdf` files
+  - Update `{{file:filename}}` preprocessor to read `.pdf` files
+  - Update documentation in README.md, AGENTS.md, docs/user_manual.md
+- **ODT file support** — full support for OpenOffice Writer documents
+  - Add `internal/odt` package with `ReadFile` function for parsing `.odt` documents
+  - Update `file_read` tool to support `.odt` files via `internal/odt.ReadFile`
+  - Update indexer to index `.odt` files
+  - Update `{{file:filename}}` preprocessor to read `.odt` files
+  - Update documentation in README.md, AGENTS.md, docs/user_manual.md
+- **User input preprocessors** — modular text preprocessing pipeline
+  - Add `hub.RegisterPreprocessor()` API for plugins to transform user input
+  - Preprocessors run after user input is displayed but before command matching or LLM processing
+  - Used for simple placeholder expansion (`{{file:filename}}`)
+- **Serial placeholders** — support for multiple `{{file:filename}}` placeholders
+  - Expand all `{{file:filename}}` placeholders in user input
+  - Reuse expansion result across multiple tool calls to avoid redundant file reads
+- **parallel tool calling** — concurrent execution of LLM tool calls
+  - Execute multiple tools in parallel when supported by LLM response
+  - Improve performance for requests requiring multiple search operations
+- **Go version bump** — updated to Go 1.26.5
+  - Update minimum version requirement in README.md and AGENTS.md
+  - Update GitHub Actions workflows
+  - Update build instructions
+
+### Changed
+
+- **exec tool** — simplification and hardening
+  - Simplified `system_grep` tool: removed optional parameters
+  - Always use `-n -i -r -E` flags for consistent behavior
+  - Updated documentation in AGENTS.md, README.md
+- **file_list filter** — unified glob pattern interface
+  - Add `filter` parameter to `file_list` tool for glob pattern matching
+  - Replaces legacy directory listing behavior
+  - Update documentation in AGENTS.md
+
+### Fixed
+
+- **Makefile improvements** — build process enhancements
+  - `go fix` and `go fmt` integration
+  - Automatic code formatting and fixes before build
+  - Updated `make tidy`, `make build` targets
+- **Go module fixes** — dependency management improvements
+  - Resolve `go.mod` version conflicts
+  - Update dependency constraints
+
 ## [v0.1.4] - 2026-07-06
 
 ### Added
