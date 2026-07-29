@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/wmentor/go-magnetar/internal/docx"
+	"github.com/wmentor/go-magnetar/internal/odt"
 	"github.com/wmentor/go-magnetar/internal/pdf"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/tools/generic"
@@ -174,6 +175,14 @@ func readFile(filename string) string {
 
 	if ext == ".pdf" {
 		text, err := pdf.ReadFile(filename)
+		if err != nil {
+			return ""
+		}
+		return text
+	}
+
+	if ext == ".odt" {
+		text, err := odt.ReadFile(filename)
 		if err != nil {
 			return ""
 		}

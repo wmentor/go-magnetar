@@ -9,6 +9,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/chunk"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/docx"
+	"github.com/wmentor/go-magnetar/internal/odt"
 	"github.com/wmentor/go-magnetar/internal/pdf"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
@@ -56,10 +57,16 @@ func (idx *Indexer) IndexFile(filename string, msg string) error {
 			return fmt.Errorf("indexer: failed to read docx file %q: %w", filename, err)
 		}
 		data = []byte(text)
-	} else if ext == ".pdf" {
+	} else 	if ext == ".pdf" {
 		text, err := pdf.ReadFile(filename)
 		if err != nil {
 			return fmt.Errorf("indexer: failed to read pdf file %q: %w", filename, err)
+		}
+		data = []byte(text)
+	} else if ext == ".odt" {
+		text, err := odt.ReadFile(filename)
+		if err != nil {
+			return fmt.Errorf("indexer: failed to read odt file %q: %w", filename, err)
 		}
 		data = []byte(text)
 	} else {
