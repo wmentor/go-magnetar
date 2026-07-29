@@ -185,8 +185,8 @@ make run-agent
 > What is go-magnetar?
 go-magnetar is a RAG-based knowledge base tool...
 
-> /index docs/guide.md
-Indexed 15 chunks from docs/guide.md
+> /index docs/guide.md or docs/report.odt
+Indexed 15 chunks from docs/guide.md or docs/report.odt
 
 > What commands does it support?
 It supports the /index command and chat commands like /help, /exit...
@@ -269,7 +269,7 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 
 | Tool | Signature | Description |
 |---|---|---|
-| `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem; supports `.txt`, `.md`, `.docx`, `.pdf`; `limit` and `offset` specify line range (0 = read all) |
+| `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem; supports `.txt`, `.md`, `.docx`, `.pdf`, `.odt`; `limit` and `offset` specify line range (0 = read all) |
 | `file_list` | `(filter: string) -> []string` | Recursively lists files in the current directory using glob pattern (e.g. `*.go`) |
 | `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem (blocked in read-only mode) |
 | `exec` | `(command: string, stdin: string) -> string` | Executes a shell command via `sh -c` with clean environment, current working directory, and built-in safety guard |
@@ -536,6 +536,7 @@ The `file_read` tool supports the following file formats:
 | `.md` | Markdown files |
 | `.docx` | Microsoft Word documents (via `internal/docx.ReadFile`) |
 | `.pdf` | PDF documents (via `internal/pdf.ReadFile`) |
+| `.odt` | OpenOffice Writer documents (via `internal/odt.ReadFile`) |
 
 ### File preprocessor
 
@@ -547,6 +548,7 @@ The preprocessor supports reading file contents via the `{{file:filename}}` synt
 | `.md` | Markdown files (via `os.ReadFile`) |
 | `.docx` | Microsoft Word documents (via `internal/docx.ReadFile`) |
 | `.pdf` | PDF documents (via `internal/pdf.ReadFile`) |
+| `.odt` | OpenOffice Writer documents (via `internal/odt.ReadFile`) |
 
 ## Search replace functionality (`internal/tools/generic`)
 

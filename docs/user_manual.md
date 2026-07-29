@@ -10,6 +10,8 @@ go-magnetar — a knowledge base tool built on RAG (Retrieval-Augmented Generati
 
 > If the `webfetch` block is configured, it is used to clean HTML content from ads, navigation, and other noise when processing web pages. Confluence URLs (both standard and short links) are also supported via the `confluence` block. JIRA issues are supported via the `jira` block. GitLab merge requests (including file changes) are supported via the `gitlab` block. GitHub repositories, files, and directory trees are supported via the `github` block.
 
+Supported file formats for indexing: `.md`, `.txt`, `.docx`, `.pdf`, `.odt`
+
 ## Requirements
 
 - Go 1.26.4+
@@ -226,9 +228,9 @@ The agent supports inline file content injection using the `{{file:filename}}` p
 
 | Placeholder | Description |
 |---|---|
-| `{{file:filename}}` | Reads file content and replaces placeholder with the file contents. Supports `.md`, `.txt`, `.docx`, `.pdf` files, absolute paths and `~/` home directory prefix |
+| `{{file:filename}}` | Reads file content and replaces placeholder with the file contents. Supports `.md`, `.txt`, `.docx`, `.pdf`, and `.odt` files, absolute paths and `~/` home directory prefix |
 
-Example: `{{file:~/documents/notes.md}}` or `{{file:~/documents/report.docx}}` or `{{file:~/documents/paper.pdf}}` will be replaced with the content of that file.
+Example: `{{file:~/documents/notes.md}}` or `{{file:~/documents/report.docx}}` or `{{file:~/documents/paper.pdf}}` or `{{file:~/documents/report.odt}}` will be replaced with the content of that file.
 
 Commands are case-insensitive, processed locally, and never sent to the LLM.
 
@@ -240,7 +242,7 @@ Use **↑/↓** arrows to navigate through previously entered commands. History 
 
 | Tool | Signature | Description |
 |---|---|---|
-| `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem (supports `.md`, `.txt`, `.docx`, `.pdf`) |
+| `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem (supports `.md`, `.txt`, `.docx`, `.pdf`, `.odt`) |
 | `file_list` | `(filter: string) -> []string` | Recursively lists files in the current directory using glob pattern (e.g. `*.go`) |
 | `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem |
 | `exec` | `(command: string, stdin: string) -> string` | Executes a shell command via `sh -c` with clean environment and current working directory; security guard analyzes all commands before execution |
