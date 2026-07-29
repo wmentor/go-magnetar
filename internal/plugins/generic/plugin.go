@@ -155,7 +155,7 @@ func replaceAllPatterns(s, prefix, suffix string, repl func(string) string) stri
 		}
 		end += start + len(prefix)
 
-		match := result[start:end+len(suffix)]
+		match := result[start : end+len(suffix)]
 		replacement := repl(match)
 		result = result[:start] + replacement + result[end+len(suffix):]
 	}

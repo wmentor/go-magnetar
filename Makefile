@@ -1,6 +1,6 @@
-.PHONY: all build clean install run-agent lint tidy
+.PHONY: all build clean install run-agent lint tidy fix format
 
-all: clean test lint build install
+all: clean fix format tidy test lint build install
 
 build:
 	go build -o bin/go-magnetar ./cmd/go-magnetar
@@ -10,6 +10,12 @@ clean:
 
 run-agent: build
 	./bin/go-magnetar agent -c configs/config.yaml
+
+format:
+	go fmt ./...
+
+fix:
+	go fix ./...
 
 lint:
 	go vet ./...
@@ -24,3 +30,4 @@ test:
 install: build
 	mkdir -p ${HOME}/.local/bin
 	mv bin/go-magnetar ${HOME}/.local/bin/
+

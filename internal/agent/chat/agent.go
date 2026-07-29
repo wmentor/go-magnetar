@@ -170,10 +170,7 @@ func estimateTokens(m openai.ChatCompletionMessage) int {
 	for _, tc := range m.ToolCalls {
 		chars += len(tc.Function.Name) + len(tc.Function.Arguments)
 	}
-	t := chars / charsPerToken
-	if t < 1 {
-		t = 1
-	}
+	t := max(chars/charsPerToken, 1)
 	return t
 }
 

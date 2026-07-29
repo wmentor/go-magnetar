@@ -114,7 +114,7 @@ func (g *GitHubTools) FetchRepository(repo string) (string, error) {
 	return g.formatRepoMarkdown(repoData, readmeContent), nil
 }
 
-func (g *GitHubTools) formatRepoMarkdown(repoData interface{}, readme string) string {
+func (g *GitHubTools) formatRepoMarkdown(repoData any, readme string) string {
 	// Type assertion for repoData
 	rd := repoData.(struct {
 		FullName      string `json:"full_name"`

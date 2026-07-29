@@ -18,7 +18,7 @@ func init() {
 type Plugin struct {
 	mu    sync.Mutex
 	state *plugin.State
-	root  interface{} // tracks last root used to detect changes
+	root  any // tracks last root used to detect changes
 	tools *web.WebTools
 }
 

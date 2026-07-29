@@ -20,9 +20,9 @@ type entry struct {
 type hub struct {
 	mu sync.Mutex
 
-	tools       []LLMTool
-	commands    []ChatCommand
-	cli         []any
+	tools         []LLMTool
+	commands      []ChatCommand
+	cli           []any
 	preprocessors []PreprocessorFunc
 
 	goroutines  []func(ctx context.Context)

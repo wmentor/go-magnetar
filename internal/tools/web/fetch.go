@@ -204,8 +204,8 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 // extractIssueKeyFromJIRAURL extracts the issue key (e.g., GOARCH-60) from a JIRA URL.
 func extractIssueKeyFromJIRAURL(url string) (string, error) {
 	// Handle URLs with /browse/
-	if idx := strings.Index(url, "/browse/"); idx != -1 {
-		idPart := url[idx+8:]
+	if _, after, ok := strings.Cut(url, "/browse/"); ok {
+		idPart := after
 		if idx2 := strings.Index(idPart, "/"); idx2 != -1 {
 			idPart = idPart[:idx2]
 		}
@@ -222,8 +222,8 @@ func extractIssueKeyFromJIRAURL(url string) (string, error) {
 	}
 
 	// Handle URLs with /issues/
-	if idx := strings.Index(url, "/issues/"); idx != -1 {
-		idPart := url[idx+8:]
+	if _, after, ok := strings.Cut(url, "/issues/"); ok {
+		idPart := after
 		if idx2 := strings.Index(idPart, "/"); idx2 != -1 {
 			idPart = idPart[:idx2]
 		}
@@ -245,8 +245,8 @@ func extractIssueKeyFromJIRAURL(url string) (string, error) {
 // extractPageIDFromConfluenceURL parses a Confluence URL and returns the page ID.
 func extractPageIDFromConfluenceURL(url string) (string, error) {
 	// Handle short link: .../x/{page_id}
-	if idx := strings.Index(url, "/x/"); idx != -1 {
-		idPart := url[idx+3:]
+	if _, after, ok := strings.Cut(url, "/x/"); ok {
+		idPart := after
 		if idx2 := strings.Index(idPart, "/"); idx2 != -1 {
 			idPart = idPart[:idx2]
 		}
@@ -263,8 +263,8 @@ func extractPageIDFromConfluenceURL(url string) (string, error) {
 	}
 
 	// Handle share link: .../p/{page_id}
-	if idx := strings.Index(url, "/p/"); idx != -1 {
-		idPart := url[idx+3:]
+	if _, after, ok := strings.Cut(url, "/p/"); ok {
+		idPart := after
 		if idx2 := strings.Index(idPart, "/"); idx2 != -1 {
 			idPart = idPart[:idx2]
 		}
@@ -468,13 +468,13 @@ func (w *WebTools) Dispatch(name string, args string) string {
 // extractProjectAndMergeRequestFromGitLabURL extracts the project path and merge request ID from a GitLab URL.
 func extractProjectAndMergeRequestFromGitLabURL(url string, baseURL string) (string, string, error) {
 	// Handle URLs with /-/merge_requests/
-	if idx := strings.Index(url, "/-/merge_requests/"); idx != -1 {
-		pathPart := url[:idx]
+	if before, after, ok := strings.Cut(url, "/-/merge_requests/"); ok {
+		pathPart := before
 		// Extract project path (remove base URL)
 
 		pathPart = strings.TrimPrefix(pathPart, baseURL)
 
-		idPart := url[idx+18:]
+		idPart := after
 		if idx2 := strings.Index(idPart, "/"); idx2 != -1 {
 			idPart = idPart[:idx2]
 		}

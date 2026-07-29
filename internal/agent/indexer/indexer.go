@@ -57,7 +57,7 @@ func (idx *Indexer) IndexFile(filename string, msg string) error {
 			return fmt.Errorf("indexer: failed to read docx file %q: %w", filename, err)
 		}
 		data = []byte(text)
-	} else 	if ext == ".pdf" {
+	} else if ext == ".pdf" {
 		text, err := pdf.ReadFile(filename)
 		if err != nil {
 			return fmt.Errorf("indexer: failed to read pdf file %q: %w", filename, err)

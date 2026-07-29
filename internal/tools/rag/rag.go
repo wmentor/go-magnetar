@@ -200,7 +200,7 @@ func (r *RAGTools) expandQuery(ctx context.Context, query string, n int) []strin
 	}
 
 	var result []string
-	for _, line := range strings.Split(resp.Choices[0].Message.Content, "\n") {
+	for line := range strings.SplitSeq(resp.Choices[0].Message.Content, "\n") {
 		line = strings.TrimSpace(line)
 		if line != "" {
 			result = append(result, line)
@@ -314,7 +314,7 @@ func (r *RAGTools) dedup(results []searchResult) []searchResult {
 	// Greedy suppression: keep the first (highest-score) chunk, drop any later
 	// chunk whose embedding similarity to a kept chunk exceeds the threshold.
 	dropped := make([]bool, len(results))
-	for i := 0; i < len(results); i++ {
+	for i := range results {
 		if dropped[i] || embeddings[i] == nil {
 			continue
 		}

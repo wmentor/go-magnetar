@@ -33,10 +33,7 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 					b += len(tc.Function.Name) + len(tc.Function.Arguments)
 				}
 				totalBytes += b
-				t := b / 4
-				if t < 1 {
-					t = 1
-				}
+				t := max(b/4, 1)
 				totalTokens += t
 			}
 

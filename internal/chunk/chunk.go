@@ -65,8 +65,8 @@ func splitParagraphs(text string) []string {
 	lines := strings.Split(text, "\n")
 
 	var paragraphs []string
-	var cur []string      // non-blank lines of the current paragraph
-	inBlank := false      // true when we have seen ≥1 blank line since last content
+	var cur []string // non-blank lines of the current paragraph
+	inBlank := false // true when we have seen ≥1 blank line since last content
 
 	flushCur := func() {
 		if len(cur) == 0 {
@@ -119,7 +119,7 @@ func runeSlice(s string, startRune, endRune int) string {
 	}
 	// Find byte offset of startRune.
 	startByte := 0
-	for i := 0; i < startRune; i++ {
+	for range startRune {
 		_, size := utf8.DecodeRuneInString(s[startByte:])
 		startByte += size
 	}
@@ -149,10 +149,7 @@ func findWordBoundaryBefore(s string, pos int) int {
 	if pos >= len(runes) {
 		pos = len(runes)
 	}
-	limit := pos - maxLookback
-	if limit < 0 {
-		limit = 0
-	}
+	limit := max(pos-maxLookback, 0)
 	// Walk backwards from pos looking for whitespace.
 	for i := pos - 1; i >= limit; i-- {
 		if unicode.IsSpace(runes[i]) {
@@ -240,11 +237,9 @@ func forceSplit(para string, maxRunes int, overlapRunes int) []string {
 
 		// Apply overlap by stepping back from nextStart.
 		if overlapRunes > 0 {
-			overlapStart := nextStart - overlapRunes
-			if overlapStart < start+1 {
+			overlapStart := max(nextStart-overlapRunes,
 				// Ensure we always advance at least 1 rune past the previous start.
-				overlapStart = start + 1
-			}
+				start+1)
 			// Snap overlapStart forward to a word start (avoid mid-word context).
 			for overlapStart < nextStart && !unicode.IsSpace(runes[overlapStart-1]) && overlapStart > start+1 {
 				overlapStart--
@@ -271,9 +266,9 @@ func forceSplit(para string, maxRunes int, overlapRunes int) []string {
 //  3. When a paragraph would overflow the current chunk:
 //     a. Emit the current chunk.
 //     b. Start the next chunk with an overlap suffix from the just-emitted chunk
-//        (snapped to a word boundary) for cross-boundary context continuity.
+//     (snapped to a word boundary) for cross-boundary context continuity.
 //     c. If the paragraph itself is longer than MaxSize, force-split it and
-//        apply the same overlap logic between the resulting sub-chunks.
+//     apply the same overlap logic between the resulting sub-chunks.
 //  4. All size accounting is in Unicode runes, not bytes, so multibyte
 //     characters (CJK, emoji, Cyrillic, etc.) are handled correctly.
 func Split(text string, cfg Config) []string {
