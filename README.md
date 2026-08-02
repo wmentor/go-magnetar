@@ -238,13 +238,21 @@ go-magnetar [-c <config>] <command> [flags]
 
 If `-c` is omitted, `~/.go-magnetar.yaml` is used. The flag can also be set via the `GO_MAGNETAR_CONFIG` environment variable.
 
-### `agent` — interactive chat
+### `-f/--file` — non-interactive mode
 
 ```
-go-magnetar [-c <config>] agent
+go-magnetar [-c <config>] -f <input-file>
 ```
 
-The REPL reads questions from stdin. Press `Ctrl+D` to exit.
+Reads input from the specified file, sends it to the agent, prints the answer, and exits. This mode is useful for scripting and batch processing.
+
+> **Note:** In `-f/--file` mode, the text preprocessor is not applied and chat commands (e.g., `/readonly`, `/fetch`, `/index`) are not available. Only the raw input from the file is processed.
+
+```
+go-magnetar [-c <config>]
+```
+
+Run the interactive agent REPL. Press `Ctrl+D` to exit.
 
 #### Chat commands
 

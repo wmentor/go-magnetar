@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/alecthomas/kong"
+	"github.com/pkg/errors"
 
 	"github.com/wmentor/go-magnetar/internal/agent/chat"
 	"github.com/wmentor/go-magnetar/internal/config"
@@ -15,6 +16,7 @@ import (
 
 type Globals struct {
 	Config string `short:"c" type:"path" default:"~/.go-magnetar.yaml" help:"Path to config file" env:"GO_MAGNETAR_CONFIG"`
+	File   string `short:"f" type:"path" help:"Input file"`
 }
 
 type cli struct {
@@ -37,9 +39,10 @@ func Execute() error {
 
 	printer.SetDefault(printer.New(cfg.Bool("verbose")))
 
-	version.PrintVersion(cfg.String("llm.model"))
-
-	printEnabledModules(cfg)
+	if root.Globals.File == "" {
+		version.PrintVersion(cfg.String("llm.model"))
+		printEnabledModules(cfg)
+	}
 
 	if err := plugin.InitAll(&plugin.State{Config: cfg}); err != nil {
 		return err
@@ -64,6 +67,21 @@ func Execute() error {
 	agent, err := chat.New(cfg, rootFS)
 	if err != nil {
 		return err
+	}
+
+	if root.Globals.File != "" {
+		data, err := os.ReadFile(root.Globals.File)
+		if err != nil {
+			return errors.Wrapf(err, "read file %s error", root.Globals.File)
+		}
+		answer, err := agent.Ask(string(data))
+		if err != nil {
+			return errors.Wrap(err, "agent error")
+		}
+
+		fmt.Println(answer)
+
+		return nil
 	}
 
 	return agent.Run()

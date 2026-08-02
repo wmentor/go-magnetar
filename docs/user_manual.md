@@ -186,6 +186,16 @@ go-magnetar [-c <config>] <command> [flags]
 
 If `-c` is omitted, `~/.go-magnetar.yaml` is used. The flag can also be set via the `GO_MAGNETAR_CONFIG` environment variable.
 
+### `-f/--file` — non-interactive mode
+
+```
+go-magnetar [-c <config>] -f <input-file>
+```
+
+Reads input from the specified file, sends it to the agent, prints the answer, and exits. This mode is useful for scripting and batch processing.
+
+> **Note:** In `-f/--file` mode, the text preprocessor is not applied and chat commands (e.g., `/readonly`, `/fetch`, `/index`) are not available. Only the raw input from the file is processed.
+
 ## Commands
 
 ### `agent` — interactive chat

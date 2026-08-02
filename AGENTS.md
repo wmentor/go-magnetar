@@ -167,6 +167,14 @@ go-magnetar [-c <config>] <command> [flags]
 
 If omitted, `~/.go-magnetar.yaml` is used. Can also be set via `GO_MAGNETAR_CONFIG` env var.
 
+### `-f/--file` — non-interactive mode
+
+```
+go-magnetar [-c <config>] -f <input-file>
+```
+
+Reads input from the specified file, sends it to the agent, prints the answer, and exits. This mode is useful for scripting and batch processing.
+
 go-magnetar has a **single unified command** — `agent` — which provides an interactive REPL. The indexer functionality is now a chat command (`/index`).
 
 ## Chat Agent (Unified REPL)
@@ -254,6 +262,18 @@ To test go-magnetar, run it interactively:
 > /help
 > What is go-magnetar?
 ```
+
+### Non-interactive mode
+
+For scripting and batch processing, use the `-f`/`--file` flag:
+
+```bash
+go-magnetar [-c <config>] -f <input-file>
+```
+
+This mode reads input from the specified file, sends it to the agent, prints the answer, and exits.
+
+> **Note:** In `-f/--file` mode, the text preprocessor is not applied and chat commands (e.g., `/readonly`, `/fetch`, `/index`) are not available. Only the raw input from the file is processed.
 
 ### Search strategy
 
