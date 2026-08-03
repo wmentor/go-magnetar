@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -74,7 +75,18 @@ func Execute() error {
 		if err != nil {
 			return errors.Wrapf(err, "read file %s error", root.Globals.File)
 		}
-		answer, err := agent.Ask(string(data))
+
+		txt := string(data)
+
+		for _, preprocessor := range plugin.Preprocessors() {
+			if str, err := preprocessor(context.Background(), txt); err == nil {
+				txt = str
+			} else {
+				printer.Error("chat: preprocessor error", "err", err)
+			}
+		}
+
+		answer, err := agent.Ask(txt)
 		if err != nil {
 			return errors.Wrap(err, "agent error")
 		}
