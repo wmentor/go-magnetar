@@ -45,6 +45,10 @@ func init() {
 	defaultPrinter = New(true)
 }
 
+func Verbose(enable bool) {
+	defaultPrinter.Verbose(enable)
+}
+
 func Debug(message string, params ...any) {
 	defaultPrinter.Debug(message, params...)
 }
@@ -142,4 +146,16 @@ func (p *Printer) ToolEmptyLine() {
 	if p.verbose {
 		fmt.Println("")
 	}
+}
+
+func EmptyLine() {
+	defaultPrinter.EmptyLine()
+}
+
+func (p *Printer) EmptyLine() {
+	fmt.Println("")
+}
+
+func (p *Printer) Verbose(enable bool) {
+	p.verbose = enable
 }

@@ -38,7 +38,7 @@ func Execute() error {
 		return err
 	}
 
-	printer.SetDefault(printer.New(cfg.Bool("verbose")))
+	printer.SetDefault(printer.New(false))
 
 	if root.Globals.File == "" {
 		version.PrintVersion(cfg.String("llm.model"))
@@ -64,6 +64,8 @@ func Execute() error {
 	// Provide the agent's working-directory root to plugins that need
 	// filesystem access (generic file tools, web preprocessor).
 	plugin.SetRoot(rootFS)
+
+	printer.Verbose(cfg.Bool("verbose") && root.Globals.File == "")
 
 	agent, err := chat.New(cfg, rootFS)
 	if err != nil {
@@ -102,26 +104,26 @@ func Execute() error {
 func printEnabledModules(cfg *config.Config) {
 	has := false
 	if cfg.String("confluence.base_url") != "" && !cfg.Bool("confluence.disable") {
-		printer.ToolCall(printer.IconModule, "confluence plugin is enabled")
+		printer.Print(printer.IconModule, "confluence plugin is enabled")
 		has = true
 	}
 	if cfg.String("gitlab.base_url") != "" && !cfg.Bool("gitlab.disable") {
-		printer.ToolCall(printer.IconModule, "gitlab plugin is enabled")
+		printer.Print(printer.IconModule, "gitlab plugin is enabled")
 		has = true
 	}
 	if cfg.String("github.base_url") != "" && !cfg.Bool("github.disable") {
-		printer.ToolCall(printer.IconModule, "github plugin is enabled")
+		printer.Print(printer.IconModule, "github plugin is enabled")
 		has = true
 	}
 	if cfg.String("jira.base_url") != "" && !cfg.Bool("jira.disable") {
-		printer.ToolCall(printer.IconModule, "jira plugin is enabled")
+		printer.Print(printer.IconModule, "jira plugin is enabled")
 		has = true
 	}
 	if cfg.String("rag.llm.base_url") != "" && !cfg.Bool("rag.disable") {
-		printer.ToolCall(printer.IconModule, "rag plugin is enabled")
+		printer.Print(printer.IconModule, "rag plugin is enabled")
 		has = true
 	}
 	if has {
-		printer.ToolEmptyLine()
+		printer.EmptyLine()
 	}
 }

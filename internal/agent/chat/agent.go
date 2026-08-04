@@ -23,7 +23,6 @@ import (
 	hstore "github.com/wmentor/go-magnetar/internal/history"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
-	"github.com/wmentor/go-magnetar/internal/tools/generic"
 )
 
 const systemPromptTemplate = `You are a helpful assistant that answers questions strictly based on the knowledge base.
@@ -93,11 +92,9 @@ func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
 	language := cfg.String("language")
 	systemContent := fmt.Sprintf(systemPromptTemplate, language)
 	if root != nil {
-		state := &plugin.State{Config: cfg}
-		genTools := generic.New(cfg, root, state)
 		if _, statErr := root.Stat(agentsFile); statErr == nil {
-			if agentsContent, ok := genTools.FileRead(agentsFile, 0, 0); ok {
-				systemContent = systemContent + "\n\n# Project context (from AGENTS.md)\n\n" + agentsContent
+			if content, err := root.ReadFile(agentsFile); err == nil {
+				systemContent = systemContent + "\n\n# Project context (from AGENTS.md)\n\n" + string(content)
 				printer.ToolCall(printer.IconDone, "AGENTS.md has been loaded")
 				printer.ToolEmptyLine()
 			}
