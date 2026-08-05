@@ -3,7 +3,7 @@
   api_key: YOUR_API_KEY
   model: gpt-4o
   context: 128000
-  temperature: 0.5   # LLM temperature for response generation (default: 0.5)
+  temperature: 0.9   # LLM temperature for response generation (default: 0.9)
   top_p: 0.95        # LLM top_p for response generation (default: 0.95)
 
 language: english  # language for agent responses (default: english)
@@ -16,10 +16,10 @@ rag:
     model: text-embedding-3-small
     vector_size: 1536
   chunk:
-    # size: maximum size of a chunk in runes (default: 512)
-    size: 512
-    # overlap: number of runes that overlap between adjacent chunks (default: 64)
-    overlap: 64
+    # size: maximum size of a chunk in runes (default: 2048)
+    size: 2048
+    # overlap: number of runes that overlap between adjacent chunks (default: 256)
+    overlap: 256
   search:
     # limit: maximum number of results returned per query (default: 10)
     limit: 10

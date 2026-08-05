@@ -18,13 +18,13 @@ type Config struct {
 // defaults holds default config values that are applied before the
 // YAML file is loaded, so the user doesn't need to set them.
 var defaults = map[string]any{
-	"rag.chunk.size":             512,       // runes; matches DefaultConfig in internal/chunk
-	"rag.chunk.overlap":          64,        // runes; ~12.5% overlap is the RAG sweet-spot
+	"rag.chunk.size":             2048,      // runes; matches DefaultConfig in internal/chunk
+	"rag.chunk.overlap":          256,       // runes; ~12.5% overlap is the RAG sweet-spot
 	"rag.search.limit":           10,        // top-N results per query
 	"rag.search.threshold":       0.40,      // minimum cosine-similarity score
 	"rag.search.multi_query":     2,         // number of extra query reformulations
 	"rag.search.dedup_threshold": 0.95,      // near-duplicate suppression threshold
-	"llm.temperature":            0.5,       // LLM temperature for response generation
+	"llm.temperature":            0.9,       // LLM temperature for response generation
 	"llm.top_p":                  0.95,      // LLM top_p for response generation
 	"language":                   "english", // language for agent responses (default: english)
 	"gitlab.base_url":            "",        // GitLab base URL (optional)
