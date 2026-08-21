@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -187,13 +188,13 @@ func (a *ChatAgent) trimMessages(reservedOutputTokens int) []openai.ChatCompleti
 
 	tail := a.messages[1:]
 	keep := make([]openai.ChatCompletionMessage, 0, len(tail))
-	for i := len(tail) - 1; i >= 0; i-- {
-		cost := estimateTokens(tail[i])
+	for _, t := range slices.Backward(tail) {
+		cost := estimateTokens(t)
 		if budget-cost < 0 {
 			break
 		}
 		budget -= cost
-		keep = append(keep, tail[i])
+		keep = append(keep, t)
 	}
 
 	for l, r := 0, len(keep)-1; l < r; l, r = l+1, r-1 {
