@@ -43,6 +43,7 @@ llm:
   context: 128000                        # token limit of the context window
   temperature: 0.5                       # LLM temperature for response generation (default: 0.5)
   top_p: 0.95                            # LLM top_p for response generation (default: 0.95)
+  reasoning_effort: high                 # LLM reasoning effort: low, medium, or high (default: high)
 
 language: english                      # language for agent responses (default: english)
 
@@ -126,6 +127,12 @@ guard:
 |---|---|
 | `guard.disable` | Disable guard agent for exec commands. When true, security checks via guard are skipped |
 | `guard.ask` | If true and guard blocks a command, ask user for confirmation before executing |
+
+### Parameter `llm.reasoning_effort`
+
+| Parameter | Default | Description |
+|---|---|---|
+| `llm.reasoning_effort` | `high` | LLM reasoning effort. Controls the tradeoff between reasoning quality and latency. Valid values: `low`, `medium`, `high` |
 
 ### Parameters `exec`
 

@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/confmap"
@@ -26,6 +25,7 @@ var defaults = map[string]any{
 	"rag.search.dedup_threshold": 0.95,      // near-duplicate suppression threshold
 	"llm.temperature":            0.9,       // LLM temperature for response generation
 	"llm.top_p":                  0.95,      // LLM top_p for response generation
+	"llm.reasoning_effort":       "high",    // LLM reasoning effort: low, medium, or high
 	"language":                   "english", // language for agent responses (default: english)
 	"gitlab.base_url":            "",        // GitLab base URL (optional)
 	"gitlab.api_key":             "",        // GitLab API key (optional)
@@ -69,13 +69,4 @@ func (c *Config) Int(key string) int {
 // Float64 returns the float64 value for the given key.
 func (c *Config) Float64(key string) float64 {
 	return c.cfg.Float64(key)
-}
-
-// isTerminal reports whether f is connected to a terminal.
-func isTerminal(f *os.File) bool {
-	fi, err := f.Stat()
-	if err != nil {
-		return false
-	}
-	return (fi.Mode() & os.ModeCharDevice) != 0
 }

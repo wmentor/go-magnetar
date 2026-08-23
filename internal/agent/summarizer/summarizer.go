@@ -140,7 +140,7 @@ func (s *Summarizer) summarize(messages []openai.ChatCompletionMessage) (string,
 		},
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Hour)
 	defer cancel()
 
 	resp, err := s.llm.CreateChatCompletion(ctx, req)

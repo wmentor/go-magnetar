@@ -189,6 +189,7 @@ The chat agent maintains command history in `~/.go-magnetar-history.json`. Use *
 | `llm.context` | — | Token limit of the model's context window |
 | `llm.temperature` | `0.5` | LLM temperature for response generation |
 | `llm.top_p` | `0.95` | LLM top_p for response generation |
+| `llm.reasoning_effort` | `high` | LLM reasoning effort: low, medium, or high |
 | `language` | `english` | Language used for agent responses in chat conversations (does not affect code comments, documentation, or other technical writing) |
 | `rag.llm.base_url` | — | Endpoint for the embedding model |
 | `rag.llm.api_key` | — | API key for the embedding model |
