@@ -36,92 +36,7 @@ The binary will be placed at `bin/go-magnetar`.
 
 ### 3. Configuration
 
-```bash
-cp configs/config.yaml my-config.yaml
-```
-
-Edit `my-config.yaml` with your values:
-
-```yaml
-llm:
-  base_url: https://api.openai.com/v1
-  api_key: sk-...
-  model: gpt-4o
-  context: 128000
-  temperature: 0.5   # LLM temperature for response generation (default: 0.5)
-  top_p: 0.95        # LLM top_p for response generation (default: 0.95)
-  reasoning_effort: high  # LLM reasoning effort: low, medium, or high (default: high)
-  
-language: english  # language for agent responses (default: english)
-
-rag:
-  llm:
-    base_url: https://api.openai.com/v1
-    api_key: sk-...
-    model: text-embedding-3-small
-    vector_size: 1536
-  disable: false
-  chunk:
-    size: 512      # max chunk size in runes (default: 512)
-    overlap: 64    # overlap between adjacent chunks in runes (default: 64)
-  search:
-    limit: 10          # max results per query (default: 10)
-    threshold: 0.40    # min cosine-similarity score 0–1 (default: 0.40)
-    multi_query: 2     # extra LLM-generated query variants (default: 2, 0 = off)
-    dedup_threshold: 0.95  # near-duplicate suppression threshold (default: 0.95, 0 = off)
-  qdrant:
-    connstr: http://localhost:6333
-    collection: documents
-
-log:
-  level: info
-
-verbose: true
-
-compact:
-  threshold: 0   # 0 = auto (80 % of llm.context)
-  save_tail: 6   # keep the last 6 messages verbatim
-
-webfetch:
-  base_url: https://api.openai.com/v1
-  api_key: sk-...
-  model: gpt-4o
-  context: 128000
-  disable: false
-
-confluence:
-  base_url: https://your-domain.atlassian.net
-  api_key: YOUR_API_KEY
-  disable: false
-
-jira:
-  base_url: https://jira.example.com
-  api_key: YOUR_API_KEY
-  disable: false
-
-gitlab:
-  base_url: https://gitlab.example.com
-  api_key: YOUR_API_KEY
-  disable: false
-
-github:
-  base_url: https://api.github.com
-  api_key: YOUR_GITHUB_TOKEN
-  disable: false
-
-guard:
-  disable: false    # disable guard agent for exec commands (default: false)
-  ask: false        # ask user for confirmation when guard blocks a command (default: false)
-```
-
-> If the `webfetch` block is specified, the model parameters listed above are used to clean HTML content obtained from web pages.
-
-> The `confluence` block enables fetching Confluence pages directly by URL (both standard and short links).
-
-> The `jira` block enables fetching JIRA issues directly by URL.
-
-> The `gitlab` block enables fetching GitLab merge requests directly by URL, including file changes via the `/changes` endpoint.
-> The `github` block enables fetching GitHub repositories, files, and directory trees directly by repository path.
+See [configuration.md](./configuration.md) for complete configuration options.
 
 ### 4. Index Documents
 
@@ -265,109 +180,13 @@ Use **↑/↓** arrows to navigate through previously entered commands. History 
 
 ## Security restrictions
 
-### Command safety guard
-
-All commands executed via the `exec` tool are analyzed by a built-in security guard before execution. The guard uses an LLM to evaluate whether a command is safe based on several criteria:
-
-- **Destructive commands**: `rm -rf /`, `sudo`, `mkfs`, `dd` with `/dev/`, `fdisk`, `chmod 777`
-- **Shell pipes**: `| bash`, `| sh`, `| zsh`
-- **Git modifications**: `git commit`, `push`, `rebase`, `pull`, `cherry-pick`, `reset`, `stash`, `clean`, `reflog`, `clone`
-- **System-level operations**: `su`, `chmod`, `chown`, `dscl`, `fdisk`, `format`, `dseditgroup`, `brew`, `dpkg`, `apt`, `cargo`, `rpm`, `npm`, `apt-get`, `groupadd`, `usermod`, `gpasswd`, `useradd`, `adduser`, `userdel`, `deluser`, `passwd`, `systemctl`, `sysadminctl`
-- **Environment variable filtering**: Sensitive environment variables containing patterns like `PASS`, `SEC`, `CRED`, `TOKEN`, `KEY`, `AUTH`, `PWD`, `CERT`, `SIGN`, `SALT`, `BEARER`, `AMQP`, `CONNECT` are filtered out before command execution
-- **Untrusted script execution**: `curl ... | bash`, `wget ... | sh`
-- **Environment variable filtering**: Sensitive environment variables containing patterns like `PASS`, `SEC`, `CRED`, `TOKEN`, `KEY`, `AUTH`, `PWD`, `CERT`, `SIGN`, `SALT`, `BEARER`, `AMQP`, `CONNECT` are filtered out before command execution
-
-When the system is in read-only mode, **NO modification operations are allowed** — all such commands are automatically rejected.
-
-### Read-only mode
-
-The read-only mode can be toggled via the `/readonly` chat command. In this mode:
-- File writes (`file_write`) are blocked
-- Command execution that modifies files or system state is blocked
-- Only read-only operations are permitted
-
-No output is ever displayed from blocked commands — they return an error message instead.
-
-### Guard configuration
-
-The guard can be configured via `guard.disable` and `guard.ask` parameters:
-
-- **`guard.disable`** (default: `false`): When set to `true`, skips all security checks via the guard agent and executes commands directly.
-- **`guard.ask`** (default: `false`): When set to `true` and guard blocks a command, the user is prompted for confirmation before execution. If user confirms with 'y', the command executes; otherwise, it is blocked.
-
-Example configuration:
-```yaml
-guard:
-  disable: false    # Set to true to skip guard checks
-  ask: true         # Set to true to prompt user when guard blocks commands
-```
-
-### Read-only mode
-
-The read-only mode can be toggled via the `/readonly` chat command. In this mode:
-- File writes (`file_write`) are blocked
-- Command execution that modifies files or system state is blocked
-- Only read-only operations are permitted
-
-No output is ever displayed from blocked commands — they return an error message instead.
-
-### Root user prevention
-
-The application **cannot be run as root user**. If the current user is `root` (username or UID 0), the application prints an error message and exits immediately to prevent accidental system-wide modifications.
+See [docs/security.md](./security.md) for complete security information.
 
 ## Search tool call limit
 
 To prevent infinite loops, each user request is limited to a maximum number of search-related tool calls (`rag_search` + `web_fetch`). By default, the limit is 10 calls per request. When the limit is exceeded, an error message is sent to the LLM and no more search tools are invoked for that request.
 
-## Configuration
 
-| Parameter | Default | Description |
-|---|---|---|
-| `llm.base_url` | — | Endpoint of OpenAI-compatible API for chat model |
-| `llm.api_key` | — | API key for chat model |
-| `llm.model` | — | Chat model name (e.g. `gpt-4o`) |
-| `llm.context` | — | Model context token limit |
-| `llm.temperature` | `0.5` | LLM temperature for response generation |
-| `llm.top_p` | `0.95` | LLM top_p for response generation |
-| `llm.reasoning_effort` | `high` | LLM reasoning effort: low, medium, or high |
-| `language` | `english` | Language used for agent responses in chat conversations (does not affect code comments, documentation, or other technical writing) |
-| `rag.llm.base_url` | — | Endpoint for embedding model |
-| `rag.llm.api_key` | — | API key for embedding model |
-| `rag.llm.model` | — | Embedding model name (e.g. `text-embedding-3-small`) |
-| `rag.llm.vector_size` | — | Vector dimensionality — must match the embedding model |
-| `rag.chunk.size` | `512` | Maximum chunk size in Unicode runes |
-| `rag.chunk.overlap` | `64` | Overlap between adjacent chunks in runes (~12.5 %) |
-| `rag.search.limit` | `10` | Maximum number of results per query |
-| `rag.search.threshold` | `0.40` | Minimum cosine similarity score; results below this are discarded |
-| `rag.search.multi_query` | `2` | Number of extra query reformulations generated by the LLM to improve recall. `0` disables multi-query |
-| `rag.search.dedup_threshold` | `0.95` | Cosine similarity above which two result chunks are considered near-duplicates; the lower-scoring one is dropped. `0` disables deduplication |
-| `rag.qdrant.connstr` | — | Qdrant address, e.g. `http://localhost:6333` |
-| `rag.qdrant.collection` | — | Collection name (created automatically if absent) |
-| `verbose` | `true` | Enable verbose output (tool calls, debug messages) |
-| `compact.threshold` | `0` | Token threshold for history compression. `0` = auto (80 % of llm.context) |
-| `compact.save_tail` | `6` | Number of most-recent messages kept verbatim during compression |
-| `webfetch.base_url` | — | Endpoint of OpenAI-compatible API for web content cleaning model |
-| `webfetch.api_key` | — | API key for web content cleaning model |
-| `webfetch.model` | — | Model name for web content cleaning (e.g. `gpt-4o`) |
-| `webfetch.context` | — | Token limit of the model's context window for web cleaning |
-| `confluence.base_url` | — | Confluence instance base URL (e.g. `https://your-domain.atlassian.net`) |
-| `confluence.api_key` | — | Confluence API key for fetching pages |
-| `jira.base_url` | — | JIRA instance base URL |
-| `jira.api_key` | — | JIRA API key for fetching issues |
-| `gitlab.base_url` | — | GitLab instance base URL |
-| `gitlab.api_key` | — | GitLab API key for fetching merge requests and file changes |
-| `github.base_url` | — | GitHub API base URL (e.g. `https://api.github.com`) |
-| `github.api_key` | — | GitHub access token for fetching repositories, files, and trees |
-| `guard.disable` | `false` | Disable guard agent for exec commands. When true, skips all security checks |
-| `guard.ask` | `false` | If true, prompts user for confirmation when guard blocks a command |
-
-**Vector sizes for common embedding models:**
-
-| Model | `vector_size` |
-|---|---|
-| `text-embedding-3-small` | 1536 |
-| `text-embedding-ada-002` | 1536 |
-| `text-embedding-3-large` | 3072 |
 
 ## Chunking
 
