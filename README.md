@@ -18,7 +18,7 @@ A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines a 
 
 ## Requirements
 
-- Go 1.26.4+
+- Go 1.27.0
 - [Qdrant](https://qdrant.tech/) — vector database
 - An API key for any OpenAI-compatible provider (for the chat model, embedding model, and optionally for web page preprocessing)
 

@@ -14,7 +14,7 @@ Supported file formats for indexing: `.md`, `.txt`, `.docx`, `.pdf`, `.odt`
 
 ## Requirements
 
-- Go 1.26.4+
+- Go 1.27.0
 - [Qdrant](https://qdrant.tech/) — vector database
 - API key for any OpenAI-compatible provider (for LLM, embedding model, and optionally for web content cleaning)
 
