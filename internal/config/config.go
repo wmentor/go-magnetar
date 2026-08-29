@@ -11,7 +11,8 @@ import (
 
 // Config is the root configuration structure.
 type Config struct {
-	cfg *koanf.Koanf
+	cfg     *koanf.Koanf
+	profile string
 }
 
 // defaults holds default config values that are applied before the
@@ -48,7 +49,10 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("config: failed to load %q: %w", path, err)
 	}
 
-	return &Config{cfg: k}, nil
+	return &Config{
+		cfg:     k,
+		profile: k.String("profile"),
+	}, nil
 }
 
 // String returns the string value for the given key.
@@ -69,4 +73,31 @@ func (c *Config) Int(key string) int {
 // Float64 returns the float64 value for the given key.
 func (c *Config) Float64(key string) float64 {
 	return c.cfg.Float64(key)
+}
+
+// String returns the string value for the given key.
+func (c *Config) ProfileParamString(key string) string {
+	return c.cfg.String(c.makeProfileKey(key))
+}
+
+// Bool returns the boolean value for the given key.
+func (c *Config) ProfileParamBool(key string) bool {
+	return c.cfg.Bool(c.makeProfileKey(key))
+}
+
+// Int returns the integer value for the given key.
+func (c *Config) ProfileParamInt(key string) int {
+	return c.cfg.Int(c.makeProfileKey(key))
+}
+
+// Float64 returns the float64 value for the given key.
+func (c *Config) ProfileParamFloat64(key string) float64 {
+	return c.cfg.Float64(c.makeProfileKey(key))
+}
+
+func (c *Config) makeProfileKey(key string) string {
+	if c.profile == "" {
+		return key
+	}
+	return fmt.Sprintf("profiles.%s.%s", c.profile, key)
 }
