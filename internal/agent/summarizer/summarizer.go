@@ -26,8 +26,8 @@ type Summarizer struct {
 
 // New creates a Summarizer backed by the same LLM as the chat agent.
 func New(cfg *config.Config) *Summarizer {
-	llmCfg := openai.DefaultConfig(cfg.String("llm.api_key"))
-	llmCfg.BaseURL = cfg.String("llm.base_url")
+	llmCfg := openai.DefaultConfig(cfg.ProfileParamString("llm.api_key"))
+	llmCfg.BaseURL = cfg.ProfileParamString("llm.base_url")
 	return &Summarizer{
 		cfg: cfg,
 		llm: openai.NewClientWithConfig(llmCfg),
@@ -40,7 +40,7 @@ func (s *Summarizer) threshold() int {
 	if cfgThreshold := s.cfg.Int("compact.threshold"); cfgThreshold > 0 {
 		return cfgThreshold
 	}
-	if cfgContext := s.cfg.Int("llm.context"); cfgContext > 0 {
+	if cfgContext := s.cfg.ProfileParamInt("llm.context"); cfgContext > 0 {
 		return cfgContext * 4 / 5
 	}
 	return 0 // no limit configured
@@ -133,7 +133,7 @@ func (s *Summarizer) summarize(messages []openai.ChatCompletionMessage) (string,
 	}
 
 	req := openai.ChatCompletionRequest{
-		Model: s.cfg.String("llm.model"),
+		Model: s.cfg.ProfileParamString("llm.model"),
 		Messages: []openai.ChatCompletionMessage{
 			{Role: openai.ChatMessageRoleSystem, Content: summaryPrompt},
 			{Role: openai.ChatMessageRoleUser, Content: sb.String()},

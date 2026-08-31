@@ -52,8 +52,8 @@ type Response struct {
 }
 
 func New(cfg *config.Config) *Guard {
-	llmCfg := openai.DefaultConfig(cfg.String("llm.api_key"))
-	llmCfg.BaseURL = cfg.String("llm.base_url")
+	llmCfg := openai.DefaultConfig(cfg.ProfileParamString("llm.api_key"))
+	llmCfg.BaseURL = cfg.ProfileParamString("llm.base_url")
 	return &Guard{
 		cfg: cfg,
 		llm: openai.NewClientWithConfig(llmCfg),
@@ -76,7 +76,7 @@ func (g *Guard) CheckSecurity(command string, readOnly bool) (allowed bool, reas
 	}
 
 	req := openai.ChatCompletionRequest{
-		Model:    g.cfg.String("llm.model"),
+		Model:    g.cfg.ProfileParamString("llm.model"),
 		Messages: messages,
 	}
 

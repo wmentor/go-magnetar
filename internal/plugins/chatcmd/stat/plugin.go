@@ -42,7 +42,7 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 				len(msgs),
 				totalTokens,
 				units.HumanSize(float64(totalBytes)),
-				cfg.String("llm.model"),
+				cfg.ProfileParamString("llm.model"),
 				cfg.String("rag.llm.model"),
 				cfg.Int("rag.llm.vector_size"),
 			)

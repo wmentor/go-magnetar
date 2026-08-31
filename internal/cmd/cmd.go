@@ -41,7 +41,7 @@ func Execute() error {
 	printer.SetDefault(printer.New(false))
 
 	if root.Globals.File == "" {
-		version.PrintVersion(cfg.String("llm.model"))
+		version.PrintVersion(cfg.ProfileParamString("llm.model"))
 		printEnabledModules(cfg)
 	}
 

@@ -1,11 +1,4 @@
- llm:
-  base_url: https://api.openai.com/v1
-  api_key: YOUR_API_KEY
-  model: gpt-4o
-  context: 128000
-  temperature: 0.9   # LLM temperature for response generation (default: 0.9)
-  top_p: 0.95        # LLM top_p for response generation (default: 0.95)
-  reasoning_effort: high  # reasoning effort: low, medium, or high (default: high)
+---
 
 language: english  # language for agent responses (default: english)
 

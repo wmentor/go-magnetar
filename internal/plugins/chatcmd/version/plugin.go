@@ -44,7 +44,7 @@ func (p *Plugin) Init(st *plugin.State, hub plugin.Hub) error {
 		Name: "version",
 		Help: "Show the current program version.",
 		Execute: func(_ context.Context, a plugin.AgentHandle, args string) error {
-			PrintVersion(st.Config.String("llm.model"))
+			PrintVersion(st.Config.ProfileParamString("llm.model"))
 			return nil
 		},
 	})

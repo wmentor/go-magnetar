@@ -78,8 +78,8 @@ type ChatAgent struct {
 
 // New creates a new ChatAgent instance.
 func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
-	llmCfg := openai.DefaultConfig(cfg.String("llm.api_key"))
-	llmCfg.BaseURL = cfg.String("llm.base_url")
+	llmCfg := openai.DefaultConfig(cfg.ProfileParamString("llm.api_key"))
+	llmCfg.BaseURL = cfg.ProfileParamString("llm.base_url")
 	llmClient := openai.NewClientWithConfig(llmCfg)
 
 	renderer, err := glamour.NewTermRenderer(
@@ -174,13 +174,13 @@ func estimateTokens(m openai.ChatCompletionMessage) int {
 
 // trimMessages returns a copy of a.messages that fits within the context window.
 func (a *ChatAgent) trimMessages(reservedOutputTokens int) []openai.ChatCompletionMessage {
-	if a.cfg.Int("llm.context") <= 0 {
+	if a.cfg.ProfileParamInt("llm.context") <= 0 {
 		return a.messages
 	}
 
-	budget := a.cfg.Int("llm.context") - reservedOutputTokens
+	budget := a.cfg.ProfileParamInt("llm.context") - reservedOutputTokens
 	if budget <= 0 {
-		budget = a.cfg.Int("llm.context")
+		budget = a.cfg.ProfileParamInt("llm.context")
 	}
 
 	system := a.messages[0]
@@ -256,19 +256,19 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 
 	for {
 		reserved := 0
-		if a.cfg.Int("llm.context") > 0 {
-			reserved = a.cfg.Int("llm.context") / reservedOutputFraction
+		if a.cfg.ProfileParamInt("llm.context") > 0 {
+			reserved = a.cfg.ProfileParamInt("llm.context") / reservedOutputFraction
 		}
 		trimmed := a.trimMessages(reserved)
 
 		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Hour)
 		resp, err := a.llm.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
-			Model:           a.cfg.String("llm.model"),
+			Model:           a.cfg.ProfileParamString("llm.model"),
 			Messages:        trimmed,
 			Tools:           tools,
-			Temperature:     float32(a.cfg.Float64("llm.temperature")),
-			TopP:            float32(a.cfg.Float64("llm.top_p")),
-			ReasoningEffort: a.cfg.String("llm.reasoning_effort"),
+			Temperature:     float32(a.cfg.ProfileParamFloat64("llm.temperature")),
+			TopP:            float32(a.cfg.ProfileParamFloat64("llm.top_p")),
+			ReasoningEffort: a.cfg.ProfileParamString("llm.reasoning_effort"),
 		})
 		cancel()
 
