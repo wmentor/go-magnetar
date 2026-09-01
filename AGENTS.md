@@ -35,6 +35,8 @@ See [docs/configuration.md](./docs/configuration.md) for complete configuration 
 
 When accessing profile-specific parameters in plugins, use the `ProfileParam*` helper methods. These automatically prepend the `profiles.{profile_name}.` prefix based on the currently selected profile.
 
+Environment variables can be referenced in any string parameter using the `$env:VAR_NAME` syntax.
+
 | Method | Type | Description |
 |---|---|---|
 | `ProfileParamString(key string) string` | string | Returns string value for the given key |
@@ -48,13 +50,21 @@ When accessing profile-specific parameters in plugins, use the `ProfileParam*` h
 
 The `profiles.{profile_name}.` prefix is automatically added based on the `profile` field in the configuration.
 
+### Environment Variables
+
+String parameters (including profile parameters) support the `$env:VAR_NAME` syntax to reference environment variables:
+
+```go
+apiKey := cfg.ProfileParamString("llm.api_key")  // Resolves $env:OPENAI_API_KEY from config
+```
+
 Example usage in a plugin:
 
 ```go
 func (p *MyPlugin) Init(s plugin.State, hub plugin.Hub) error {
     cfg := s.Config()
     
-    // Automatically resolves to profiles.default.llm.api_key
+    // Automatically resolves to profiles.default.llm.api_key (resolves $env:OPENAI_API_KEY)
     apiKey := cfg.ProfileParamString("llm.api_key")
     
     // Automatically resolves to profiles.default.llm.temperature
@@ -89,6 +99,26 @@ go-magnetar [-c <config>] -f <input-file>
 Reads input from the specified file, sends it to the agent, prints the answer, and exits. This mode is useful for scripting and batch processing.
 
 go-magnetar has a **single unified command** — `agent` — which provides an interactive REPL. The indexer functionality is now a chat command (`/index`).
+
+### Environment Variables
+
+Configuration values can reference environment variables using the `$env:VAR_NAME` syntax.
+This is useful for sensitive data like API keys to keep them out of your config files.
+
+```bash
+export OPENAI_API_KEY="sk-..."
+export EMBEDDING_API_KEY="sk-..."
+```
+
+```yaml
+llm:
+  api_key: $env:OPENAI_API_KEY
+  base_url: https://api.openai.com/v1
+
+rag:
+  llm:
+    api_key: $env:EMBEDDING_API_KEY
+```
 
 ## Chat Agent (Unified REPL)
 

@@ -6,6 +6,35 @@ Copy the example and fill in actual values:
 cp configs/config.yaml my-config.yaml
 ```
 
+### Environment Variables
+
+Configuration values can reference environment variables using the `$env:VAR_NAME` syntax.
+This is useful for sensitive data like API keys to keep them out of your config files.
+
+```bash
+export OPENAI_API_KEY="sk-..."
+export EMBEDDING_API_KEY="sk-..."
+```
+
+```yaml
+llm:
+  api_key: $env:OPENAI_API_KEY
+  base_url: https://api.openai.com/v1
+
+rag:
+  llm:
+    api_key: $env:EMBEDDING_API_KEY
+```
+
+The environment variable is substituted at read time, so changes to environment variables
+take effect immediately without restarting the application.
+
+If an environment variable is not set, it will be replaced with an empty string.
+
+## Configuration file locations
+
+The application looks for the configuration file in the following order:
+
 ```yaml
 language: english  # language for agent responses (default: english)
 
@@ -191,3 +220,8 @@ All profile-specific parameters are prefixed with `profiles.{profile}.` in the c
 | Parameter | Default | Description |
 |---|---|---|
 | `verbose` | `true` | Enable verbose tool call output |
+
+### Environment variable parameters
+
+All string parameters support the `$env:VAR_NAME` syntax to reference environment variables.
+This applies to all parameters listed above including profile parameters, API keys, URLs, etc.

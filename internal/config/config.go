@@ -57,7 +57,7 @@ func Load(path string) (*Config, error) {
 
 // String returns the string value for the given key.
 func (c *Config) String(key string) string {
-	return c.cfg.String(key)
+	return ResolveEnvVars(c.cfg.String(key))
 }
 
 // Bool returns the boolean value for the given key.
@@ -77,7 +77,7 @@ func (c *Config) Float64(key string) float64 {
 
 // String returns the string value for the given key.
 func (c *Config) ProfileParamString(key string) string {
-	return c.cfg.String(c.makeProfileKey(key))
+	return ResolveEnvVars(c.cfg.String(c.makeProfileKey(key)))
 }
 
 // Bool returns the boolean value for the given key.
