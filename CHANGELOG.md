@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.1.6] - 2026-09-01
+
+### Added
+
+- **Environment variable substitution** — support for `$env:VAR_NAME` in config values
+  - Add `ResolveEnvVars()` function to replace `$env:VAR_NAME` with environment variables
+  - Substitution happens at read time (not load time), allowing dynamic changes without restart
+  - Missing environment variables resolve to empty string
+  - Documented in docs/configuration.md and AGENTS.md with examples
+
+- **Profile-based configuration** — structured config via profiles block
+  - Move LLM settings from top-level to profile-specific (`profiles.{name}.llm.*`)
+  - Add `ProfileParamString/Int/Float64/Bool` methods for automatic profile prefix resolution
+  - Refactor all plugin code to use ProfileParam* helpers instead of direct config access
+  - Document profiles section in docs/configuration.md with migration guide
+
+### Changed
+
+- **Default chunking parameters** — updated to RAG sweet-spot
+  - Change `rag.chunk.size` from previous default to 2048 runes
+  - Change `rag.chunk.overlap` from previous default to 256 runes (~12.5% overlap)
+
+- **Go version bump** — updated to Go 1.27.0
+  - Update minimum version requirement in README.md and AGENTS.md
+  - Update GitHub Actions workflows
+  - Update build instructions
+
+### Fixed
+
+- **Configuration parameter** — add `llm.reasoning_effort`
+  - New parameter with values: low, medium, high (default: high)
+  - Integrated into CreateChatCompletion API calls
+
+### Improved
+
+- **Logging enhancements** — better structured logging
+  - Improved log messages for debugging
+  - Better error context
+
+- **Non-interactive mode** — add `-f/--file` flag
+  - New `-f/--file` flag to read input from file and print agent response
+  - Clarified that preprocessor and chat commands are not available in non-interactive mode
+  - Documented in README.md and AGENTS.md
+
 ## [v0.1.5] - 2026-07-29
 
 ### Added
