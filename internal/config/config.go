@@ -95,6 +95,11 @@ func (c *Config) ProfileParamFloat64(key string) float64 {
 	return c.cfg.Float64(c.makeProfileKey(key))
 }
 
+// SetProfile sets the profile name to use for parameter lookup.
+func (c *Config) SetProfile(profile string) {
+	c.profile = profile
+}
+
 func (c *Config) makeProfileKey(key string) string {
 	if c.profile == "" {
 		return key

@@ -102,6 +102,14 @@ go-magnetar [-c <config>] <command> [flags]
 
 If `-c` is omitted, `~/.go-magnetar.yaml` is used. The flag can also be set via the `GO_MAGNETAR_CONFIG` environment variable.
 
+### `-p/--profile` — select configuration profile
+
+```
+go-magnetar [-c <config>] -p <profile_name>
+```
+
+The `-p` flag overrides the profile specified in the configuration file. This allows switching between different configurations (e.g., `default`, `production`, `development`) without modifying the config file.
+
 ### `-f/--file` — non-interactive mode
 
 ```
@@ -110,7 +118,7 @@ go-magnetar [-c <config>] -f <input-file>
 
 Reads input from the specified file, sends it to the agent, prints the answer, and exits. This mode is useful for scripting and batch processing.
 
-> **Note:** In `-f/--file` mode, the text preprocessor is not applied and chat commands (e.g., `/readonly`, `/fetch`, `/index`) are not available. Only the raw input from the file is processed.
+> **Note:** In `-f/--file` mode, text preprocessors are applied but chat commands (e.g., `/readonly`, `/fetch`, `/index`) are not available. The text preprocessor expands placeholders like `{{home}}`, `{{uuid}}`, `{{date}}`, `{{now}}`, and `{{file:filename}}`.
 
 ## Commands
 

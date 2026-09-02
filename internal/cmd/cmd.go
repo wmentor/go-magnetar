@@ -16,8 +16,9 @@ import (
 )
 
 type Globals struct {
-	Config string `short:"c" type:"path" default:"~/.go-magnetar.yaml" help:"Path to config file" env:"GO_MAGNETAR_CONFIG"`
-	File   string `short:"f" type:"path" help:"Input file"`
+	Config  string `short:"c" type:"path" default:"~/.go-magnetar.yaml" help:"Path to config file" env:"GO_MAGNETAR_CONFIG"`
+	File    string `short:"f" type:"path" help:"Input file"`
+	Profile string `short:"p" help:"Profile name to use"`
 }
 
 type cli struct {
@@ -36,6 +37,10 @@ func Execute() error {
 	cfg, err := config.Load(root.Globals.Config)
 	if err != nil {
 		return err
+	}
+
+	if root.Globals.Profile != "" {
+		cfg.SetProfile(root.Globals.Profile)
 	}
 
 	printer.SetDefault(printer.New(false))
