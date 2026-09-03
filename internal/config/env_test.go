@@ -80,6 +80,85 @@ func TestResolveEnvVars(t *testing.T) {
 			},
 			expected: "value is banana",
 		},
+		{
+			name:  "single file",
+			input: "content: $file:test.txt",
+			setup: func() {
+				os.WriteFile("test.txt", []byte("file content"), 0644)
+			},
+			cleanup: func() {
+				os.Remove("test.txt")
+			},
+			expected: "content: file content",
+		},
+		{
+			name:  "multiple files",
+			input: "$file:a.txt and $file:b.txt",
+			setup: func() {
+				os.WriteFile("a.txt", []byte("first"), 0644)
+				os.WriteFile("b.txt", []byte("second"), 0644)
+			},
+			cleanup: func() {
+				os.Remove("a.txt")
+				os.Remove("b.txt")
+			},
+			expected: "first and second",
+		},
+		{
+			name:     "missing file returns empty",
+			input:    "value: $file:missing.txt",
+			expected: "value: ",
+		},
+		{
+			name:  "env in file path",
+			input: "$file:$env:FILE_VAR",
+			setup: func() {
+				os.Setenv("FILE_VAR", "msg.txt")
+				os.WriteFile("msg.txt", []byte("Hello"), 0644)
+			},
+			cleanup: func() {
+				os.Remove("msg.txt")
+				os.Unsetenv("FILE_VAR")
+			},
+			expected: "Hello",
+		},
+		{
+			name:  "file and env mixed",
+			input: "$file:msg.txt $env:USER",
+			setup: func() {
+				os.WriteFile("msg.txt", []byte("Hello"), 0644)
+				os.Setenv("USER", "World")
+			},
+			cleanup: func() {
+				os.Remove("msg.txt")
+				os.Unsetenv("USER")
+			},
+			expected: "Hello World",
+		},
+		{
+			name:  "file with newlines",
+			input: "$file:multiline.txt",
+			setup: func() {
+				os.WriteFile("multiline.txt", []byte("line1\nline2\nline3"), 0644)
+			},
+			cleanup: func() {
+				os.Remove("multiline.txt")
+			},
+			expected: "line1\nline2\nline3",
+		},
+		{
+			name:  "file with path",
+			input: "$file:subdir/test.txt",
+			setup: func() {
+				os.Mkdir("subdir", 0755)
+				os.WriteFile("subdir/test.txt", []byte("nested"), 0644)
+			},
+			cleanup: func() {
+				os.Remove("subdir/test.txt")
+				os.Remove("subdir")
+			},
+			expected: "nested",
+		},
 	}
 
 	for _, tt := range tests {

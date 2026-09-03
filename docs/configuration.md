@@ -26,6 +26,26 @@ rag:
     api_key: $env:EMBEDDING_API_KEY
 ```
 
+### File Content Substitution
+
+You can also substitute file contents using the `$file:filename` syntax.
+This is useful for loading secrets or large text blocks from external files.
+
+```yaml
+llm:
+  api_key: $file:secrets/api_key.txt
+  base_url: https://api.openai.com/v1
+```
+
+File contents are substituted at read time. If a file is not found, it will be replaced with an empty string.
+Environment variables can be used in file paths to dynamically resolve filenames.
+
+```yaml
+llm:
+  api_key: $file:$env:API_KEY_FILE
+  base_url: https://api.openai.com/v1
+```
+
 The environment variable is substituted at read time, so changes to environment variables
 take effect immediately without restarting the application.
 
@@ -221,7 +241,7 @@ All profile-specific parameters are prefixed with `profiles.{profile}.` in the c
 |---|---|---|
 | `verbose` | `true` | Enable verbose tool call output |
 
-### Environment variable parameters
+### Environment variable and file parameters
 
-All string parameters support the `$env:VAR_NAME` syntax to reference environment variables.
+All string parameters support the `$env:VAR_NAME` and `$file:filename` syntaxes to reference environment variables and file contents respectively.
 This applies to all parameters listed above including profile parameters, API keys, URLs, etc.

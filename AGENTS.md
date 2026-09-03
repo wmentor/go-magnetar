@@ -58,6 +58,18 @@ String parameters (including profile parameters) support the `$env:VAR_NAME` syn
 apiKey := cfg.ProfileParamString("llm.api_key")  // Resolves $env:OPENAI_API_KEY from config
 ```
 
+File contents can be substituted using the `$file:filename` syntax:
+
+```go
+apiKey := cfg.ProfileParamString("llm.api_key")  // Resolves $file:secrets/api_key.txt from config
+```
+
+Environment variables can be used in file paths:
+
+```go
+apiKey := cfg.ProfileParamString("llm.api_key")  // Resolves $file:$env:API_KEY_FILE from config
+```
+
 Example usage in a plugin:
 
 ```go
@@ -126,6 +138,26 @@ llm:
 rag:
   llm:
     api_key: $env:EMBEDDING_API_KEY
+```
+
+### File Content Substitution
+
+You can also substitute file contents using the `$file:filename` syntax.
+This is useful for loading secrets or large text blocks from external files.
+
+```yaml
+llm:
+  api_key: $file:secrets/api_key.txt
+  base_url: https://api.openai.com/v1
+```
+
+File contents are substituted at read time. If a file is not found, it will be replaced with an empty string.
+Environment variables can be used in file paths to dynamically resolve filenames.
+
+```yaml
+llm:
+  api_key: $file:$env:API_KEY_FILE
+  base_url: https://api.openai.com/v1
 ```
 
 ## Chat Agent (Unified REPL)
