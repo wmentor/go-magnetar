@@ -61,6 +61,15 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		},
 	})
 
+	// Register github_issue tool
+	hub.RegisterTool(plugin.LLMTool{
+		Definition:   github.StaticDefinitionIssue,
+		IsSearchTool: true,
+		Execute: func(_ context.Context, args string) (string, error) {
+			return tools.Dispatch("github_issue", args), nil
+		},
+	})
+
 	return nil
 }
 

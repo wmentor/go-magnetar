@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -579,12 +580,302 @@ func (g *GitHubTools) Dispatch(name string, args string) string {
 		}
 		return content
 
+	case "github_issue":
+		var params struct {
+			Repo  string `json:"repo"`
+			Issue string `json:"issue"`
+		}
+		if err := json.Unmarshal([]byte(args), &params); err != nil {
+			return "error: failed to parse arguments"
+		}
+		content, err := g.FetchIssue(params.Repo, params.Issue)
+		if err != nil {
+			return fmt.Sprintf("error: %v", err)
+		}
+		return content
+
 	default:
 		return "error: unknown tool " + name
 	}
 }
 
-// StaticDefinition returns the OpenAI tool schema for github_repo without
+func extractGitHubIssueURL(url string) (string, string, string, error) {
+	re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/issues/(\d+)`)
+	matches := re.FindStringSubmatch(url)
+	if matches != nil {
+		return matches[1], matches[2], matches[3], nil
+	}
+	return "", "", "", fmt.Errorf("not a GitHub issue URL")
+}
+
+func (g *GitHubTools) FetchIssue(repo string, issueNum string) (string, error) {
+	owner, repoName, err := parseGitHubRepoURL(repo)
+	if err != nil {
+		return "", fmt.Errorf("github_issue: failed to parse repository URL: %w", err)
+	}
+
+	printer.ToolCall(printer.IconSearch, "github_issue", "repo", repo, "issue", issueNum)
+
+	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	defer cancel()
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues/%s", owner, repoName, issueNum)
+
+	resp, err := g.fetchWithHeaders(ctx, http.MethodGet, apiURL)
+	if err != nil {
+		return "", fmt.Errorf("github_issue: failed to fetch issue: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("github_issue: issue #%s returned status %d: %s", issueNum, resp.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("github_issue: failed to read response body: %w", err)
+	}
+
+	var issueData struct {
+		ID     int    `json:"id"`
+		Number int    `json:"number"`
+		Title  string `json:"title"`
+		State  string `json:"state"`
+		Locked bool   `json:"locked"`
+		Body   string `json:"body"`
+		User   struct {
+			Login     string `json:"login"`
+			AvatarURL string `json:"avatar_url"`
+			HTMLURL   string `json:"html_url"`
+		} `json:"user"`
+		Labels []struct {
+			Name        string `json:"name"`
+			Color       string `json:"color"`
+			Description string `json:"description"`
+		} `json:"labels"`
+		Assignees []struct {
+			Login     string `json:"login"`
+			AvatarURL string `json:"avatar_url"`
+			HTMLURL   string `json:"html_url"`
+		} `json:"assignees"`
+		CommentCount int    `json:"comments"`
+		CreatedAt    string `json:"created_at"`
+		UpdatedAt    string `json:"updated_at"`
+		ClosedAt     string `json:"closed_at"`
+		HTMLURL      string `json:"html_url"`
+	}
+
+	if err := json.Unmarshal(body, &issueData); err != nil {
+		return "", fmt.Errorf("github_issue: failed to parse response: %w", err)
+	}
+
+	var comments []string
+	if issueData.CommentCount > 0 {
+		comments, err = g.fetchIssueComments(owner, repoName, issueNum)
+		if err != nil {
+			printer.ToolCall(printer.IconError, "github_issue: failed to fetch comments", "repo", repo, "issue", issueNum, "err", err)
+		}
+	}
+
+	return g.formatIssueMarkdown(&issueData, comments), nil
+}
+
+func (g *GitHubTools) fetchIssueComments(owner string, repoName string, issueNum string) ([]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	defer cancel()
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues/%s/comments", owner, repoName, issueNum)
+
+	resp, err := g.fetchWithHeaders(ctx, http.MethodGet, apiURL)
+	if err != nil {
+		return nil, fmt.Errorf("github_issue: failed to fetch comments: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("github_issue: comments endpoint returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("github_issue: failed to read comments response: %w", err)
+	}
+
+	var commentsData []struct {
+		ID   int    `json:"id"`
+		Body string `json:"body"`
+		User struct {
+			Login     string `json:"login"`
+			AvatarURL string `json:"avatar_url"`
+			HTMLURL   string `json:"html_url"`
+		} `json:"user"`
+		CreatedAt string `json:"created_at"`
+		UpdatedAt string `json:"updated_at"`
+	}
+
+	if err := json.Unmarshal(body, &commentsData); err != nil {
+		return nil, fmt.Errorf("github_issue: failed to parse comments response: %w", err)
+	}
+
+	var comments []string
+	for _, comment := range commentsData {
+		commentStr := fmt.Sprintf("### Comment by @%s\n\n%s\n\n**Created:** %s\n**Updated:** %s\n", comment.User.Login, comment.Body, comment.CreatedAt, comment.UpdatedAt)
+		comments = append(comments, commentStr)
+	}
+
+	return comments, nil
+}
+
+func (g *GitHubTools) formatIssueMarkdown(issueData *struct {
+	ID     int    `json:"id"`
+	Number int    `json:"number"`
+	Title  string `json:"title"`
+	State  string `json:"state"`
+	Locked bool   `json:"locked"`
+	Body   string `json:"body"`
+	User   struct {
+		Login     string `json:"login"`
+		AvatarURL string `json:"avatar_url"`
+		HTMLURL   string `json:"html_url"`
+	} `json:"user"`
+	Labels []struct {
+		Name        string `json:"name"`
+		Color       string `json:"color"`
+		Description string `json:"description"`
+	} `json:"labels"`
+	Assignees []struct {
+		Login     string `json:"login"`
+		AvatarURL string `json:"avatar_url"`
+		HTMLURL   string `json:"html_url"`
+	} `json:"assignees"`
+	CommentCount int    `json:"comments"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+	ClosedAt     string `json:"closed_at"`
+	HTMLURL      string `json:"html_url"`
+}, comments []string) string {
+	var sb strings.Builder
+
+	sb.WriteString(fmt.Sprintf("# Issue #%d: %s\n\n", issueData.Number, issueData.Title))
+	sb.WriteString(fmt.Sprintf("**Status:** %s\n\n", issueData.State))
+	if issueData.Locked {
+		sb.WriteString("**⚠️ This issue is locked**\n\n")
+	}
+	sb.WriteString(fmt.Sprintf("**Author:** @%s\n\n", issueData.User.Login))
+	sb.WriteString(fmt.Sprintf("**Created:** %s\n\n", issueData.CreatedAt))
+	sb.WriteString(fmt.Sprintf("**Updated:** %s\n\n", issueData.UpdatedAt))
+	if issueData.ClosedAt != "" {
+		sb.WriteString(fmt.Sprintf("**Closed:** %s\n\n", issueData.ClosedAt))
+	}
+	sb.WriteString(fmt.Sprintf("**URL:** %s\n\n", issueData.HTMLURL))
+
+	if len(issueData.Labels) > 0 {
+		var labelNames []string
+		for _, label := range issueData.Labels {
+			labelNames = append(labelNames, label.Name)
+		}
+		sb.WriteString(fmt.Sprintf("**Labels:** %s\n\n", strings.Join(labelNames, ", ")))
+	}
+
+	if len(issueData.Assignees) > 0 {
+		var assigneeLogins []string
+		for _, assignee := range issueData.Assignees {
+			assigneeLogins = append(assigneeLogins, assignee.Login)
+		}
+		sb.WriteString(fmt.Sprintf("**Assignees:** %s\n\n", strings.Join(assigneeLogins, ", ")))
+	}
+
+	if issueData.Body != "" {
+		sb.WriteString(fmt.Sprintf("## Description\n\n%s\n\n", issueData.Body))
+	}
+
+	if len(comments) > 0 {
+		sb.WriteString(fmt.Sprintf("## Comments (%d)\n\n", len(comments)))
+		for _, comment := range comments {
+			sb.WriteString(comment)
+			sb.WriteString("\n---\n\n")
+		}
+	}
+
+	return sb.String()
+}
+
+func (g *GitHubTools) DefinitionIssue() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "github_issue",
+			Description: "Fetch a GitHub issue and its comments, returns issue details in Markdown format",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"repo": map[string]any{
+						"type":        "string",
+						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
+					},
+					"issue": map[string]any{
+						"type":        "string",
+						"description": "Issue number (e.g., '7')",
+					},
+				},
+				"required": []string{"repo", "issue"},
+			},
+		},
+	}
+}
+
+func (g *GitHubTools) StaticDefinitionIssue() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "github_issue",
+			Description: "Fetch a GitHub issue and its comments, returns issue details in Markdown format",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"repo": map[string]any{
+						"type":        "string",
+						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
+					},
+					"issue": map[string]any{
+						"type":        "string",
+						"description": "Issue number (e.g., '7')",
+					},
+				},
+				"required": []string{"repo", "issue"},
+			},
+		},
+	}
+}
+
+// StaticDefinitionIssue returns the OpenAI tool schema for github_issue without
+// requiring an initialised GitHubTools instance.
+func StaticDefinitionIssue() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "github_issue",
+			Description: "Fetch a GitHub issue and its comments, returns issue details in Markdown format",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"repo": map[string]any{
+						"type":        "string",
+						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
+					},
+					"issue": map[string]any{
+						"type":        "string",
+						"description": "Issue number (e.g., '7')",
+					},
+				},
+				"required": []string{"repo", "issue"},
+			},
+		},
+	}
+}
+
 // requiring an initialised GitHubTools instance.
 func StaticDefinition() openai.Tool {
 	return openai.Tool{
