@@ -70,6 +70,15 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		},
 	})
 
+	// Register github_milestone tool
+	hub.RegisterTool(plugin.LLMTool{
+		Definition:   github.StaticDefinitionMilestone,
+		IsSearchTool: true,
+		Execute: func(_ context.Context, args string) (string, error) {
+			return tools.Dispatch("github_milestone", args), nil
+		},
+	})
+
 	return nil
 }
 

@@ -167,6 +167,12 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 					return github.New(w.cfg).FetchIssue(owner+"/"+repo, issueNum)
 				}
 			}
+			if strings.Contains(url, "/milestone/") {
+				owner, repo, milestoneNum, err := extractGitHubMilestoneURL(url)
+				if err == nil && owner != "" && repo != "" && milestoneNum != "" {
+					return github.New(w.cfg).FetchMilestone(owner+"/"+repo, milestoneNum)
+				}
+			}
 		}
 	}
 
@@ -603,6 +609,15 @@ func extractGitHubIssueURL(url string) (string, string, string, error) {
 	return "", "", "", fmt.Errorf("not a GitHub issue URL")
 }
 
+func extractGitHubMilestoneURL(url string) (string, string, string, error) {
+	re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/milestone/(\d+)`)
+	matches := re.FindStringSubmatch(url)
+	if matches != nil {
+		return matches[1], matches[2], matches[3], nil
+	}
+	return "", "", "", fmt.Errorf("not a GitHub milestone URL")
+}
+
 // StaticDefinition returns the OpenAI tool schema for web_fetch without
 // requiring an initialised WebTools instance. Used by the plugin for lazy init.
 func StaticDefinition() openai.Tool {
@@ -610,7 +625,7 @@ func StaticDefinition() openai.Tool {
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
 			Name:        "web_fetch",
-			Description: "Fetch a web page and return clean Markdown content. Supports Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories and issues.",
+			Description: "Fetch a web page and return clean Markdown content. Supports Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories, issues, and milestones.",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{

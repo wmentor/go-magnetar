@@ -279,11 +279,12 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 | `system_date` | `() -> string` | Executes the date command to get the current system time |
 | `system_grep` | `(filename: string, pattern: string) -> string` | Executes system grep command with safe parameters: -n (always), -i (case-insensitive), -r (recursive), -E (extended regex) |
 | `rag_search` | `(query: string) -> string` | Returns top-N relevant fragments from Qdrant (N is set by `rag.search.limit`) |
-| `web_fetch` | `(url: string) -> string` | Fetches and cleans a web page (fallback if RAG returns no results); also fetches Confluence pages, JIRA issues, and GitHub repositories/issues |
+| `web_fetch` | `(url: string) -> string` | Fetches and cleans a web page (fallback if RAG returns no results); also fetches Confluence pages, JIRA issues, and GitHub repositories, issues, and milestones |
 | `github_repo` | `(repo: string) -> string` | Fetches GitHub repository information and returns its details in Markdown format |
 | `github_file` | `(repo: string, branch: string, file: string) -> string` | Fetches a file from GitHub repository and returns its content |
 | `github_tree` | `(repo: string, branch: string, path: string) -> string` | Lists repository contents at root or specified path |
 | `github_issue` | `(repo: string, issue: string) -> string` | Fetches a GitHub issue and its comments, returns issue details in Markdown format |
+| `github_milestone` | `(repo: string, milestone: string) -> string` | Fetches a GitHub milestone and returns its details in Markdown format |
 
 ## Security restrictions
 
@@ -318,6 +319,9 @@ The indexer reads `.md`, `.txt`, `.docx`, and `.pdf` files or web pages (by URL)
 
 # From GitHub issue URL
 > /index https://github.com/wmentor/go-magnetar/issues/7
+
+# From GitHub milestone URL
+> /index https://github.com/golang/go/milestone/278
 ```
 
 ### Prepend message to chunks

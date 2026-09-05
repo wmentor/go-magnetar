@@ -594,6 +594,20 @@ func (g *GitHubTools) Dispatch(name string, args string) string {
 		}
 		return content
 
+	case "github_milestone":
+		var params struct {
+			Repo      string `json:"repo"`
+			Milestone string `json:"milestone"`
+		}
+		if err := json.Unmarshal([]byte(args), &params); err != nil {
+			return "error: failed to parse arguments"
+		}
+		content, err := g.FetchMilestone(params.Repo, params.Milestone)
+		if err != nil {
+			return fmt.Sprintf("error: %v", err)
+		}
+		return content
+
 	default:
 		return "error: unknown tool " + name
 	}
@@ -606,6 +620,15 @@ func extractGitHubIssueURL(url string) (string, string, string, error) {
 		return matches[1], matches[2], matches[3], nil
 	}
 	return "", "", "", fmt.Errorf("not a GitHub issue URL")
+}
+
+func extractGitHubMilestoneURL(url string) (string, string, string, error) {
+	re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/milestone/(\d+)`)
+	matches := re.FindStringSubmatch(url)
+	if matches != nil {
+		return matches[1], matches[2], matches[3], nil
+	}
+	return "", "", "", fmt.Errorf("not a GitHub milestone URL")
 }
 
 func (g *GitHubTools) FetchIssue(repo string, issueNum string) (string, error) {
@@ -871,6 +894,214 @@ func StaticDefinitionIssue() openai.Tool {
 					},
 				},
 				"required": []string{"repo", "issue"},
+			},
+		},
+	}
+}
+
+func (g *GitHubTools) FetchMilestone(repo string, milestoneNum string) (string, error) {
+	owner, repoName, err := parseGitHubRepoURL(repo)
+	if err != nil {
+		return "", fmt.Errorf("github_milestone: failed to parse repository URL: %w", err)
+	}
+
+	printer.ToolCall(printer.IconSearch, "github_milestone", "repo", repo, "milestone", milestoneNum)
+
+	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	defer cancel()
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/milestones/%s", owner, repoName, milestoneNum)
+
+	resp, err := g.fetchWithHeaders(ctx, http.MethodGet, apiURL)
+	if err != nil {
+		return "", fmt.Errorf("github_milestone: failed to fetch milestone: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("github_milestone: milestone #%s returned status %d: %s", milestoneNum, resp.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("github_milestone: failed to read response body: %w", err)
+	}
+
+	var milestoneData struct {
+		URL         string `json:"url"`
+		HTMLURL     string `json:"html_url"`
+		LabelsURL   string `json:"labels_url"`
+		ID          int    `json:"id"`
+		Number      int    `json:"number"`
+		State       string `json:"state"`
+		Title       string `json:"title"`
+		Description string `json:"description"`
+		Creator     struct {
+			Login     string `json:"login"`
+			AvatarURL string `json:"avatar_url"`
+			HTMLURL   string `json:"html_url"`
+		} `json:"creator"`
+		OpenIssues   int    `json:"open_issues"`
+		ClosedIssues int    `json:"closed_issues"`
+		CreatedAt    string `json:"created_at"`
+		UpdatedAt    string `json:"updated_at"`
+		DueOn        string `json:"due_on"`
+	}
+
+	if err := json.Unmarshal(body, &milestoneData); err != nil {
+		return "", fmt.Errorf("github_milestone: failed to parse response: %w", err)
+	}
+
+	var issues []struct {
+		URL    string `json:"url"`
+		Number int    `json:"number"`
+		Title  string `json:"title"`
+		Body   string `json:"body"`
+		State  string `json:"state"`
+		Labels []struct {
+			Name string `json:"name"`
+		} `json:"labels"`
+		User struct {
+			Login     string `json:"login"`
+			AvatarURL string `json:"avatar_url"`
+			HTMLURL   string `json:"html_url"`
+		} `json:"user"`
+		CreatedAt string `json:"created_at"`
+		UpdatedAt string `json:"updated_at"`
+		ClosedAt  string `json:"closed_at"`
+		HTMLURL   string `json:"html_url"`
+	}
+
+	issuesURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues?state=all&milestone=%s", owner, repoName, milestoneNum)
+	respIssues, err := g.fetchWithHeaders(ctx, http.MethodGet, issuesURL)
+	if err != nil {
+		printer.ToolCall(printer.IconError, "github_milestone: failed to fetch issues", "err", err)
+	} else if respIssues.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(respIssues.Body)
+		printer.ToolCall(printer.IconError, "github_milestone: issues endpoint returned error", "status", respIssues.StatusCode, "body", string(body))
+		respIssues.Body.Close()
+	} else {
+		defer respIssues.Body.Close()
+		issuesBody, err := io.ReadAll(respIssues.Body)
+		if err != nil {
+			printer.ToolCall(printer.IconError, "github_milestone: failed to read issues response", "err", err)
+		} else {
+			if err := json.Unmarshal(issuesBody, &issues); err != nil {
+				printer.ToolCall(printer.IconError, "github_milestone: failed to parse issues response", "err", err)
+			} else {
+				printer.ToolCall(printer.IconSearch, "github_milestone: fetched issues", "count", len(issues))
+			}
+		}
+	}
+
+	return g.formatMilestoneMarkdown(&milestoneData, issues), nil
+}
+
+func (g *GitHubTools) formatMilestoneMarkdown(milestoneData *struct {
+	URL         string `json:"url"`
+	HTMLURL     string `json:"html_url"`
+	LabelsURL   string `json:"labels_url"`
+	ID          int    `json:"id"`
+	Number      int    `json:"number"`
+	State       string `json:"state"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Creator     struct {
+		Login     string `json:"login"`
+		AvatarURL string `json:"avatar_url"`
+		HTMLURL   string `json:"html_url"`
+	} `json:"creator"`
+	OpenIssues   int    `json:"open_issues"`
+	ClosedIssues int    `json:"closed_issues"`
+	CreatedAt    string `json:"created_at"`
+	UpdatedAt    string `json:"updated_at"`
+	DueOn        string `json:"due_on"`
+}, issues []struct {
+	URL    string `json:"url"`
+	Number int    `json:"number"`
+	Title  string `json:"title"`
+	Body   string `json:"body"`
+	State  string `json:"state"`
+	Labels []struct {
+		Name string `json:"name"`
+	} `json:"labels"`
+	User struct {
+		Login     string `json:"login"`
+		AvatarURL string `json:"avatar_url"`
+		HTMLURL   string `json:"html_url"`
+	} `json:"user"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+	ClosedAt  string `json:"closed_at"`
+	HTMLURL   string `json:"html_url"`
+}) string {
+	var sb strings.Builder
+
+	sb.WriteString(fmt.Sprintf("# Milestone #%d: %s\n\n", milestoneData.Number, milestoneData.Title))
+	sb.WriteString(fmt.Sprintf("**Status:** %s\n\n", milestoneData.State))
+	sb.WriteString(fmt.Sprintf("**Creator:** @%s\n\n", milestoneData.Creator.Login))
+	sb.WriteString(fmt.Sprintf("**Created:** %s\n\n", milestoneData.CreatedAt))
+	sb.WriteString(fmt.Sprintf("**Updated:** %s\n\n", milestoneData.UpdatedAt))
+	if milestoneData.DueOn != "" {
+		sb.WriteString(fmt.Sprintf("**Due on:** %s\n\n", milestoneData.DueOn))
+	}
+	sb.WriteString(fmt.Sprintf("**URL:** %s\n\n", milestoneData.HTMLURL))
+
+	if milestoneData.Description != "" {
+		sb.WriteString(fmt.Sprintf("## Description\n\n%s\n\n", milestoneData.Description))
+	}
+
+	sb.WriteString(fmt.Sprintf("**Issues:** %d open, %d closed\n\n", milestoneData.OpenIssues, milestoneData.ClosedIssues))
+
+	if len(issues) > 0 {
+		sb.WriteString(fmt.Sprintf("## Issues (%d)\n\n", len(issues)))
+		for _, issue := range issues {
+			sb.WriteString(fmt.Sprintf("### [%d] %s\n\n", issue.Number, issue.Title))
+			sb.WriteString(fmt.Sprintf("**URL:** %s\n\n", issue.HTMLURL))
+			sb.WriteString(fmt.Sprintf("**Status:** %s\n\n", issue.State))
+			if issue.Body != "" {
+				sb.WriteString(fmt.Sprintf("**Description:**\n%s\n\n", issue.Body))
+			}
+			if len(issue.Labels) > 0 {
+				var labelNames []string
+				for _, label := range issue.Labels {
+					labelNames = append(labelNames, label.Name)
+				}
+				sb.WriteString(fmt.Sprintf("**Labels:** %s\n\n", strings.Join(labelNames, ", ")))
+			}
+			sb.WriteString(fmt.Sprintf("**Created:** %s\n**Updated:** %s\n", issue.CreatedAt, issue.UpdatedAt))
+			if issue.ClosedAt != "" {
+				sb.WriteString(fmt.Sprintf("**Closed:** %s\n", issue.ClosedAt))
+			}
+			sb.WriteString("\n---\n\n")
+		}
+	}
+
+	return sb.String()
+}
+
+// StaticDefinitionMilestone returns the OpenAI tool schema for github_milestone without
+// requiring an initialised GitHubTools instance.
+func StaticDefinitionMilestone() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "github_milestone",
+			Description: "Fetch a GitHub milestone and all its issues, returns milestone details in Markdown format",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"repo": map[string]any{
+						"type":        "string",
+						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
+					},
+					"milestone": map[string]any{
+						"type":        "string",
+						"description": "Milestone number (e.g., '278')",
+					},
+				},
+				"required": []string{"repo", "milestone"},
 			},
 		},
 	}
