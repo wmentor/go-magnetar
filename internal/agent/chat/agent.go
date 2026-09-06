@@ -253,6 +253,7 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 	}
 
 	toolCallCount := 0
+	searchLimitReached := false
 
 	for {
 		reserved := 0
@@ -261,11 +262,19 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 		}
 		trimmed := a.trimMessages(reserved)
 
+		// When the search tool call limit has been reached, send the request
+		// without any tools so the LLM is forced to produce a final text answer
+		// instead of attempting further tool calls (which would loop forever).
+		activeTools := tools
+		if searchLimitReached {
+			activeTools = nil
+		}
+
 		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Hour)
 		resp, err := a.llm.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 			Model:           a.cfg.ProfileParamString("llm.model"),
 			Messages:        trimmed,
-			Tools:           tools,
+			Tools:           activeTools,
 			Temperature:     float32(a.cfg.ProfileParamFloat64("llm.temperature")),
 			TopP:            float32(a.cfg.ProfileParamFloat64("llm.top_p")),
 			ReasoningEffort: a.cfg.ProfileParamString("llm.reasoning_effort"),
@@ -282,6 +291,10 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 
 		choice := resp.Choices[0]
 		a.messages = append(a.messages, choice.Message)
+
+		if choice.FinishReason == openai.FinishReasonLength {
+			printer.Error("chat: LLM response was truncated (finish_reason=length); the answer may be incomplete")
+		}
 
 		if choice.FinishReason == openai.FinishReasonToolCalls {
 			type toolResult struct {
@@ -310,7 +323,8 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 						if t.IsSearchTool {
 							toolCallCount++
 							if toolCallCount > maxSearchToolCalls {
-								result = fmt.Sprintf("error: reached maximum number of search tool calls (%d)", maxSearchToolCalls)
+								searchLimitReached = true
+								result = fmt.Sprintf("error: reached maximum number of search tool calls (%d), no further searches allowed", maxSearchToolCalls)
 							} else {
 								r, err := t.Execute(context.Background(), args)
 								if err != nil {
