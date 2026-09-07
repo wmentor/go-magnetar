@@ -135,27 +135,27 @@ func (g *GitHubTools) formatRepoMarkdown(repoData any, readme string) string {
 	})
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("# %s\n\n", rd.FullName))
-	sb.WriteString(fmt.Sprintf("**Default Branch:** %s\n\n", rd.DefaultBranch))
+	fmt.Fprintf(&sb, "# %s\n\n", rd.FullName)
+	fmt.Fprintf(&sb, "**Default Branch:** %s\n\n", rd.DefaultBranch)
 	if rd.License != nil {
-		sb.WriteString(fmt.Sprintf("**License:** %s\n\n", rd.License.Name))
+		fmt.Fprintf(&sb, "**License:** %s\n\n", rd.License.Name)
 	}
 	if rd.Language != "" {
-		sb.WriteString(fmt.Sprintf("**Language:** %s\n\n", rd.Language))
+		fmt.Fprintf(&sb, "**Language:** %s\n\n", rd.Language)
 	}
-	sb.WriteString(fmt.Sprintf("**Forks:** %d | **Stars:** %d | **Open Issues:** %d\n\n",
-		rd.ForksCount, rd.StargazersCount, rd.OpenIssuesCount))
+	fmt.Fprintf(&sb, "**Forks:** %d | **Stars:** %d | **Open Issues:** %d\n\n",
+		rd.ForksCount, rd.StargazersCount, rd.OpenIssuesCount)
 	if rd.Archived {
 		sb.WriteString("**⚠️ This repository is archived**\n\n")
 	}
 	if len(rd.Topics) > 0 {
-		sb.WriteString(fmt.Sprintf("**Topics:** %s\n\n", strings.Join(rd.Topics, ", ")))
+		fmt.Fprintf(&sb, "**Topics:** %s\n\n", strings.Join(rd.Topics, ", "))
 	}
 	if rd.Description != "" {
-		sb.WriteString(fmt.Sprintf("**Description:**\n%s\n\n", rd.Description))
+		fmt.Fprintf(&sb, "**Description:**\n%s\n\n", rd.Description)
 	}
 	if readme != "" {
-		sb.WriteString(fmt.Sprintf("**README:**\n%s\n", readme))
+		fmt.Fprintf(&sb, "**README:**\n%s\n", readme)
 	}
 	return sb.String()
 }
@@ -407,7 +407,7 @@ func (g *GitHubTools) formatTreeMarkdown(files []struct {
 }, path string) string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("**Contents of %s**\n\n", path))
+	fmt.Fprintf(&sb, "**Contents of %s**\n\n", path)
 	sb.WriteString("| Name | Size |\n")
 	sb.WriteString("|------|------|\n")
 
@@ -415,7 +415,7 @@ func (g *GitHubTools) formatTreeMarkdown(files []struct {
 		sizeStr := ""
 		if f.Type != "tree" {
 			sizeStr = fmt.Sprintf("%d bytes", f.Size)
-			sb.WriteString(fmt.Sprintf("| %s | %s |\n", f.Path, sizeStr))
+			fmt.Fprintf(&sb, "| %s | %s |\n", f.Path, sizeStr)
 		}
 	}
 
@@ -781,25 +781,25 @@ func (g *GitHubTools) formatIssueMarkdown(issueData *struct {
 }, comments []string) string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("# Issue #%d: %s\n\n", issueData.Number, issueData.Title))
-	sb.WriteString(fmt.Sprintf("**Status:** %s\n\n", issueData.State))
+	fmt.Fprintf(&sb, "# Issue #%d: %s\n\n", issueData.Number, issueData.Title)
+	fmt.Fprintf(&sb, "**Status:** %s\n\n", issueData.State)
 	if issueData.Locked {
 		sb.WriteString("**⚠️ This issue is locked**\n\n")
 	}
-	sb.WriteString(fmt.Sprintf("**Author:** @%s\n\n", issueData.User.Login))
-	sb.WriteString(fmt.Sprintf("**Created:** %s\n\n", issueData.CreatedAt))
-	sb.WriteString(fmt.Sprintf("**Updated:** %s\n\n", issueData.UpdatedAt))
+	fmt.Fprintf(&sb, "**Author:** @%s\n\n", issueData.User.Login)
+	fmt.Fprintf(&sb, "**Created:** %s\n\n", issueData.CreatedAt)
+	fmt.Fprintf(&sb, "**Updated:** %s\n\n", issueData.UpdatedAt)
 	if issueData.ClosedAt != "" {
-		sb.WriteString(fmt.Sprintf("**Closed:** %s\n\n", issueData.ClosedAt))
+		fmt.Fprintf(&sb, "**Closed:** %s\n\n", issueData.ClosedAt)
 	}
-	sb.WriteString(fmt.Sprintf("**URL:** %s\n\n", issueData.HTMLURL))
+	fmt.Fprintf(&sb, "**URL:** %s\n\n", issueData.HTMLURL)
 
 	if len(issueData.Labels) > 0 {
 		var labelNames []string
 		for _, label := range issueData.Labels {
 			labelNames = append(labelNames, label.Name)
 		}
-		sb.WriteString(fmt.Sprintf("**Labels:** %s\n\n", strings.Join(labelNames, ", ")))
+		fmt.Fprintf(&sb, "**Labels:** %s\n\n", strings.Join(labelNames, ", "))
 	}
 
 	if len(issueData.Assignees) > 0 {
@@ -807,15 +807,15 @@ func (g *GitHubTools) formatIssueMarkdown(issueData *struct {
 		for _, assignee := range issueData.Assignees {
 			assigneeLogins = append(assigneeLogins, assignee.Login)
 		}
-		sb.WriteString(fmt.Sprintf("**Assignees:** %s\n\n", strings.Join(assigneeLogins, ", ")))
+		fmt.Fprintf(&sb, "**Assignees:** %s\n\n", strings.Join(assigneeLogins, ", "))
 	}
 
 	if issueData.Body != "" {
-		sb.WriteString(fmt.Sprintf("## Description\n\n%s\n\n", issueData.Body))
+		fmt.Fprintf(&sb, "## Description\n\n%s\n\n", issueData.Body)
 	}
 
 	if len(comments) > 0 {
-		sb.WriteString(fmt.Sprintf("## Comments (%d)\n\n", len(comments)))
+		fmt.Fprintf(&sb, "## Comments (%d)\n\n", len(comments))
 		for _, comment := range comments {
 			sb.WriteString(comment)
 			sb.WriteString("\n---\n\n")
@@ -1038,41 +1038,41 @@ func (g *GitHubTools) formatMilestoneMarkdown(milestoneData *struct {
 }) string {
 	var sb strings.Builder
 
-	sb.WriteString(fmt.Sprintf("# Milestone #%d: %s\n\n", milestoneData.Number, milestoneData.Title))
-	sb.WriteString(fmt.Sprintf("**Status:** %s\n\n", milestoneData.State))
-	sb.WriteString(fmt.Sprintf("**Creator:** @%s\n\n", milestoneData.Creator.Login))
-	sb.WriteString(fmt.Sprintf("**Created:** %s\n\n", milestoneData.CreatedAt))
-	sb.WriteString(fmt.Sprintf("**Updated:** %s\n\n", milestoneData.UpdatedAt))
+	fmt.Fprintf(&sb, "# Milestone #%d: %s\n\n", milestoneData.Number, milestoneData.Title)
+	fmt.Fprintf(&sb, "**Status:** %s\n\n", milestoneData.State)
+	fmt.Fprintf(&sb, "**Creator:** @%s\n\n", milestoneData.Creator.Login)
+	fmt.Fprintf(&sb, "**Created:** %s\n\n", milestoneData.CreatedAt)
+	fmt.Fprintf(&sb, "**Updated:** %s\n\n", milestoneData.UpdatedAt)
 	if milestoneData.DueOn != "" {
-		sb.WriteString(fmt.Sprintf("**Due on:** %s\n\n", milestoneData.DueOn))
+		fmt.Fprintf(&sb, "**Due on:** %s\n\n", milestoneData.DueOn)
 	}
-	sb.WriteString(fmt.Sprintf("**URL:** %s\n\n", milestoneData.HTMLURL))
+	fmt.Fprintf(&sb, "**URL:** %s\n\n", milestoneData.HTMLURL)
 
 	if milestoneData.Description != "" {
-		sb.WriteString(fmt.Sprintf("## Description\n\n%s\n\n", milestoneData.Description))
+		fmt.Fprintf(&sb, "## Description\n\n%s\n\n", milestoneData.Description)
 	}
 
-	sb.WriteString(fmt.Sprintf("**Issues:** %d open, %d closed\n\n", milestoneData.OpenIssues, milestoneData.ClosedIssues))
+	fmt.Fprintf(&sb, "**Issues:** %d open, %d closed\n\n", milestoneData.OpenIssues, milestoneData.ClosedIssues)
 
 	if len(issues) > 0 {
-		sb.WriteString(fmt.Sprintf("## Issues (%d)\n\n", len(issues)))
+		fmt.Fprintf(&sb, "## Issues (%d)\n\n", len(issues))
 		for _, issue := range issues {
-			sb.WriteString(fmt.Sprintf("### [%d] %s\n\n", issue.Number, issue.Title))
-			sb.WriteString(fmt.Sprintf("**URL:** %s\n\n", issue.HTMLURL))
-			sb.WriteString(fmt.Sprintf("**Status:** %s\n\n", issue.State))
+			fmt.Fprintf(&sb, "### [%d] %s\n\n", issue.Number, issue.Title)
+			fmt.Fprintf(&sb, "**URL:** %s\n\n", issue.HTMLURL)
+			fmt.Fprintf(&sb, "**Status:** %s\n\n", issue.State)
 			if issue.Body != "" {
-				sb.WriteString(fmt.Sprintf("**Description:**\n%s\n\n", issue.Body))
+				fmt.Fprintf(&sb, "**Description:**\n%s\n\n", issue.Body)
 			}
 			if len(issue.Labels) > 0 {
 				var labelNames []string
 				for _, label := range issue.Labels {
 					labelNames = append(labelNames, label.Name)
 				}
-				sb.WriteString(fmt.Sprintf("**Labels:** %s\n\n", strings.Join(labelNames, ", ")))
+				fmt.Fprintf(&sb, "**Labels:** %s\n\n", strings.Join(labelNames, ", "))
 			}
-			sb.WriteString(fmt.Sprintf("**Created:** %s\n**Updated:** %s\n", issue.CreatedAt, issue.UpdatedAt))
+			fmt.Fprintf(&sb, "**Created:** %s\n**Updated:** %s\n", issue.CreatedAt, issue.UpdatedAt)
 			if issue.ClosedAt != "" {
-				sb.WriteString(fmt.Sprintf("**Closed:** %s\n", issue.ClosedAt))
+				fmt.Fprintf(&sb, "**Closed:** %s\n", issue.ClosedAt)
 			}
 			sb.WriteString("\n---\n\n")
 		}

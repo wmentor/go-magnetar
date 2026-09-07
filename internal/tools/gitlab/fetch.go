@@ -208,7 +208,7 @@ func (g *GitLabTools) FetchMergeRequest(projectPath string, mrID string) (string
 	if len(changesResult.Changes) > 0 {
 		sb.WriteString("\n\nFile Changes:\n")
 		for i, diff := range changesResult.Changes {
-			sb.WriteString(fmt.Sprintf("%d. ", i+1))
+			fmt.Fprintf(&sb, "%d. ", i+1)
 			if diff.Deleted {
 				sb.WriteString("Deleted: ")
 				sb.WriteString(diff.OldPath)

@@ -160,6 +160,29 @@ llm:
   base_url: https://api.openai.com/v1
 ```
 
+## strings.Builder with fmt.Fprintf
+
+When building strings with `strings.Builder` and `fmt.Fprintf`, pass a pointer to the builder:
+
+```go
+var sb strings.Builder
+fmt.Fprintf(&sb, "Hello %s\n", name)
+fmt.Fprintf(&sb, "Value: %d\n", value)
+result := sb.String()
+```
+
+`fmt.Fprintf` accepts an `io.Writer`, and `*strings.Builder` implements this interface. Always use `&sb` (pointer), not `sb` (value).
+
+**Incorrect:**
+```go
+sb.WriteString(fmt.Sprintf("Hello %s\n", name))  // Creates intermediate string
+```
+
+**Correct:**
+```go
+fmt.Fprintf(&sb, "Hello %s\n", name)  // Direct write, no intermediate allocation
+```
+
 ## Chat Agent (Unified REPL)
 
 The agent provides an interactive REPL with multi-turn conversation support and integrated document indexing.

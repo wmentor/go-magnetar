@@ -236,16 +236,16 @@ func (j *JiraTools) FetchIssue(issueKey string) (string, error) {
 	}
 
 	if len(children) > 0 {
-		sb.WriteString(fmt.Sprintf("\n\nChildren (%d):\n", len(children)))
+		fmt.Fprintf(&sb, "\n\nChildren (%d):\n", len(children))
 		for i, child := range children {
-			sb.WriteString(fmt.Sprintf("%d. [%s] %s (%s)\n", i+1, child.Key, child.Fields.Summary, child.Fields.Status.Name))
+			fmt.Fprintf(&sb, "%d. [%s] %s (%s)\n", i+1, child.Key, child.Fields.Summary, child.Fields.Status.Name)
 		}
 	}
 
 	if len(result.Fields.Comment.Comments) > 0 {
 		sb.WriteString("\n\nComments:\n")
 		for i, comment := range result.Fields.Comment.Comments {
-			sb.WriteString(fmt.Sprintf("%d. [%s] %s\n", i+1, comment.Author.DisplayName, comment.Created))
+			fmt.Fprintf(&sb, "%d. [%s] %s\n", i+1, comment.Author.DisplayName, comment.Created)
 			sb.WriteString(comment.Body)
 			if i < len(result.Fields.Comment.Comments)-1 {
 				sb.WriteString("\n\n")
@@ -368,12 +368,12 @@ func (j *JiraTools) FetchIssuesByJQL(jql string, maxResults int, startAt int) (s
 	}
 
 	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("Found %d issues (showing %d-%d):\n", result.Total, result.Start+1, result.Start+len(result.Issues)))
+	fmt.Fprintf(&sb, "Found %d issues (showing %d-%d):\n", result.Total, result.Start+1, result.Start+len(result.Issues))
 	sb.WriteString("\n")
 	sb.WriteString("[\n")
 
 	for i, issue := range result.Issues {
-		sb.WriteString(fmt.Sprintf("  {\"key\": \"%s\", \"summary\": %q}", issue.Key, issue.Fields.Summary))
+		fmt.Fprintf(&sb, "  {\"key\": \"%s\", \"summary\": %q}", issue.Key, issue.Fields.Summary)
 		if i < len(result.Issues)-1 {
 			sb.WriteString(",")
 		}
