@@ -11,9 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/wmentor/go-magnetar/internal/docx"
-	"github.com/wmentor/go-magnetar/internal/odt"
-	"github.com/wmentor/go-magnetar/internal/pdf"
+	"github.com/wmentor/go-magnetar/internal/common"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/tools/generic"
 )
@@ -165,24 +163,8 @@ func replaceAllPatterns(s, prefix, suffix string, repl func(string) string) stri
 func readFile(filename string) string {
 	ext := strings.ToLower(filepath.Ext(filename))
 
-	if ext == ".docx" {
-		text, err := docx.ReadFile(filename)
-		if err != nil {
-			return ""
-		}
-		return text
-	}
-
-	if ext == ".pdf" {
-		text, err := pdf.ReadFile(filename)
-		if err != nil {
-			return ""
-		}
-		return text
-	}
-
-	if ext == ".odt" {
-		text, err := odt.ReadFile(filename)
+	if fn, ok := common.FileReaders[ext]; ok {
+		text, err := fn(filename)
 		if err != nil {
 			return ""
 		}

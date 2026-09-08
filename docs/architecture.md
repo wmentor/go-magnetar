@@ -147,6 +147,7 @@ The `file_read` tool supports the following file formats:
 | `.docx` | Microsoft Word documents (via `internal/docx.ReadFile`) |
 | `.pdf` | PDF documents (via `internal/pdf.ReadFile`) |
 | `.odt` | OpenOffice Writer documents (via `internal/odt.ReadFile`) |
+| `.pptx` | PowerPoint presentations (via `internal/pptx.ReadFile`) |
 
 ### File preprocessor
 
@@ -159,6 +160,7 @@ The preprocessor supports reading file contents via the `{{file:filename}}` synt
 | `.docx` | Microsoft Word documents (via `internal/docx.ReadFile`) |
 | `.pdf` | PDF documents (via `internal/pdf.ReadFile`) |
 | `.odt` | OpenOffice Writer documents (via `internal/odt.ReadFile`) |
+| `.pptx` | PowerPoint presentations (via `internal/pptx.ReadFile`) |
 
 ## Search replace functionality (`internal/tools/generic`)
 

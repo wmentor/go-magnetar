@@ -7,10 +7,8 @@ import (
 	"strings"
 
 	"github.com/wmentor/go-magnetar/internal/chunk"
+	"github.com/wmentor/go-magnetar/internal/common"
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/docx"
-	"github.com/wmentor/go-magnetar/internal/odt"
-	"github.com/wmentor/go-magnetar/internal/pdf"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
 	"github.com/wmentor/go-magnetar/internal/tools/web"
@@ -51,22 +49,10 @@ func (idx *Indexer) IndexFile(filename string, msg string) error {
 	var data []byte
 	var err error
 
-	if ext == ".docx" {
-		text, err := docx.ReadFile(filename)
+	if fn, ok := common.FileReaders[ext]; ok {
+		text, err := fn(filename)
 		if err != nil {
-			return fmt.Errorf("indexer: failed to read docx file %q: %w", filename, err)
-		}
-		data = []byte(text)
-	} else if ext == ".pdf" {
-		text, err := pdf.ReadFile(filename)
-		if err != nil {
-			return fmt.Errorf("indexer: failed to read pdf file %q: %w", filename, err)
-		}
-		data = []byte(text)
-	} else if ext == ".odt" {
-		text, err := odt.ReadFile(filename)
-		if err != nil {
-			return fmt.Errorf("indexer: failed to read odt file %q: %w", filename, err)
+			return fmt.Errorf("indexer: failed to read %s file %q: %w", ext, filename, err)
 		}
 		data = []byte(text)
 	} else {

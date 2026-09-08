@@ -17,10 +17,8 @@ import (
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/wmentor/go-magnetar/internal/agent/guard"
+	"github.com/wmentor/go-magnetar/internal/common"
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/docx"
-	"github.com/wmentor/go-magnetar/internal/odt"
-	"github.com/wmentor/go-magnetar/internal/pdf"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 )
@@ -148,28 +146,10 @@ func (g *GenericTools) FileRead(filename string, limit int, offset int) (string,
 
 	ext := strings.ToLower(filepath.Ext(filename))
 
-	if ext == ".docx" {
-		text, err := docx.ReadFile(filename)
+	if fn, ok := common.FileReaders[ext]; ok {
+		text, err := fn(filename)
 		if err != nil {
-			printer.Error("file_read: failed to read docx file", "file", filename, "err", err)
-			return "", false
-		}
-		return text, true
-	}
-
-	if ext == ".pdf" {
-		text, err := pdf.ReadFile(filename)
-		if err != nil {
-			printer.Error("file_read: failed to read pdf file", "file", filename, "err", err)
-			return "", false
-		}
-		return text, true
-	}
-
-	if ext == ".odt" {
-		text, err := odt.ReadFile(filename)
-		if err != nil {
-			printer.Error("file_read: failed to read odt file", "file", filename, "err", err)
+			printer.Error("file_read: failed to read file", "file", filename, "err", err)
 			return "", false
 		}
 		return text, true

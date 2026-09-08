@@ -295,7 +295,7 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 
 | Tool | Signature | Description |
 |---|---|---|
-| `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem; supports `.txt`, `.md`, `.docx`, `.pdf`, `.odt`; `limit` and `offset` specify line range (0 = read all) |
+| `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem; supports `.txt`, `.md`, `.docx`, `.pdf`, `.odt`, `.pptx`; `limit` and `offset` specify line range (0 = read all) |
 | `file_list` | `(filter: string) -> []string` | Recursively lists files in the current directory using glob pattern (e.g. `*.go`) |
 | `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem (blocked in read-only mode) |
 | `exec` | `(command: string, stdin: string) -> string` | Executes a shell command via `sh -c` with clean environment, current working directory, and built-in safety guard |
@@ -315,9 +315,24 @@ See [docs/security.md](./docs/security.md) for complete security information.
 
 ## Indexer (via `/index` command)
 
-The indexer reads `.md`, `.txt`, `.docx`, and `.pdf` files or web pages (by URL), splits content into overlapping chunks respecting paragraph and Markdown heading boundaries, computes embedding vectors and stores them in Qdrant. Each chunk is identified by a deterministic UUID v5 derived from its content — re-indexing the same file does not create duplicates.
+The indexer reads `.md`, `.txt`, `.docx`, `.pdf`, `.odt`, and `.pptx` files or web pages (by URL), splits content into overlapping chunks respecting paragraph and Markdown heading boundaries, computes embedding vectors and stores them in Qdrant. Each chunk is identified by a deterministic UUID v5 derived from its content — re-indexing the same file does not create duplicates.
 
-**Note:** If you need to read a `.docx` or `.pdf` file directly in your code, use the `internal/docx.ReadFile` or `internal/pdf.ReadFile` package functions instead of `os.ReadFile`.
+**Note:** If you need to read a `.docx`, `.pdf`, `.odt`, or `.pptx` file directly in your code, use the `internal/docx.ReadFile`, `internal/pdf.ReadFile`, `internal/odt.ReadFile`, or `internal/pptx.ReadFile` package functions instead of `os.ReadFile`.
+
+## Internal Packages
+
+### Common file types (`internal/common/filetypes.go`)
+
+A shared module that centralizes file reader mappings for all document formats. Defines a unified `FileReaders` map that maps file extensions to their respective reader functions:
+
+| Extension | Reader | Description |
+|---|---|---|
+| `.docx` | `docx.ReadFile` | Microsoft Word documents |
+| `.pdf` | `pdf.ReadFile` | PDF documents |
+| `.odt` | `odt.ReadFile` | OpenOffice Writer documents |
+| `.pptx` | `pptx.ReadFile` | PowerPoint presentations |
+
+All packages that need to read files (`generic/tools/generic.go`, `plugins/generic/plugin.go`, `agent/indexer/indexer.go`) reference this common map to avoid code duplication and ensure consistent file handling across the application.
 
 ### Index a single file
 
