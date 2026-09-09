@@ -279,7 +279,7 @@ go-magnetar [-c <config>] -f <input-file>
 
 This mode reads input from the specified file, sends it to the agent, prints the answer, and exits.
 
-> **Note:** In `-f/--file` mode, text preprocessors are applied but chat commands (e.g., `/readonly`, `/fetch`, `/index`) are not available. The text preprocessor expands placeholders like `{{home}}`, `{{uuid}}`, `{{date}}`, `{{now}}`, and `{{file:filename}}`.
+> **Note:** In `-f/--file` mode, text preprocessors are applied but chat commands (e.g., `/readonly`, `/fetch`, `/index`) are not available. See [docs/preprocessor.md](./docs/preprocessor.md) for a complete reference on available placeholders.
 
 ### Search strategy
 

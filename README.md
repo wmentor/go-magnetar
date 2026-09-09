@@ -157,26 +157,7 @@ Run the interactive agent REPL. Press `Ctrl+D` to exit.
 
 #### Text preprocessing
 
-The agent applies text preprocessors to user input before processing. The built-in generic plugin provide the following placeholders that are automatically expanded:
-
-| Placeholder | Description |
-|---|---|
-| `{{home}}` | Your home directory path |
-| `{{uuid}}` | A random UUID v4 |
-| `{{date}}` | Current date in `YYYY-MM-DD` format |
-| `{{now}}` | Current date and time in `YYYY-MM-DD HH:MM:SS` format |
-
-#### Reading file contents
-
-The agent supports inline file content injection using the `{{file:filename}}` placeholder:
-
-| Placeholder | Description |
-|---|---|
-| `{{file:filename}}` | Reads file content and replaces placeholder with the file contents. Supports `.md`, `.txt`, `.docx`, `.pdf`, `.odt`, and `.pptx` files, absolute paths and `~/` home directory prefix |
-
-Example: `{{file:~/documents/notes.md}}` or `{{file:~/documents/report.docx}}` or `{{file:~/documents/paper.pdf}}` or `{{file:~/documents/report.odt}}` or `{{file:~/documents/slides.pptx}}` will be replaced with the content of that file.
-
-Commands are case-insensitive, processed locally, and never sent to the LLM.
+See [docs/preprocessor.md](./docs/preprocessor.md) for a complete reference on text preprocessors and available placeholders.
 
 #### Command history
 

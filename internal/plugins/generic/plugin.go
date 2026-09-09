@@ -97,6 +97,7 @@ func (p *Plugin) registerPreprocessor(hub plugin.Hub) {
 		text = strings.ReplaceAll(text, "{{now}}", time.Now().Format("2006-01-02 15:04:05"))
 
 		text = processFiles(text)
+		text = processEnvVars(text)
 
 		return text, nil
 	})
@@ -138,6 +139,30 @@ func processFiles(text string) string {
 
 	// Find and replace all {{file:...}} patterns
 	return replaceAllPatterns(text, "{{file:", "}}", repl)
+}
+
+func processEnvVars(text string) string {
+	// Process {{env:VARIABLE}} patterns
+	repl := func(match string) string {
+		start := strings.Index(match, "{{env:")
+		if start == -1 {
+			return match
+		}
+		start += len("{{env:")
+		end := strings.Index(match[start:], "}}")
+		if end == -1 {
+			return match
+		}
+		end += start
+
+		variable := match[start:end]
+		value := os.Getenv(variable)
+
+		return value
+	}
+
+	// Find and replace all {{env:...}} patterns
+	return replaceAllPatterns(text, "{{env:", "}}", repl)
 }
 
 func replaceAllPatterns(s, prefix, suffix string, repl func(string) string) string {

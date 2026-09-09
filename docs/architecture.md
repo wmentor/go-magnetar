@@ -151,7 +151,7 @@ The `file_read` tool supports the following file formats:
 
 ### File preprocessor
 
-The preprocessor supports reading file contents via the `{{file:filename}}` syntax. This is useful for injecting file contents directly into user prompts. The preprocessor automatically detects file type and uses the appropriate reader:
+For a complete reference on text preprocessors, available placeholders, and usage examples, see [preprocessor.md](./preprocessor.md).
 
 | Format | Description |
 |---|---|
