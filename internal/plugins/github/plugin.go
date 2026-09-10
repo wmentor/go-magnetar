@@ -12,7 +12,6 @@ func init() {
 	plugin.Register("github", &Plugin{})
 }
 
-// Plugin wraps the GitHub tools and exposes github_repo, github_file, and github_tree as LLM tools.
 type Plugin struct {
 	mu      sync.Mutex
 	state   *plugin.State

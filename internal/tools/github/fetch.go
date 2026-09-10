@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
@@ -157,6 +156,215 @@ func (g *GitHubTools) formatRepoMarkdown(repoData any, readme string) string {
 	if readme != "" {
 		fmt.Fprintf(&sb, "**README:**\n%s\n", readme)
 	}
+	return sb.String()
+}
+
+type SecurityAdvisory struct {
+	GHSAID                string `json:"ghsa_id"`
+	CveID                 string `json:"cve_id"`
+	URL                   string `json:"url"`
+	HTMLURL               string `json:"html_url"`
+	Summary               string `json:"summary"`
+	Description           string `json:"description"`
+	Type                  string `json:"type"`
+	Severity              string `json:"severity"`
+	RepositoryAdvisoryURL string `json:"repository_advisory_url"`
+	SourceCodeLocation    string `json:"source_code_location"`
+	Identifiers           []struct {
+		Value string `json:"value"`
+		Type  string `json:"type"`
+	} `json:"identifiers"`
+	References       []string `json:"references"`
+	PublishedAt      string   `json:"published_at"`
+	UpdatedAt        string   `json:"updated_at"`
+	GitHubReviewedAt string   `json:"github_reviewed_at"`
+	NvdPublishedAt   *string  `json:"nvd_published_at"`
+	WithdrawnAt      *string  `json:"withdrawn_at"`
+	Vulnerabilities  []struct {
+		Package struct {
+			Ecosystem string `json:"ecosystem"`
+			Name      string `json:"name"`
+		} `json:"package"`
+		VulnerableVersionRange string   `json:"vulnerable_version_range"`
+		FirstPatchedVersion    string   `json:"first_patched_version"`
+		VulnerableFunctions    []string `json:"vulnerable_functions"`
+	} `json:"vulnerabilities"`
+	CvssSeverities struct {
+		CvssV3 struct {
+			VectorString *string `json:"vector_string"`
+			Score        float64 `json:"score"`
+		} `json:"cvss_v3"`
+		CvssV4 struct {
+			VectorString *string `json:"vector_string"`
+			Score        float64 `json:"score"`
+		} `json:"cvss_v4"`
+	} `json:"cvss_severities"`
+	Cwes []struct {
+		CweID string `json:"cwe_id"`
+		Name  string `json:"name"`
+	} `json:"cwes"`
+	Credits []struct {
+		User struct {
+			Login     string `json:"login"`
+			ID        int    `json:"id"`
+			AvatarURL string `json:"avatar_url"`
+		} `json:"user"`
+		Type string `json:"type"`
+	} `json:"credits"`
+	Cvss struct {
+		VectorString *string  `json:"vector_string"`
+		Score        *float64 `json:"score"`
+	} `json:"cvss"`
+}
+
+func (g *GitHubTools) FetchAdvisory(advisoryID string) (string, error) {
+	printer.ToolCall(printer.IconSearch, "github_advisory", "advisory", advisoryID)
+
+	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	defer cancel()
+
+	apiURL := fmt.Sprintf("https://api.github.com/advisories/%s", advisoryID)
+
+	resp, err := g.fetchWithHeaders(ctx, http.MethodGet, apiURL)
+	if err != nil {
+		return "", fmt.Errorf("github_advisory: failed to fetch advisory: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("github_advisory: advisory %s returned status %d: %s", advisoryID, resp.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("github_advisory: failed to read response body: %w", err)
+	}
+
+	var advisoryData SecurityAdvisory
+	if err := json.Unmarshal(body, &advisoryData); err != nil {
+		return "", fmt.Errorf("github_advisory: failed to parse response: %w", err)
+	}
+
+	return g.formatAdvisoryMarkdown(&advisoryData), nil
+}
+
+func (g *GitHubTools) formatAdvisoryMarkdown(advisory *SecurityAdvisory) string {
+	var sb strings.Builder
+
+	fmt.Fprintf(&sb, "# %s\n\n", advisory.Summary)
+	fmt.Fprintf(&sb, "**GHSA ID:** %s\n\n", advisory.GHSAID)
+	if advisory.CveID != "" {
+		fmt.Fprintf(&sb, "**CVE ID:** %s\n\n", advisory.CveID)
+	}
+	fmt.Fprintf(&sb, "**Severity:** %s\n\n", advisory.Severity)
+	fmt.Fprintf(&sb, "**Published:** %s\n\n", advisory.PublishedAt)
+	fmt.Fprintf(&sb, "**Updated:** %s\n\n", advisory.UpdatedAt)
+	if advisory.WithdrawnAt != nil {
+		fmt.Fprintf(&sb, "**Withdrawn:** %s\n\n", *advisory.WithdrawnAt)
+	}
+
+	if advisory.Description != "" {
+		fmt.Fprintf(&sb, "## Description\n\n%s\n\n", advisory.Description)
+	}
+
+	if len(advisory.References) > 0 {
+		fmt.Fprintf(&sb, "## References\n\n")
+		for _, ref := range advisory.References {
+			fmt.Fprintf(&sb, "- %s\n", ref)
+		}
+		sb.WriteString("\n")
+	}
+
+	if len(advisory.Vulnerabilities) > 0 {
+		fmt.Fprintf(&sb, "## Vulnerable Package\n\n")
+		fmt.Fprintf(&sb, "**Package:** %s (%s)\n\n", advisory.Vulnerabilities[0].Package.Name, advisory.Vulnerabilities[0].Package.Ecosystem)
+
+		var patchedVersions []string
+		var vulnerableRanges []string
+		for _, vuln := range advisory.Vulnerabilities {
+			if vuln.FirstPatchedVersion != "" {
+				patchedVersions = append(patchedVersions, vuln.FirstPatchedVersion)
+			}
+			if vuln.VulnerableVersionRange != "" {
+				vulnerableRanges = append(vulnerableRanges, vuln.VulnerableVersionRange)
+			}
+		}
+
+		if len(patchedVersions) > 0 {
+			fmt.Fprintf(&sb, "**Patched Versions:** %s\n\n", strings.Join(patchedVersions, ", "))
+		}
+
+		if len(vulnerableRanges) > 0 {
+			fmt.Fprintf(&sb, "**Vulnerable Versions:** %s\n\n", strings.Join(vulnerableRanges, ", "))
+		}
+	}
+
+	return sb.String()
+}
+
+func (g *GitHubTools) FetchRepoAdvisories(repo string) (string, error) {
+	owner, repoName, err := parseGitHubRepoURL(repo)
+	if err != nil {
+		return "", fmt.Errorf("github_repo_advisories: failed to parse repository URL: %w", err)
+	}
+
+	printer.ToolCall(printer.IconSearch, "github_repo_advisories", "repo", repo)
+
+	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	defer cancel()
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/security-advisories", owner, repoName)
+
+	resp, err := g.fetchWithHeaders(ctx, http.MethodGet, apiURL)
+	if err != nil {
+		return "", fmt.Errorf("github_repo_advisories: failed to fetch advisories: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("github_repo_advisories: advisories endpoint for %s/%s returned status %d: %s", owner, repoName, resp.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("github_repo_advisories: failed to read response body: %w", err)
+	}
+
+	var advisories []SecurityAdvisory
+	if err := json.Unmarshal(body, &advisories); err != nil {
+		return "", fmt.Errorf("github_repo_advisories: failed to parse response: %w", err)
+	}
+
+	return g.formatRepoAdvisoriesMarkdown(advisories), nil
+}
+
+func (g *GitHubTools) formatRepoAdvisoriesMarkdown(advisories []SecurityAdvisory) string {
+	var sb strings.Builder
+
+	fmt.Fprintf(&sb, "# Security Advisories\n\n")
+
+	if len(advisories) == 0 {
+		fmt.Fprintf(&sb, "No security advisories found.\n\n")
+		return sb.String()
+	}
+
+	fmt.Fprintf(&sb, "**Total Advisories:** %d\n\n", len(advisories))
+	fmt.Fprintf(&sb, "## Advisories\n\n")
+	sb.WriteString("| ID | Title | Severity | Published |\n")
+	sb.WriteString("|----|-------|----------|----------|\n")
+
+	for _, advisory := range advisories {
+		severity := advisory.Severity
+		if severity == "" {
+			severity = "Unknown"
+		}
+		fmt.Fprintf(&sb, "| [%s](%s) | %s | %s | %s |\n", advisory.GHSAID, advisory.HTMLURL, advisory.Summary, severity, advisory.PublishedAt)
+	}
+
+	sb.WriteString("\n")
+
 	return sb.String()
 }
 
@@ -613,28 +821,14 @@ func (g *GitHubTools) Dispatch(name string, args string) string {
 	}
 }
 
-func extractGitHubIssueURL(url string) (string, string, string, error) {
-	re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/issues/(\d+)`)
-	matches := re.FindStringSubmatch(url)
-	if matches != nil {
-		return matches[1], matches[2], matches[3], nil
-	}
-	return "", "", "", fmt.Errorf("not a GitHub issue URL")
-}
-
-func extractGitHubMilestoneURL(url string) (string, string, string, error) {
-	re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/milestone/(\d+)`)
-	matches := re.FindStringSubmatch(url)
-	if matches != nil {
-		return matches[1], matches[2], matches[3], nil
-	}
-	return "", "", "", fmt.Errorf("not a GitHub milestone URL")
-}
-
 func (g *GitHubTools) FetchIssue(repo string, issueNum string) (string, error) {
 	owner, repoName, err := parseGitHubRepoURL(repo)
 	if err != nil {
 		return "", fmt.Errorf("github_issue: failed to parse repository URL: %w", err)
+	}
+
+	if strings.HasPrefix(issueNum, "GHSA-") {
+		return g.FetchAdvisory(issueNum)
 	}
 
 	printer.ToolCall(printer.IconSearch, "github_issue", "repo", repo, "issue", issueNum)
@@ -993,6 +1187,7 @@ func (g *GitHubTools) FetchMilestone(repo string, milestoneNum string) (string, 
 				printer.ToolCall(printer.IconSearch, "github_milestone: fetched issues", "count", len(issues))
 			}
 		}
+
 	}
 
 	return g.formatMilestoneMarkdown(&milestoneData, issues), nil

@@ -31,7 +31,7 @@ var junkSelectors = []string{
 func CleanHTML(html string) (string, error) {
 	doc, err := goquery.NewDocumentFromReader(strings.NewReader(html))
 	if err != nil {
-		return "", fmt.Errorf("парсинг HTML: %w", err)
+		return "", fmt.Errorf("parse HTML error: %w", err)
 	}
 
 	// 1. Удаляем по тегам

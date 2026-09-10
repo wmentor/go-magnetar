@@ -155,12 +155,6 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 					return github.New(w.cfg).FetchTree(owner+"/"+repo, branch, path)
 				}
 			}
-			if !strings.Contains(url, "/blob/") && !strings.Contains(url, "/tree/") && !strings.Contains(url, "/commits/") {
-				owner, repo, err := extractGitHubRepoURL(url)
-				if err == nil && owner != "" && repo != "" {
-					return github.New(w.cfg).FetchRepository(owner + "/" + repo)
-				}
-			}
 			if strings.Contains(url, "/issues/") {
 				owner, repo, issueNum, err := extractGitHubIssueURL(url)
 				if err == nil && owner != "" && repo != "" && issueNum != "" {
@@ -172,6 +166,23 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 				if err == nil && owner != "" && repo != "" && milestoneNum != "" {
 					return github.New(w.cfg).FetchMilestone(owner+"/"+repo, milestoneNum)
 				}
+			}
+			if strings.Contains(url, "/advisories/") || strings.Contains(url, "/security/advisories") {
+				if strings.Contains(url, "/security/advisories") && !strings.Contains(url, "/advisories/GHSA-") {
+					owner, repo, err := extractGitHubRepoURL(url)
+					if err == nil && owner != "" && repo != "" {
+						return github.New(w.cfg).FetchRepoAdvisories(owner + "/" + repo)
+					}
+				} else {
+					advisoryID, err := extractGitHubAdvisoryURL(url)
+					if err == nil && advisoryID != "" {
+						return github.New(w.cfg).FetchAdvisory(advisoryID)
+					}
+				}
+			}
+			owner, repo, err := extractGitHubRepoURL(url)
+			if err == nil && owner != "" && repo != "" {
+				return github.New(w.cfg).FetchRepository(owner + "/" + repo)
 			}
 		}
 	}
@@ -616,6 +627,50 @@ func extractGitHubMilestoneURL(url string) (string, string, string, error) {
 		return matches[1], matches[2], matches[3], nil
 	}
 	return "", "", "", fmt.Errorf("not a GitHub milestone URL")
+}
+
+func extractGitHubAdvisoryURL(url string) (string, error) {
+	if strings.Contains(url, "/advisories/") {
+		parts := strings.Split(url, "/advisories/")
+		if len(parts) > 1 {
+			idPart := parts[1]
+			if idx := strings.Index(idPart, "/"); idx != -1 {
+				idPart = idPart[:idx]
+			}
+			if idx := strings.Index(idPart, "?"); idx != -1 {
+				idPart = idPart[:idx]
+			}
+			if idx := strings.Index(idPart, "#"); idx != -1 {
+				idPart = idPart[:idx]
+			}
+			if idPart == "" {
+				return "", fmt.Errorf("advisory ID is empty")
+			}
+			return idPart, nil
+		}
+	}
+
+	if strings.Contains(url, "/security/advisories/") {
+		parts := strings.Split(url, "/security/advisories/")
+		if len(parts) > 1 {
+			idPart := parts[1]
+			if idx := strings.Index(idPart, "/"); idx != -1 {
+				idPart = idPart[:idx]
+			}
+			if idx := strings.Index(idPart, "?"); idx != -1 {
+				idPart = idPart[:idx]
+			}
+			if idx := strings.Index(idPart, "#"); idx != -1 {
+				idPart = idPart[:idx]
+			}
+			if idPart == "" {
+				return "", fmt.Errorf("advisory ID is empty")
+			}
+			return idPart, nil
+		}
+	}
+
+	return "", fmt.Errorf("not a GitHub advisory URL")
 }
 
 // StaticDefinition returns the OpenAI tool schema for web_fetch without
