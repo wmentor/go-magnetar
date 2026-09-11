@@ -16,6 +16,7 @@ import (
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/stat"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/version"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/write"
+	_ "github.com/wmentor/go-magnetar/internal/plugins/cve"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/generic"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/github"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/gitlab"

@@ -27,6 +27,7 @@ internal/
       readonly/plugin.go         — /readonly (toggle readonly mode)
       fetch/plugin.go            — /fetch (fetch URL content and display/save)
     jira/plugin.go               — jira_task_get LLM tool (init → Register)
+    cve/plugin.go                — cve LLM tool (init → Register)
   cmd/
     cmd.go                       — root CLI (kong); config load; plugin.InitAll; defer Stop
   tools/
@@ -161,6 +162,7 @@ For a complete reference on text preprocessors, available placeholders, and usag
 | `.pdf` | PDF documents (via `internal/pdf.ReadFile`) |
 | `.odt` | OpenOffice Writer documents (via `internal/odt.ReadFile`) |
 | `.pptx` | PowerPoint presentations (via `internal/pptx.ReadFile`) |
+
 
 ## Search replace functionality (`internal/tools/generic`)
 

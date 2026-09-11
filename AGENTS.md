@@ -293,21 +293,7 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 
 ### Chat agent tools
 
-| Tool | Signature | Description |
-|---|---|---|
-| `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem; supports `.txt`, `.md`, `.docx`, `.pdf`, `.odt`, `.pptx`; `limit` and `offset` specify line range (0 = read all) |
-| `file_list` | `(filter: string) -> []string` | Recursively lists files in the current directory using glob pattern (e.g. `*.go`) |
-| `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem (blocked in read-only mode) |
-| `exec` | `(command: string, stdin: string) -> string` | Executes a shell command via `sh -c` with clean environment, current working directory, and built-in safety guard |
-| `system_date` | `() -> string` | Executes the date command to get the current system time |
-| `system_grep` | `(filename: string, pattern: string) -> string` | Executes system grep command with safe parameters: -n (always), -i (case-insensitive), -r (recursive), -E (extended regex) |
-| `rag_search` | `(query: string) -> string` | Returns top-N relevant fragments from Qdrant (N is set by `rag.search.limit`) |
-| `web_fetch` | `(url: string) -> string` | Fetches and cleans a web page (fallback if RAG returns no results); also fetches Confluence pages, JIRA issues, and GitHub repositories, issues, and milestones |
-| `github_repo` | `(repo: string) -> string` | Fetches GitHub repository information and returns its details in Markdown format |
-| `github_file` | `(repo: string, branch: string, file: string) -> string` | Fetches a file from GitHub repository and returns its content |
-| `github_tree` | `(repo: string, branch: string, path: string) -> string` | Lists repository contents at root or specified path |
-| `github_issue` | `(repo: string, issue: string) -> string` | Fetches a GitHub issue and its comments, returns issue details in Markdown format |
-| `github_milestone` | `(repo: string, milestone: string) -> string` | Fetches a GitHub milestone and returns its details in Markdown format |
+See [docs/agent_tools.md](./docs/agent_tools.md) for a complete list of available tools, search strategy, and search tool call limits.
 
 ## Security restrictions
 
