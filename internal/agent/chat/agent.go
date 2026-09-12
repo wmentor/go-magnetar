@@ -237,6 +237,15 @@ func (a *ChatAgent) compactIfNeeded() {
 // maxSearchToolCalls is the maximum number of search-related tool calls per user request.
 const maxSearchToolCalls = 10
 
+// finalAnswer returns the model's text when it produced one, or a short
+// fallback explaining that the search tool call limit was reached.
+func finalAnswer(content string) string {
+	if strings.TrimSpace(content) != "" {
+		return content
+	}
+	return fmt.Sprintf("error: reached maximum number of search tool calls (%d), no further searches allowed", maxSearchToolCalls)
+}
+
 // ask sends the user input to the LLM, handles tool calls, and returns the final answer.
 func (a *ChatAgent) Ask(userInput string) (string, error) {
 	a.messages = append(a.messages, openai.ChatCompletionMessage{
@@ -269,8 +278,9 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 		// When the search tool call limit has been reached, send the request
 		// without any tools so the LLM is forced to produce a final text answer
 		// instead of attempting further tool calls (which would loop forever).
+		toolsWithheld := searchLimitReached
 		activeTools := tools
-		if searchLimitReached {
+		if toolsWithheld {
 			activeTools = nil
 		}
 
@@ -363,6 +373,14 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 					ToolCallID: r.toolCall.ID,
 				})
 			}
+			// The tools were withheld for this round, yet the model still asked
+			// for tool calls. Refusing them again would repeat the same round
+			// forever, so end the turn here instead of looping.
+			if toolsWithheld {
+				printer.Warn("chat: search tool call limit reached and the LLM kept requesting tools; ending the turn")
+				return finalAnswer(choice.Message.Content), nil
+			}
+
 			continue
 		}
 
