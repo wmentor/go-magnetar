@@ -119,6 +119,10 @@ func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
 	}, nil
 }
 
+func (a *ChatAgent) SetMessages(msgs []openai.ChatCompletionMessage) {
+	a.messages = msgs
+}
+
 // --- AgentHandle implementation ---
 
 // agentHandle is a private adapter that exposes ChatAgent internals to chat

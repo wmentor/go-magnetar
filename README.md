@@ -142,18 +142,7 @@ Run the interactive agent REPL. Press `Ctrl+D` to exit.
 
 #### Chat commands
 
-| Command | Aliases | Description |
-|---|---|---|
-| `/help` | `/h` | Show the list of available chat commands |
-| `/exit` | `/quit` | End the session and exit the program |
-| `/compact` | — | Immediately compress the conversation history via the summarizer |
-| `/new` | — | Start a new session and clear conversation history |
-| `/stat` | — | Print context statistics: messages, estimated tokens, bytes, LLM model, RAG model, vector size |
-| `/index` | `/i` | Index file or URL into RAG knowledge base (auto-detects URL vs file) |
-| `/idxtab` | — | Index multiple files/URLs from a JSON lines file (one per line, format: `{"source":"path\|url","message":"text"}`) |
-| `/write` | `/w` | Write content to a file |
-| `/readonly` | — | Toggle read-only mode (blocks all modification operations) |
-| `/fetch` | `/f` | Fetch content from a URL, optionally save to file |
+See [docs/chat_command.md](./docs/chat_command.md) for complete documentation on chat commands.
 
 #### Text preprocessing
 

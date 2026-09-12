@@ -208,20 +208,7 @@ It supports the /index command and chat commands like /help, /exit...
 
 Exit — `Ctrl+D` (EOF) or `/exit` command. Empty lines are ignored.
 
-### Built-in chat commands
-
-| Command | Aliases | Description |
-|---|---|---|
-| `/help` | `/h` | Show the list of available commands (assembled dynamically from all registered plugins) |
-| `/exit` | `/quit` | End the session and exit the program |
-| `/compact` | — | Immediately compress history via summarizer, without waiting for automatic threshold |
-| `/new` | — | Start a new session and clear conversation history |
-| `/stat` | — | Print context statistics: number of messages, estimated tokens, size in bytes, LLM model name, RAG model name, and vector size |
-| `/index` | `/i` | Index file or URL into RAG knowledge base (auto-detects URL vs file) |
-| `/idxtab` | — | Index multiple files/URLs from a JSON lines file (one per line, format: `{"source":"path|url","message":"text"}`) |
-| `/write` | `/w` | Write content to a file |
-| `/readonly` | — | Toggle read-only mode (blocks all modification operations) |
-| `/fetch` | `/f` | Fetch content from a URL, optionally save to file |
+See [docs/chat_command.md](./docs/chat_command.md) for complete documentation on chat commands.
 
 Commands are dispatched in `handleCommand` (`internal/agent/chat/agent.go`) by iterating over `plugin.ChatCommands()`. Input is split into `name` + `args` on the first space; matching is case-insensitive against `Name` and `Aliases`. Commands are never added to the message history.
 
@@ -276,6 +263,16 @@ For scripting and batch processing, use the `-f`/`--file` flag:
 ```bash
 go-magnetar [-c <config>] -f <input-file>
 ```
+
+### Loading saved sessions
+
+Use the `--session` flag to load a previously saved conversation session:
+
+```bash
+go-magnetar [-c <config>] --session <session-file.json>
+```
+
+The session file contains the full conversation history in JSON format. This is useful for resuming interrupted conversations or restoring previous contexts.
 
 This mode reads input from the specified file, sends it to the agent, prints the answer, and exits.
 

@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 
 	"github.com/alecthomas/kong"
 	"github.com/pkg/errors"
+	"github.com/sashabaranov/go-openai"
 
 	"github.com/wmentor/go-magnetar/internal/agent/chat"
 	"github.com/wmentor/go-magnetar/internal/config"
@@ -19,6 +21,7 @@ type Globals struct {
 	Config  string `short:"c" type:"path" default:"~/.go-magnetar.yaml" help:"Path to config file" env:"GO_MAGNETAR_CONFIG"`
 	File    string `short:"f" type:"path" help:"Input file"`
 	Profile string `short:"p" help:"Profile name to use"`
+	Session string `type:"path" help:"Load conversation session from file"`
 }
 
 type cli struct {
@@ -77,6 +80,14 @@ func Execute() error {
 		return err
 	}
 
+	if root.Globals.Session != "" {
+		if err := loadSession(agent, root.Globals.Session); err != nil {
+			return fmt.Errorf("failed to load session: %w", err)
+		}
+		printer.ToolCall(printer.IconDone, "session was loaded from "+root.Globals.Session)
+		printer.EmptyLine()
+	}
+
 	if root.Globals.File != "" {
 		data, err := os.ReadFile(root.Globals.File)
 		if err != nil {
@@ -104,6 +115,21 @@ func Execute() error {
 	}
 
 	return agent.Run()
+}
+
+func loadSession(a *chat.ChatAgent, filename string) error {
+	data, err := os.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+
+	var msgs []openai.ChatCompletionMessage
+	if err := json.Unmarshal(data, &msgs); err != nil {
+		return err
+	}
+
+	a.SetMessages(msgs)
+	return nil
 }
 
 func printEnabledModules(cfg *config.Config) {
