@@ -7,6 +7,118 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.0.0] - 2026-09-13
+
+### Added
+
+- **Session loading support** — restore previous conversations
+  - Add `--session` flag to load conversation history from JSON file
+  - Resume interrupted conversations without losing context
+  - Documented in AGENTS.md and README.md
+  - Adds `/save <filename>` command to save last assistant answer
+
+- **Security advisory support** — fetch GitHub security advisories
+  - Add security advisory fetching via GitHub API
+  - Enhanced `github_repo` tool with security advisory detection
+  - Documented in AGENTS.md and README.md
+
+- **CVE lookup tool** — new CVE database lookup
+  - Fetch CVE details via `cve_lookup` tool
+  - Search by CVE ID (e.g., CVE-2024-1234)
+  - Include CVSS score, descriptions, and affected products
+  - Documented in AGENTS.md
+
+- **GitHub Milestones support** — fetch GitHub milestone information
+  - Add `github_milestone` tool to fetch milestone details
+  - Support milestone URLs in format `https://github.com/{owner}/{repo}/milestone/{number}`
+  - Auto-detect milestone URLs in user input
+  - Documented in AGENTS.md
+
+- **GitHub Issues support** — fetch GitHub issues
+  - Enhance `github_repo` tool with issue fetching capability
+  - Support issue URLs in format `https://github.com/{owner}/{repo}/issues/{number}`
+  - Auto-detect issue URLs in user input
+  - Documented in AGENTS.md
+
+- **PPTX file support** — full support for PowerPoint presentations
+  - Add `internal/pptx` package with `ReadFile` function for parsing `.pptx` files
+  - Update generic tools and indexer to support `.pptx` files
+  - Update `{{file:filename}}` preprocessor to read `.pptx` files
+  - Documented in README.md, AGENTS.md, and docs/user_manual.md
+
+- **Environment variable support to text preprocessor** — expand env vars in file paths
+  - Extend `{{file:filename}}` preprocessor to support `$env:VAR_NAME`
+  - Enable dynamic file paths via environment variables
+  - Example: `{{file:$env:DOCUMENT_PATH}}`
+  - Documented in AGENTS.md
+
+- **Chat command aliases** — add shorter aliases for common commands
+  - `/i` alias for `/index`
+  - `/f` alias for `/fetch`
+  - `/readonly` for toggling read-only mode
+
+- **/idxtab command** — batch indexing from JSON lines file
+  - Format: `{"source":"path|url","message":"text"}`
+  - Process multiple entries sequentially
+  - Documented in AGENTS.md
+
+### Changed
+
+- **Tool categorization** — classify tools as search vs lookup
+  - Categorize tools in AGENTS.md as search or lookup type
+  - Improve loop protection logic based on tool type
+  - Search tools: `rag_search`, `web_fetch`
+  - Lookup tools: `github_repo`, `github_file`, `jira_task_get`, etc.
+
+- **Loop protection** — prevent infinite tool call chains
+  - Track tool call count per request
+  - Default limit: 10 search-related tool calls per request
+  - Error when limit exceeded to prevent infinite loops
+  - Documented in AGENTS.md
+
+- **Code optimization** — use `fmt.Fprintf` with pointer to `strings.Builder`
+  - Replace `strings.Builder.WriteString(fmt.Sprintf(...))` pattern
+  - Direct write to builder via `fmt.Fprintf(&sb, ...)`
+  - No intermediate string allocation
+  - Updated in `internal/printer/printer.go`
+
+- **Go version bump** — updated to Go 1.27.0
+  - Update minimum version requirement in README.md and AGENTS.md
+  - Update GitHub Actions workflows
+  - Update build instructions
+
+### Fixed
+
+- **Infinite loop prevention** — block potential infinite loops
+  - Implement tool call counter
+  - Exit with error when limit exceeded
+  - Prevent recursive tool calls without termination condition
+
+- **Configuration parameter** — add `llm.reasoning_effort`
+  - New parameter with values: low, medium, high (default: high)
+  - Integrated into CreateChatCompletion API calls
+
+### Removed
+
+- **Indexer CLI subcommand** — removed (functionality merged into `/index` chat command)
+  - Removed `internal/cmd/indexer/cmd.go`
+  - Removed `internal/plugins/cli/indexer/plugin.go`
+
+### Documentation
+
+- **Agent tools documentation** — comprehensive tool reference
+  - Categorize tools as search vs lookup
+  - Document tool signatures and parameters
+  - Add examples for all tools
+  - Explain search strategy and tool call limits
+  - Documented in AGENTS.md
+
+- **Chat commands documentation** — complete reference
+  - Document all chat commands and aliases
+  - Add usage examples
+  - Explain interactive vs non-interactive modes
+  - Documented in AGENTS.md and README.md
+
 ## [v0.1.6] - 2026-09-01
 
 ### Added
