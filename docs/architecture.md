@@ -98,22 +98,23 @@ main()
 
 ```
 REPL --> user_input
-           --> [if token threshold reached]
-                --> summarizer.Compact(history)
-          --> trimMessages(history) — trimming to fit context window
-           --> build toolMap from plugin.LLMTools()
-          --> LLM (system prompt + history + user_input + tools)
-                --> tool_call dispatched via toolMap[name].Execute(ctx, args)
-                      --> rag_search:
-                            --> expandQuery (LLM) -> N extra phrasings
-                            --> parallel: embed+query for each phrasing
-                            --> merge by chunk ID, keep best score
-                            --> trim to search.limit
-                            --> dedup by cosine similarity
-                            --> return joined top-N texts
-                      --> web_fetch:  fetch -> HTML clean -> Markdown
-                      --> file_*:     sandboxed filesystem ops
-          --> output answer to stdout
+   --> [if token threshold reached]
+        --> summarizer.Compact(history)
+   --> trimMessages(history) — trimming to fit context window
+    --> build toolMap from plugin.LLMTools()
+   --> Ask() — see [chat_agent_ask.md](./chat_agent_ask.md) for complete algorithm
+        --> LLM (system prompt + history + user_input + tools)
+              --> tool_call dispatched via toolMap[name].Execute(ctx, args)
+                    --> rag_search:
+                          --> expandQuery (LLM) -> N extra phrasings
+                          --> parallel: embed+query for each phrasing
+                          --> merge by chunk ID, keep best score
+                          --> trim to search.limit
+                          --> dedup by cosine similarity
+                          --> return joined top-N texts
+                    --> web_fetch:  fetch -> HTML clean -> Markdown
+                    --> file_*:     sandboxed filesystem ops
+   --> output answer to stdout
 ```
 
 ## Chunking (`internal/chunk`)

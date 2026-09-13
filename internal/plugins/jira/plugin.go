@@ -32,8 +32,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	}
 
 	hub.RegisterTool(plugin.LLMTool{
-		Definition:   jira.StaticDefinition,
-		IsSearchTool: true,
+		Definition: jira.StaticDefinition,
 		Execute: func(_ context.Context, args string) (string, error) {
 			return tools.Dispatch("jira_task_get", args), nil
 		},

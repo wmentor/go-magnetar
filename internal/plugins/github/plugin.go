@@ -35,8 +35,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 
 	// Register github_repo tool
 	hub.RegisterTool(plugin.LLMTool{
-		Definition:   github.StaticDefinition,
-		IsSearchTool: true,
+		Definition: github.StaticDefinition,
 		Execute: func(_ context.Context, args string) (string, error) {
 			return tools.Dispatch("github_repo", args), nil
 		},
@@ -44,8 +43,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 
 	// Register github_file tool
 	hub.RegisterTool(plugin.LLMTool{
-		Definition:   github.StaticDefinitionFile,
-		IsSearchTool: true,
+		Definition: github.StaticDefinitionFile,
 		Execute: func(_ context.Context, args string) (string, error) {
 			return tools.Dispatch("github_file", args), nil
 		},
@@ -53,8 +51,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 
 	// Register github_tree tool
 	hub.RegisterTool(plugin.LLMTool{
-		Definition:   github.StaticDefinitionTree,
-		IsSearchTool: true,
+		Definition: github.StaticDefinitionTree,
 		Execute: func(_ context.Context, args string) (string, error) {
 			return tools.Dispatch("github_tree", args), nil
 		},
@@ -62,8 +59,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 
 	// Register github_issue tool
 	hub.RegisterTool(plugin.LLMTool{
-		Definition:   github.StaticDefinitionIssue,
-		IsSearchTool: true,
+		Definition: github.StaticDefinitionIssue,
 		Execute: func(_ context.Context, args string) (string, error) {
 			return tools.Dispatch("github_issue", args), nil
 		},
@@ -71,8 +67,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 
 	// Register github_milestone tool
 	hub.RegisterTool(plugin.LLMTool{
-		Definition:   github.StaticDefinitionMilestone,
-		IsSearchTool: true,
+		Definition: github.StaticDefinitionMilestone,
 		Execute: func(_ context.Context, args string) (string, error) {
 			return tools.Dispatch("github_milestone", args), nil
 		},

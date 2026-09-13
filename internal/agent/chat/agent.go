@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -60,9 +61,15 @@ SECURITY CHECK: When the guard tool analyzes a command for safety:
 - Err on the side of caution - better to block a safe command than to allow a dangerous one.
 `
 
-// charsPerToken is a rough approximation used for context-window budget estimation.
-// OpenAI models average ~4 UTF-8 characters per token.
-const charsPerToken = 4
+const (
+	maxSearchToolCalls  = 20
+	noProgressCountMax  = 4
+	maxAskLoopIteration = 50
+
+	// charsPerToken is a rough approximation used for context-window budget estimation.
+	// OpenAI models average ~4 UTF-8 characters per token.
+	charsPerToken = 4
+)
 
 const agentsFile = "AGENTS.md"
 
@@ -234,8 +241,10 @@ func (a *ChatAgent) compactIfNeeded() {
 	a.messages = compacted
 }
 
-// maxSearchToolCalls is the maximum number of search-related tool calls per user request.
-const maxSearchToolCalls = 10
+type toolRecord struct {
+	Name string
+	Args string
+}
 
 // ask sends the user input to the LLM, handles tool calls, and returns the final answer.
 func (a *ChatAgent) Ask(userInput string) (string, error) {
@@ -256,10 +265,15 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 		toolMap[def.Function.Name] = t
 	}
 
-	toolCallCount := 0
-	searchLimitReached := false
+	toolCallCount := new(int64)
+	noProgressCount := 0
+	allInterationRealToolCall := new(int64)
 
-	for {
+	lastAnswerContent := ""
+
+	alreadyDoneToolCalls := map[toolRecord]struct{}{}
+
+	for range maxAskLoopIteration {
 		reserved := 0
 		if a.cfg.ProfileParamInt("llm.context") > 0 {
 			reserved = a.cfg.ProfileParamInt("llm.context") / reservedOutputFraction
@@ -270,9 +284,6 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 		// without any tools so the LLM is forced to produce a final text answer
 		// instead of attempting further tool calls (which would loop forever).
 		activeTools := tools
-		if searchLimitReached {
-			activeTools = nil
-		}
 
 		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Hour)
 		resp, err := a.llm.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
@@ -311,7 +322,25 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 
 			var wg sync.WaitGroup
 
+			atomic.StoreInt64(allInterationRealToolCall, 0)
+
 			for _, toolCall := range choice.Message.ToolCalls {
+				toolKey := toolRecord{Name: toolCall.Function.Name, Args: toolCall.Function.Arguments}
+				if _, has := alreadyDoneToolCalls[toolKey]; has {
+					a.messages = append(a.messages, openai.ChatCompletionMessage{
+						Role:       openai.ChatMessageRoleTool,
+						Content:    "error: this tool was called earlier with the same parameters",
+						ToolCallID: toolCall.ID,
+					})
+					printer.Warn("llm require double tool call %s %s", toolKey.Name, toolKey.Args)
+					continue
+				} else {
+					alreadyDoneToolCalls[toolKey] = struct{}{}
+					if atomic.LoadInt64(toolCallCount) < maxSearchToolCalls {
+						atomic.AddInt64(allInterationRealToolCall, 1)
+					}
+				}
+
 				wg.Add(1)
 				go func(tc openai.ToolCall) {
 					defer wg.Done()
@@ -325,11 +354,11 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 						result = "error: unknown tool " + name
 					} else {
 						if t.IsSearchTool {
-							toolCallCount++
-							if toolCallCount > maxSearchToolCalls {
-								searchLimitReached = true
-								result = fmt.Sprintf("error: reached maximum number of search tool calls (%d), no further searches allowed", maxSearchToolCalls)
+							if atomic.LoadInt64(toolCallCount) >= maxSearchToolCalls {
+								result = "error: reached maximum number of search tool calls, no further searches allowed"
+								printer.Warn("llm requre tool call %s after reached maximum number of search tool calls", toolKey.Name, toolKey.Args)
 							} else {
+								atomic.AddInt64(toolCallCount, 1)
 								r, err := t.Execute(context.Background(), args)
 								if err != nil {
 									result = "error: " + err.Error()
@@ -363,11 +392,28 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 					ToolCallID: r.toolCall.ID,
 				})
 			}
+
+			if atomic.LoadInt64(allInterationRealToolCall) == 0 {
+				noProgressCount++
+			} else {
+				noProgressCount = 0
+			}
+
+			lastAnswerContent = choice.Message.Content
+
+			if noProgressCount >= noProgressCountMax {
+				printer.Warn("broke potential infinite loop")
+				return lastAnswerContent, nil
+			}
+
 			continue
 		}
 
 		return choice.Message.Content, nil
 	}
+
+	printer.Warn("broke potential infinite loop")
+	return lastAnswerContent, nil
 }
 
 // --- Input / REPL ---

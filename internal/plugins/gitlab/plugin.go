@@ -32,8 +32,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	}
 
 	hub.RegisterTool(plugin.LLMTool{
-		Definition:   gitlab.StaticDefinition,
-		IsSearchTool: true,
+		Definition: gitlab.StaticDefinition,
 		Execute: func(_ context.Context, args string) (string, error) {
 			return tools.Dispatch("gitlab_fetch_mr", args), nil
 		},
