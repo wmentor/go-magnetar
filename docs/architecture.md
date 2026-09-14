@@ -146,10 +146,12 @@ The `file_read` tool supports the following file formats:
 |---|---|
 | `.txt` | Plain text files |
 | `.md` | Markdown files |
+| `.csv` | CSV files (via `internal/csv.ReadFile`) |
 | `.docx` | Microsoft Word documents (via `internal/docx.ReadFile`) |
 | `.pdf` | PDF documents (via `internal/pdf.ReadFile`) |
 | `.odt` | OpenOffice Writer documents (via `internal/odt.ReadFile`) |
 | `.pptx` | PowerPoint presentations (via `internal/pptx.ReadFile`) |
+| `.xlsx` | Excel files (via `internal/excel.ReadFile`) |
 
 ### File preprocessor
 
@@ -159,10 +161,12 @@ For a complete reference on text preprocessors, available placeholders, and usag
 |---|---|
 | `.txt` | Plain text files (via `os.ReadFile`) |
 | `.md` | Markdown files (via `os.ReadFile`) |
+| `.csv` | CSV files (via `internal/csv.ReadFile`) |
 | `.docx` | Microsoft Word documents (via `internal/docx.ReadFile`) |
 | `.pdf` | PDF documents (via `internal/pdf.ReadFile`) |
 | `.odt` | OpenOffice Writer documents (via `internal/odt.ReadFile`) |
 | `.pptx` | PowerPoint presentations (via `internal/pptx.ReadFile`) |
+| `.xlsx` | Excel files (via `internal/excel.ReadFile`) |
 
 
 ## Search replace functionality (`internal/tools/generic`)
