@@ -389,15 +389,7 @@ See [docs/architecture.md](./architecture.md) for complete architecture document
 
 ## Dependencies
 
-| Package | Purpose |
-|---|---|
-| `github.com/alecthomas/kong` | CLI parser |
-| `github.com/sashabaranov/go-openai` | OpenAI API client (LLM + embeddings) |
-| `github.com/qdrant/go-client` | Qdrant client (gRPC) |
-| `github.com/google/uuid` | UUID v5 for deterministic chunk IDs |
-| `github.com/knadh/koanf/v2` | YAML config loading |
-| `github.com/charmbracelet/glamour` | Markdown rendering in terminal |
-| `log/slog` | Structured logging (stdlib, replaced by internal/printer) |
+See [docs/dependencies.md](./dependencies.md) for a complete list of dependencies.
 
 ## Security restrictions
 

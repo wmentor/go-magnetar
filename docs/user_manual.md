@@ -199,4 +199,8 @@ Set `verbose: true` in the config for verbose output.
 
 ## Dependencies
 
+See [docs/dependencies.md](./dependencies.md) for a complete list of dependencies.
+
+## License
+
 See [LICENSE](../LICENSE).
