@@ -8,11 +8,13 @@ import (
 	"io/fs"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 
+	"github.com/melbahja/goph/v2"
 	"github.com/pkg/errors"
 	"github.com/sashabaranov/go-openai"
 
@@ -307,31 +309,10 @@ func (g *GenericTools) Exec(command string, stdin string) string {
 		return "error: the exec tool is fobbidden in read-only mode"
 	}
 
-	if g.isCommandBlocked(command) {
-		printer.Print(printer.IconBlocked, "exec: blocked dangerous command", "command", command)
-		return "error: dangerous command blocked"
-	}
-
-	if !g.cfg.Bool("guard.disable") {
-		allowed, reason, err := g.guard.CheckSecurity(command, g.state.ReadOnly)
-		if err != nil {
-			printer.Print(printer.IconBlocked, "exec: security check failed", "command", command, "err", err)
-			return fmt.Sprintf("error: security check failed: %v", err)
-		}
-		if !allowed {
-			if g.cfg.Bool("guard.ask") {
-				printer.Print(printer.IconBlocked, "exec: blocked dangerous command", "command", command, "reason", reason)
-				if askUserForCommand(command, reason) {
-					printer.Print(printer.IconDone, "exec: user confirmed command execution", "command", command)
-				} else {
-					printer.Print(printer.IconBlocked, "exec: user declined command", "command", command)
-					return "error: user declined command execution"
-				}
-			} else {
-				printer.Print(printer.IconBlocked, "exec: blocked dangerous command", "command", command, "reason", reason)
-				return "error: security check failed: " + reason
-			}
-		}
+	allowed, reason := g.checkSecurity(command)
+	if !allowed {
+		printer.Print(printer.IconBlocked, "exec: blocked dangerous command", "command", command, "reason", reason)
+		return "error: " + reason
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), execTimeout)
@@ -382,6 +363,126 @@ func askUserForCommand(command, reason string) bool {
 	}
 
 	return answer == "y"
+}
+
+func (g *GenericTools) checkSecurity(command string) (bool, string) {
+	if g.isCommandBlocked(command) {
+		return false, "blocked by security patterns"
+	}
+
+	if !g.cfg.Bool("guard.disable") {
+		allowed, reason, err := g.guard.CheckSecurity(command, g.state.ReadOnly)
+		if err != nil {
+			return false, fmt.Sprintf("security check failed: %v", err)
+		}
+		if !allowed {
+			if g.cfg.Bool("guard.ask") {
+				if askUserForCommand(command, reason) {
+					return true, ""
+				}
+				return false, "user declined command execution"
+			}
+			return false, reason
+		}
+	}
+
+	return true, ""
+}
+
+func (g *GenericTools) SSHExec(command, stdin, addr, userParam, dirParam string) string {
+	printer.ToolCall(printer.IconTool, "ssh", "command", command, "addr", addr)
+
+	if g.state.ReadOnly {
+		printer.ToolCall(printer.IconBlocked, "the ssh tool is forbidden in read-only mode", "command", command)
+		return "error: the ssh tool is forbidden in read-only mode"
+	}
+
+	if g.cfg.Bool("ssh.disable") {
+		printer.Print(printer.IconBlocked, "ssh: disabled")
+		return "error: ssh disabled"
+	}
+
+	allowed, reason := g.checkSecurity(command)
+	if !allowed {
+		printer.Print(printer.IconBlocked, "ssh: blocked dangerous command", "command", command, "reason", reason)
+		return "error: " + reason
+	}
+
+	if addr == "" {
+		printer.Error("ssh: no address provided")
+		return "error: no address provided"
+	}
+
+	sshUser := g.cfg.String("ssh.user")
+	if userParam != "" {
+		sshUser = strings.TrimSpace(userParam)
+	}
+	if sshUser == "" {
+		usr, err := user.Current()
+		if err != nil {
+			printer.Error("ssh: failed to get current user", "err", err)
+			return "error: failed to get current user"
+		}
+		sshUser = usr.Username
+	}
+
+	remoteDir := g.cfg.String("ssh.remote_dir")
+	if dirParam != "" {
+		remoteDir = strings.TrimSpace(dirParam)
+	}
+	if remoteDir == "" {
+		remoteDir = "$HOME"
+	}
+
+	timeout := g.cfg.Int("ssh.timeout")
+	if timeout <= 0 {
+		timeout = 120
+	}
+
+	var opts []goph.Option
+	if key := g.cfg.String("ssh.key"); key != "" {
+		key = common.ExpandHome(key)
+		opts = append(opts, goph.WithKeyFile(key, ""))
+	} else if password := g.cfg.String("ssh.password"); password != "" {
+		opts = append(opts, goph.WithPassword(password))
+	} else if g.cfg.Bool("ssh.use_ssh_agent") {
+		opts = append(opts, goph.WithDefaultAgent())
+	} else {
+		printer.Error("ssh: no authentication method configured")
+		return "error: no authentication method configured"
+	}
+
+	opts = append(opts, goph.WithTimeout(time.Duration(timeout)*time.Second), goph.WithInsecureIgnoreHostKey())
+
+	client, err := goph.New(sshUser, addr, opts...)
+	if err != nil {
+		printer.Error("ssh: connection failed", "addr", addr, "err", err)
+		return fmt.Sprintf("error: ssh connection failed: %v", err)
+	}
+	defer client.Close()
+
+	cmdStr := command
+	if remoteDir != "" {
+		cmdStr = "cd " + remoteDir + " && " + command
+	}
+	cmd, err := client.Command("sh", "-c", cmdStr)
+	if err != nil {
+		printer.Error("ssh: failed to create command", "command", command, "err", err)
+		return fmt.Sprintf("error: failed to create SSH command: %v", err)
+	}
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		printer.Error("ssh: command execution failed", "command", command, "err", err)
+		return fmt.Sprintf("error: command execution failed: %v", err)
+	}
+	outputStr := string(output)
+	if len(output) > execOutputMaxSize {
+		printer.Print(printer.IconAlert, "ssh truncated output", "command", command)
+		return outputStr[:execOutputMaxSize] + fmt.Sprintf("\n(output truncated to %d bytes)", execOutputMaxSize)
+	}
+
+	return outputStr
 }
 
 // SystemDate executes the date command and returns the output.
@@ -602,6 +703,43 @@ func (g *GenericTools) DefinitionSystemGrep() openai.Tool {
 	}
 }
 
+// DefinitionSSH returns the OpenAI tool schema for ssh.
+func (g *GenericTools) DefinitionSSH() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "ssh",
+			Description: "Execute a shell command on a remote server via SSH. Connection parameters (user, port, key, password, use_ssh_agent) are loaded from ssh.* config.",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"command": map[string]any{
+						"type":        "string",
+						"description": "The shell command to execute",
+					},
+					"stdin": map[string]any{
+						"type":        "string",
+						"description": "Standard input to pass to the command (optional)",
+					},
+					"addr": map[string]any{
+						"type":        "string",
+						"description": "Remote server address (hostname or hostname:port, required)",
+					},
+					"user": map[string]any{
+						"type":        "string",
+						"description": "SSH username (optional, if not provided uses ssh.user from config)",
+					},
+					"dir": map[string]any{
+						"type":        "string",
+						"description": "Remote working directory (optional, if not provided uses ssh.remote_dir from config)",
+					},
+				},
+				"required": []string{"command", "addr"},
+			},
+		},
+	}
+}
+
 // Dispatch handles a tool call by name, parsing JSON args and returning the result as a string.
 func (g *GenericTools) Dispatch(name string, args string) string {
 	switch name {
@@ -691,6 +829,20 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 			return "error: failed to parse arguments"
 		}
 		return g.SystemGrep(params.Filename, params.Pattern)
+
+	case "ssh":
+		var params struct {
+			Command string `json:"command"`
+			Stdin   string `json:"stdin,omitempty"`
+			Addr    string `json:"addr,omitempty"`
+			Dir     string `json:"dir,omitempty"`
+			User    string `json:"user,omitempty"`
+		}
+		if err := json.Unmarshal([]byte(args), &params); err != nil {
+			printer.Error("ssh: failed to parse args", "args", args, "err", err)
+			return "error: failed to parse arguments"
+		}
+		return g.SSHExec(params.Command, params.Stdin, params.Addr, params.User, params.Dir)
 
 	default:
 		return "error: unknown tool " + name
@@ -832,6 +984,43 @@ func StaticDefinitionSystemGrep() openai.Tool {
 					},
 				},
 				"required": []string{"filename", "pattern"},
+			},
+		},
+	}
+}
+
+// StaticDefinitionSSH returns the OpenAI tool schema for ssh without instance.
+func StaticDefinitionSSH() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "ssh",
+			Description: "Execute a shell command on a remote server via SSH. Connection parameters (user, port, key, password, use_ssh_agent) are loaded from ssh.* config.",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"command": map[string]any{
+						"type":        "string",
+						"description": "The shell command to execute",
+					},
+					"stdin": map[string]any{
+						"type":        "string",
+						"description": "Standard input to pass to the command (optional)",
+					},
+					"addr": map[string]any{
+						"type":        "string",
+						"description": "Remote server address (hostname or hostname:port, required)",
+					},
+					"user": map[string]any{
+						"type":        "string",
+						"description": "SSH username (optional, if not provided uses ssh.user from config)",
+					},
+					"dir": map[string]any{
+						"type":        "string",
+						"description": "Remote working directory (optional, if not provided uses ssh.remote_dir from config)",
+					},
+				},
+				"required": []string{"command", "addr"},
 			},
 		},
 	}

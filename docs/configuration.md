@@ -235,6 +235,18 @@ All profile-specific parameters are prefixed with `profiles.{profile}.` in the c
 | `guard.disable` | `false` | Disable guard agent for exec commands. When true, security checks via guard are skipped |
 | `guard.ask` | `false` | If true and guard blocks a command, ask user for confirmation before execution. If user confirms with 'y', the command executes; otherwise, it is blocked |
 
+### SSH configuration
+
+| Parameter | Default | Description |
+|---|---|---|
+| `ssh.disable` | `false` | Disable SSH execution. When true, attempts to execute remote commands via SSH will fail with an error |
+| `ssh.user` | current user | SSH username (optional, defaults to current system user) |
+| `ssh.key` | — | Path to SSH private key file (optional, for key-based authentication) |
+| `ssh.password` | — | SSH password (optional, for password-based authentication) |
+| `ssh.use_ssh_agent` | `false` | Use ssh-agent for authentication (default: false) |
+| `ssh.remote_dir` | `$HOME` | Remote working directory (optional) |
+| `ssh.timeout` | `120` | SSH command timeout in seconds (default: 120) |
+
 ### Verbose mode
 
 | Parameter | Default | Description |

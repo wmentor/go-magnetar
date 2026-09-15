@@ -169,6 +169,7 @@ make tidy       # go mod tidy
 ## Architecture
 
 See [docs/architecture.md](./docs/architecture.md) for complete architecture documentation.
+See [docs/architecture.md](./docs/architecture.md) for complete architecture documentation.
 
 ## Logging
 
@@ -176,15 +177,7 @@ Set `verbose: true` in the config for verbose output.
 
 ## Dependencies
 
-| Package | Purpose |
-|---|---|
-| [`github.com/alecthomas/kong`](https://github.com/alecthomas/kong) | CLI parser |
-| [`github.com/sashabaranov/go-openai`](https://github.com/sashabaranov/go-openai) | OpenAI API client (LLM + embeddings) |
-| [`github.com/qdrant/go-client`](https://github.com/qdrant/go-client) | Qdrant client (gRPC) |
-| [`github.com/google/uuid`](https://github.com/google/uuid) | UUID v5 for deterministic chunk IDs |
-| [`github.com/knadh/koanf/v2`](https://github.com/knadh/koanf) | YAML config loading |
-| [`github.com/charmbracelet/glamour`](https://github.com/charmbracelet/glamour) | Markdown rendering in terminal |
-| `log/slog` | Structured logging (stdlib, replaced by internal/printer) |
+See [docs/dependencies.md](./docs/dependencies.md) for a complete list of dependencies.
 
 ## Security restrictions
 

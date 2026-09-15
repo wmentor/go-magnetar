@@ -73,6 +73,14 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 			return p.get().Dispatch("exec", args), nil
 		},
 	})
+	if !p.state.Config.Bool("ssh.disable") {
+		hub.RegisterTool(plugin.LLMTool{
+			Definition: generic.StaticDefinitionSSH,
+			Execute: func(_ context.Context, args string) (string, error) {
+				return p.get().Dispatch("ssh", args), nil
+			},
+		})
+	}
 	if _, err := exec.LookPath("date"); err == nil {
 		hub.RegisterTool(plugin.LLMTool{
 			Definition: generic.StaticDefinitionSystemDate,

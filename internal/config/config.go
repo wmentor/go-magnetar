@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os/user"
 
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/confmap"
@@ -18,28 +19,39 @@ type Config struct {
 // defaults holds default config values that are applied before the
 // YAML file is loaded, so the user doesn't need to set them.
 var defaults = map[string]any{
-	"rag.chunk.size":             2048,      // runes; matches DefaultConfig in internal/chunk
-	"rag.chunk.overlap":          256,       // runes; ~12.5% overlap is the RAG sweet-spot
-	"rag.search.limit":           10,        // top-N results per query
-	"rag.search.threshold":       0.40,      // minimum cosine-similarity score
-	"rag.search.multi_query":     2,         // number of extra query reformulations
-	"rag.search.dedup_threshold": 0.95,      // near-duplicate suppression threshold
-	"llm.temperature":            0.9,       // LLM temperature for response generation
-	"llm.top_p":                  0.95,      // LLM top_p for response generation
-	"llm.reasoning_effort":       "high",    // LLM reasoning effort: low, medium, or high
-	"language":                   "english", // language for agent responses (default: english)
-	"gitlab.base_url":            "",        // GitLab base URL (optional)
-	"gitlab.api_key":             "",        // GitLab API key (optional)
-	"github.base_url":            "",        // GitHub base URL (optional)
-	"github.access_key":          "",        // GitHub access key (optional)
-	"github.disable":             false,     // disable GitHub integration (default: false)
-	"guard.disable":              false,     // disable guard agent for exec commands (default: false)
-	"guard.ask":                  false,     // ask user for confirmation when guard blocks a command (default: false)
+	"rag.chunk.size":             2048,            // runes; matches DefaultConfig in internal/chunk
+	"rag.chunk.overlap":          256,             // runes; ~12.5% overlap is the RAG sweet-spot
+	"rag.search.limit":           10,              // top-N results per query
+	"rag.search.threshold":       0.40,            // minimum cosine-similarity score
+	"rag.search.multi_query":     2,               // number of extra query reformulations
+	"rag.search.dedup_threshold": 0.95,            // near-duplicate suppression threshold
+	"llm.temperature":            0.9,             // LLM temperature for response generation
+	"llm.top_p":                  0.95,            // LLM top_p for response generation
+	"llm.reasoning_effort":       "high",          // LLM reasoning effort: low, medium, or high
+	"language":                   "english",       // language for agent responses (default: english)
+	"gitlab.base_url":            "",              // GitLab base URL (optional)
+	"gitlab.api_key":             "",              // GitLab API key (optional)
+	"github.base_url":            "",              // GitHub base URL (optional)
+	"github.access_key":          "",              // GitHub access key (optional)
+	"github.disable":             false,           // disable GitHub integration (default: false)
+	"guard.disable":              false,           // disable guard agent for exec commands (default: false)
+	"guard.ask":                  false,           // ask user for confirmation when guard blocks a command (default: false)
+	"ssh.disable":                false,           // disable SSH execution (default: false)
+	"ssh.user":                   "",              // SSH username (optional, defaults to current user)
+	"ssh.key":                    "~/.ssh/id_rsa", // SSH private key path (optional)
+	"ssh.password":               "",              // SSH password (optional)
+	"ssh.use_ssh_agent":          false,           // use ssh-agent for authentication (default: false)
+	"ssh.remote_dir":             "",              // remote working directory (optional, default: $HOME)
+	"ssh.timeout":                120,             // SSH command timeout in seconds (default: 120)
 }
 
 // Load reads and parses a YAML config file at the given path.
 func Load(path string) (*Config, error) {
 	k := koanf.New(".")
+
+	if currentUser, err := user.Current(); err == nil {
+		defaults["ssh.user"] = currentUser
+	}
 
 	if err := k.Load(confmap.Provider(defaults, "."), nil); err != nil {
 		return nil, fmt.Errorf("config: failed to load defaults: %w", err)
