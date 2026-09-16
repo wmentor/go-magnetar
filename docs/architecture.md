@@ -140,33 +140,19 @@ When both `limit` and `offset` are `0`, the entire file is read using the optimi
 
 ### Supported file formats
 
-The `file_read` tool supports the following file formats:
+The `file_read` tool supports the following file formats. See [docs/file_codecs.md](./docs/file_codecs.md) for a complete list of supported formats and codec implementation details:
 
 | Format | Description |
 |---|---|
 | `.txt` | Plain text files |
 | `.md` | Markdown files |
-| `.csv` | CSV files (via `internal/csv.ReadFile`) |
-| `.docx` | Microsoft Word documents (via `internal/docx.ReadFile`) |
-| `.pdf` | PDF documents (via `internal/pdf.ReadFile`) |
-| `.odt` | OpenOffice Writer documents (via `internal/odt.ReadFile`) |
-| `.pptx` | PowerPoint presentations (via `internal/pptx.ReadFile`) |
-| `.xlsx` | Excel files (via `internal/excel.ReadFile`) |
-
-### File preprocessor
-
-For a complete reference on text preprocessors, available placeholders, and usage examples, see [preprocessor.md](./preprocessor.md).
-
-| Format | Description |
-|---|---|
-| `.txt` | Plain text files (via `os.ReadFile`) |
-| `.md` | Markdown files (via `os.ReadFile`) |
-| `.csv` | CSV files (via `internal/csv.ReadFile`) |
-| `.docx` | Microsoft Word documents (via `internal/docx.ReadFile`) |
-| `.pdf` | PDF documents (via `internal/pdf.ReadFile`) |
-| `.odt` | OpenOffice Writer documents (via `internal/odt.ReadFile`) |
-| `.pptx` | PowerPoint presentations (via `internal/pptx.ReadFile`) |
-| `.xlsx` | Excel files (via `internal/excel.ReadFile`) |
+| `.csv` | CSV files |
+| `.tsv` | TSV files |
+| `.docx` | Microsoft Word documents |
+| `.pdf` | PDF documents |
+| `.odt` | OpenOffice Writer documents |
+| `.pptx` | PowerPoint presentations |
+| `.xlsx` | Excel files |
 
 
 ## Search replace functionality (`internal/tools/generic`)

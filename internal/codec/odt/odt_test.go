@@ -1,23 +1,25 @@
-package excel_test
+package odt_test
 
 import (
 	"os"
 	"testing"
 
-	"github.com/wmentor/go-magnetar/internal/excel"
+	"github.com/wmentor/go-magnetar/internal/codec/odt"
 )
 
 func TestReadFile(t *testing.T) {
 	t.Parallel()
 
-	filename := "./testdata/table1.xlsx"
+	filename := "./testdata/test.odt"
 
-	data, err := excel.ReadFile(filename)
+	codec := &odt.Codec{}
+
+	data, err := codec.ReadFile(filename)
 	if err != nil {
 		t.Fatalf("read file %q error: %v", filename, err)
 	}
 
-	expect, err := os.ReadFile("./testdata/table1.md")
+	expect, err := os.ReadFile("testdata/test.txt")
 	if err != nil {
 		t.Fatalf("read file %q error: %v", filename, err)
 	}

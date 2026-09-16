@@ -10,7 +10,9 @@ import (
 	"github.com/wmentor/go-magnetar/internal/printer"
 )
 
-func ReadFile(filename string) (string, error) {
+type Codec struct{}
+
+func (c *Codec) ReadFile(filename string) (string, error) {
 	f, err := excelize.OpenFile(filename)
 	if err != nil {
 		return "", fmt.Errorf("open file %s error: %w", filename, err)

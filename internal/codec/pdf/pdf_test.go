@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/wmentor/go-magnetar/internal/pdf"
+	"github.com/wmentor/go-magnetar/internal/codec/pdf"
 )
 
 func TestReadFile(t *testing.T) {
@@ -12,7 +12,9 @@ func TestReadFile(t *testing.T) {
 
 	filename := "./testdata/test.pdf"
 
-	data, err := pdf.ReadFile(filename)
+	codec := &pdf.Codec{}
+
+	data, err := codec.ReadFile(filename)
 	if err != nil {
 		t.Fatalf("read file %q error: %v", filename, err)
 	}

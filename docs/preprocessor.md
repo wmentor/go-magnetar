@@ -12,23 +12,12 @@ The built-in generic plugin provides the following placeholders that are automat
 | `{{uuid}}` | A random UUID v4 |
 | `{{date}}` | Current date in `YYYY-MM-DD` format |
 | `{{now}}` | Current date and time in `YYYY-MM-DD HH:MM:SS` format |
-| `{{file:filename}}` | Reads file content and replaces placeholder with the file contents. Supports `.md`, `.txt`, `.csv`, `.docx`, `.pdf`, `.odt`, `.pptx`, and `.xlsx` files, absolute paths and `~/` home directory prefix |
+| `{{file:filename}}` | Reads file content and replaces placeholder with the file contents. Supports `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, and `.xlsx` files, absolute paths and `~/` home directory prefix |
 | `{{env:VARIABLE}}` | Value of environment variable `VARIABLE` |
 
 ## File content substitution
 
-The `{{file:filename}}` placeholder supports reading file contents. Supported formats:
-
-| Format | Description |
-|---|---|
-| `.txt` | Plain text files (via `os.ReadFile`) |
-| `.md` | Markdown files (via `os.ReadFile`) |
-| `.csv` | CSV files (via `internal/csv.ReadFile`) |
-| `.docx` | Microsoft Word documents (via `internal/docx.ReadFile`) |
-| `.pdf` | PDF documents (via `internal/pdf.ReadFile`) |
-| `.odt` | OpenOffice Writer documents (via `internal/odt.ReadFile`) |
-| `.pptx` | PowerPoint presentations (via `internal/pptx.ReadFile`) |
-| `.xlsx` | Excel files (via `internal/excel.ReadFile`) |
+The `{{file:filename}}` placeholder supports reading file contents. See [docs/file_codecs.md](./docs/file_codecs.md) for a complete list of supported file formats and codec implementation details.
 
 File paths can be absolute or use `~/` for the home directory prefix.
 

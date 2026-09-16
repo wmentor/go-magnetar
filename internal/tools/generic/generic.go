@@ -19,6 +19,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/wmentor/go-magnetar/internal/agent/guard"
+	"github.com/wmentor/go-magnetar/internal/codec"
 	"github.com/wmentor/go-magnetar/internal/common"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
@@ -148,8 +149,8 @@ func (g *GenericTools) FileRead(filename string, limit int, offset int) (string,
 
 	ext := strings.ToLower(filepath.Ext(filename))
 
-	if fn, ok := common.FileReaders[ext]; ok {
-		text, err := fn(filename)
+	if reader, err := codec.GetCodec(ext); err == nil {
+		text, err := reader.ReadFile(filename)
 		if err != nil {
 			printer.Error("file_read: failed to read file", "file", filename, "err", err)
 			return "", false

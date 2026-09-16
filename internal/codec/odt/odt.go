@@ -13,7 +13,9 @@ var (
 	ErrInvalidFileFormat = errors.New("invalid file format")
 )
 
-func ReadFile(filename string) (string, error) {
+type Codec struct{}
+
+func (c *Codec) ReadFile(filename string) (string, error) {
 	zipReader, err := zip.OpenReader(filename)
 	if err != nil {
 		return "", err

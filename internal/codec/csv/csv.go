@@ -8,7 +8,9 @@ import (
 	"github.com/wmentor/go-magnetar/internal/markdown"
 )
 
-func ReadFile(filename string) (string, error) {
+type Codec struct{}
+
+func (c *Codec) ReadFile(filename string) (string, error) {
 	f, err := os.Open(filename)
 	if err != nil {
 		return "", fmt.Errorf("unable to open file %s: %w", filename, err)
