@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/wmentor/go-magnetar/internal/common"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 )
 
@@ -33,7 +34,7 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 				return nil
 			}
 
-			filename := filepath.Clean(args)
+			filename := filepath.Clean(common.ExpandHome(args))
 			msgs := a.Messages()
 
 			data, err := json.MarshalIndent(msgs, "", "  ")

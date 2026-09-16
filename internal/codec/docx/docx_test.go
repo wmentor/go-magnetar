@@ -1,18 +1,20 @@
-package pptx_test
+package docx_test
 
 import (
 	"os"
 	"testing"
 
-	"github.com/wmentor/go-magnetar/internal/pptx"
+	"github.com/wmentor/go-magnetar/internal/codec/docx"
 )
 
 func TestReadFile(t *testing.T) {
 	t.Parallel()
 
-	filename := "./testdata/1.pptx"
+	filename := "./testdata/1.docx"
 
-	data, err := pptx.ReadFile(filename)
+	codec := &docx.Codec{}
+
+	data, err := codec.ReadFile(filename)
 	if err != nil {
 		t.Fatalf("read file %q error: %v", filename, err)
 	}

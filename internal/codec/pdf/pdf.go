@@ -5,7 +5,9 @@ import (
 	"github.com/razvandimescu/gopdf/pdf"
 )
 
-func ReadFile(filename string) (string, error) {
+type Codec struct{}
+
+func (c *Codec) ReadFile(filename string) (string, error) {
 	doc, err := pdf.OpenFile(filename)
 	if err != nil {
 		return "", errors.Wrapf(err, "open file %s error", filename)

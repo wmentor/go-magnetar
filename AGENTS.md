@@ -298,26 +298,11 @@ See [docs/security.md](./docs/security.md) for complete security information.
 
 ## Indexer (via `/index` command)
 
-The indexer reads `.md`, `.txt`, `.csv`, `.docx`, `.pdf`, `.odt`, `.pptx`, and `.xlsx` files or web pages (by URL), splits content into overlapping chunks respecting paragraph and Markdown heading boundaries, computes embedding vectors and stores them in Qdrant. Each chunk is identified by a deterministic UUID v5 derived from its content — re-indexing the same file does not create duplicates.
+The indexer reads `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, and `.xlsx` files or web pages (by URL), splits content into overlapping chunks respecting paragraph and Markdown heading boundaries, computes embedding vectors and stores them in Qdrant. Each chunk is identified by a deterministic UUID v5 derived from its content — re-indexing the same file does not create duplicates.
 
-**Note:** If you need to read a `.csv`, `.docx`, `.pdf`, `.odt`, `.pptx`, or `.xlsx` file directly in your code, use the `internal/csv.ReadFile`, `internal/docx.ReadFile`, `internal/pdf.ReadFile`, `internal/odt.ReadFile`, `internal/pptx.ReadFile`, or `internal/excel.ReadFile` package functions instead of `os.ReadFile`.
+See [docs/file_codecs.md](./docs/file_codecs.md) for a complete list of supported file formats and codec implementation details.
 
-## Internal Packages
-
-### Common file types (`internal/common/filetypes.go`)
-
-A shared module that centralizes file reader mappings for all document formats. Defines a unified `FileReaders` map that maps file extensions to their respective reader functions:
-
-| Extension | Reader | Description |
-|---|---|---|
-| `.csv` | `csv.ReadFile` | CSV files |
-| `.docx` | `docx.ReadFile` | Microsoft Word documents |
-| `.pdf` | `pdf.ReadFile` | PDF documents |
-| `.odt` | `odt.ReadFile` | OpenOffice Writer documents |
-| `.pptx` | `pptx.ReadFile` | PowerPoint presentations |
-| `.xlsx` | `excel.ReadFile` | Excel files |
-
-All packages that need to read files (`generic/tools/generic.go`, `plugins/generic/plugin.go`, `agent/indexer/indexer.go`) reference this common map to avoid code duplication and ensure consistent file handling across the application.
+**Note:** If you need to read a file directly in your code, use the `internal/codec` package instead of format-specific packages.
 
 ### Index a single file
 

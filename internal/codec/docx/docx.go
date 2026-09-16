@@ -10,7 +10,9 @@ import (
 	"github.com/pkg/errors"
 )
 
-func ReadFile(filename string) (string, error) {
+type Codec struct{}
+
+func (c *Codec) ReadFile(filename string) (string, error) {
 	readFile, err := os.Open(filename)
 	if err != nil {
 		return "", errors.Wrapf(err, "open %q error", filename)

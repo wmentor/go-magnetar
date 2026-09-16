@@ -10,6 +10,8 @@ import (
 	"strings"
 )
 
+type Codec struct{}
+
 func getPageNumber(filename string) int {
 	slideRegex := regexp.MustCompile(`ppt/slides/slide(\d+)\.xml`)
 	matches := slideRegex.FindStringSubmatch(filename)
@@ -26,7 +28,7 @@ func getPageNumber(filename string) int {
 	return pageNum
 }
 
-func ReadFile(path string) (string, error) {
+func (c *Codec) ReadFile(path string) (string, error) {
 	r, err := zip.OpenReader(path)
 	if err != nil {
 		return "", err

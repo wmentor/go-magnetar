@@ -11,6 +11,7 @@ import (
 
 	"github.com/google/uuid"
 
+	"github.com/wmentor/go-magnetar/internal/codec"
 	"github.com/wmentor/go-magnetar/internal/common"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/tools/generic"
@@ -127,15 +128,7 @@ func processFiles(text string) string {
 		}
 		end += start
 
-		filename := match[start:end]
-
-		// Expand ~/ to home directory
-		if strings.HasPrefix(filename, "~/") {
-			home, err := os.UserHomeDir()
-			if err == nil {
-				filename = home + filename[1:]
-			}
-		}
+		filename := common.ExpandHome(match[start:end])
 
 		// Read file and return its content
 		content := readFile(filename)
@@ -196,8 +189,8 @@ func replaceAllPatterns(s, prefix, suffix string, repl func(string) string) stri
 func readFile(filename string) string {
 	ext := strings.ToLower(filepath.Ext(filename))
 
-	if fn, ok := common.FileReaders[ext]; ok {
-		text, err := fn(filename)
+	if reader, e := codec.GetCodec(ext); e == nil {
+		text, err := reader.ReadFile(filename)
 		if err != nil {
 			return ""
 		}

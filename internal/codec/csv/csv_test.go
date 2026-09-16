@@ -1,23 +1,25 @@
-package odt_test
+package csv_test
 
 import (
 	"os"
 	"testing"
 
-	"github.com/wmentor/go-magnetar/internal/odt"
+	"github.com/wmentor/go-magnetar/internal/codec/csv"
 )
 
 func TestReadFile(t *testing.T) {
 	t.Parallel()
 
-	filename := "./testdata/test.odt"
+	filename := "./testdata/table1.csv"
 
-	data, err := odt.ReadFile(filename)
+	codec := &csv.Codec{}
+
+	data, err := codec.ReadFile(filename)
 	if err != nil {
 		t.Fatalf("read file %q error: %v", filename, err)
 	}
 
-	expect, err := os.ReadFile("testdata/test.txt")
+	expect, err := os.ReadFile("./testdata/table1.md")
 	if err != nil {
 		t.Fatalf("read file %q error: %v", filename, err)
 	}

@@ -4,7 +4,7 @@ go-magnetar provides the following tools for the chat agent:
 
 | Tool | Signature | Description |
 |---|---|---|
-| `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem; supports `.txt`, `.md`, `.csv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`; `limit` and `offset` specify line range (0 = read all) |
+| `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem; supports `.txt`, `.md`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`; `limit` and `offset` specify line range (0 = read all). See [docs/file_codecs.md](./file_codecs.md) for complete format support and codec details |
 | `file_list` | `(filter: string) -> []string` | Recursively lists files in the current directory using glob pattern (e.g. `*.go`) |
 | `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem (blocked in read-only mode) |
 | `exec` | `(command: string, stdin: string) -> string` | Executes a shell command via `sh -c` with clean environment, current working directory, and built-in safety guard |

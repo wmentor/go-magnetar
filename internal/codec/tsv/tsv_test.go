@@ -1,23 +1,25 @@
-package docx_test
+package tsv_test
 
 import (
 	"os"
 	"testing"
 
-	"github.com/wmentor/go-magnetar/internal/docx"
+	"github.com/wmentor/go-magnetar/internal/codec/tsv"
 )
 
 func TestReadFile(t *testing.T) {
 	t.Parallel()
 
-	filename := "./testdata/1.docx"
+	filename := "./testdata/table1.tsv"
 
-	data, err := docx.ReadFile(filename)
+	codec := &tsv.Codec{}
+
+	data, err := codec.ReadFile(filename)
 	if err != nil {
 		t.Fatalf("read file %q error: %v", filename, err)
 	}
 
-	expect, err := os.ReadFile("testdata/1.md")
+	expect, err := os.ReadFile("./testdata/table1.md")
 	if err != nil {
 		t.Fatalf("read file %q error: %v", filename, err)
 	}

@@ -10,7 +10,7 @@ go-magnetar — a knowledge base tool built on RAG (Retrieval-Augmented Generati
 
 > If the `webfetch` block is configured, it is used to clean HTML content from ads, navigation, and other noise when processing web pages. Confluence URLs (both standard and short links) are also supported via the `confluence` block. JIRA issues are supported via the `jira` block. GitLab merge requests (including file changes) are supported via the `gitlab` block. GitHub repositories, files, and directory trees are supported via the `github` block.
 
-Supported file formats for indexing: `.md`, `.txt`, `.csv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`
+Supported file formats for indexing: `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`. See [docs/file_codecs.md](./docs/file_codecs.md) for complete format support and codec details.
 
 ## Requirements
 

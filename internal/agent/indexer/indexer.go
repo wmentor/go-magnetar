@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/wmentor/go-magnetar/internal/chunk"
-	"github.com/wmentor/go-magnetar/internal/common"
+	"github.com/wmentor/go-magnetar/internal/codec"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
@@ -49,8 +49,8 @@ func (idx *Indexer) IndexFile(filename string, msg string) error {
 	var data []byte
 	var err error
 
-	if fn, ok := common.FileReaders[ext]; ok {
-		text, err := fn(filename)
+	if reader, e := codec.GetCodec(ext); e == nil {
+		text, err := reader.ReadFile(filename)
 		if err != nil {
 			return fmt.Errorf("indexer: failed to read %s file %q: %w", ext, filename, err)
 		}
