@@ -39,7 +39,7 @@ type WebTools struct {
 // New creates a new WebTools instance.
 func New(cfg *config.Config, root *os.Root) (*WebTools, error) {
 	var preprocessor *sanitizer.Preprocessor
-	if cfg.String("webfetch.base_url") != "" {
+	if cfg.String("webfetch.base_url") != "" && !cfg.Bool("webfetch.disable") {
 		p, err := sanitizer.New(cfg, root)
 		if err != nil {
 			return nil, fmt.Errorf("web_fetch: failed to create preprocessor: %w", err)
