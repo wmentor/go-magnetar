@@ -47,8 +47,5 @@ archives:
 checksum:
   name_template: 'checksums.txt'
 
-release_notes: |
-  {{ .TagMessage }}
-
 changelog:
   disable: true
