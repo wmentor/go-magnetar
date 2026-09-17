@@ -47,10 +47,8 @@ archives:
 checksum:
   name_template: 'checksums.txt'
 
+release_notes: |
+  {{ .TagMessage }}
+
 changelog:
-  use: tag
-  sort: asc
-  filters:
-    exclude:
-      - '^docs:'
-      - '^test:'
+  disable: true
