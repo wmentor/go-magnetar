@@ -24,13 +24,13 @@ jobs:
 
       - name: Prepare Release Notes
         run: |
-          git tag -l --format='%(contents)' ${{ github.ref_name }} > release-notes.md
+          git tag -l --format='%(contents)' ${{ github.ref_name }} > /tmp/release-notes.md
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
           version: '~> v2'
-          args: release --clean --release-notes=release-notes.md
+          args: release --clean --release-notes=/tmp/release-notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
