@@ -26,6 +26,9 @@ jobs:
         run: |
           git tag -l --format='%(contents)' ${{ github.ref_name }} > /tmp/release-notes.md
 
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft-binary@v0
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
