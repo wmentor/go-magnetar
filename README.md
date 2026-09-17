@@ -169,7 +169,6 @@ make tidy       # go mod tidy
 ## Architecture
 
 See [docs/architecture.md](./docs/architecture.md) for complete architecture documentation.
-See [docs/architecture.md](./docs/architecture.md) for complete architecture documentation.
 
 ## Logging
 
