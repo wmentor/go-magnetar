@@ -26,10 +26,6 @@ builds:
       - -trimpath
     binary: go-magnetar
 
-sboms:
-  - id: archive
-    artifacts: archive
-
 archives:
   - format: tar.gz
     name_template: >-
