@@ -44,10 +44,10 @@ checksum:
   name_template: 'checksums.txt'
 
 changelog:
-  disable: true
+  use: inline
+  template: "{{ .TagContents }}"
 
 release:
   github:
     owner: wmentor
     name: go-magnetar
-  description: "{{ .TagContents }}"
