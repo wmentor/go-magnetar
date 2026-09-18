@@ -45,3 +45,9 @@ checksum:
 
 changelog:
   disable: true
+
+release:
+  github:
+    owner: wmentor
+    name: go-magnetar
+  body_toggle: "{{ .TagContents }}"
