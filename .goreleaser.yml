@@ -1,0 +1,47 @@
+version: 2
+project_name: go-magnetar
+
+before:
+  hooks:
+    - go mod tidy
+    - go build -o bin/go-magnetar ./cmd/go-magnetar
+
+builds:
+  - main: ./cmd/go-magnetar
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goarch: arm64
+        goos: windows
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.ShortCommit}} -X main.date={{.Date}}
+    flags:
+      - -trimpath
+    binary: go-magnetar
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE
+
+checksum:
+  name_template: 'checksums.txt'
+
+changelog:
+  disable: true
