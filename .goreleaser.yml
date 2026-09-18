@@ -45,7 +45,6 @@ checksum:
 
 changelog:
   use: inline
-  template: "{{ .TagContents }}"
 
 release:
   github:
