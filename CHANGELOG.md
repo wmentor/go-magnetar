@@ -7,459 +7,123 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.1.0] - 2026-09-18
+
+### Added
+
+- **Automated releases via goreleaser** — GitHub Actions workflow for CI/CD
+- **SSH tool** — execute remote commands via SSH with key/password/agent auth
+- **Spreadsheet support** — CSV, XLSX, and TSV file reading
+- **Unified codec system** — single package for all file format readers
+
+### Changed
+
+- **Security by default** — all external integrations disabled unless explicitly enabled
+
 ## [v1.0.0] - 2026-09-13
 
 ### Added
 
-- **Session loading support** — restore previous conversations
-  - Add `--session` flag to load conversation history from JSON file
-  - Resume interrupted conversations without losing context
-  - Documented in AGENTS.md and README.md
-  - Adds `/save <filename>` command to save last assistant answer
-
-- **Security advisory support** — fetch GitHub security advisories
-  - Add security advisory fetching via GitHub API
-  - Enhanced `github_repo` tool with security advisory detection
-  - Documented in AGENTS.md and README.md
-
-- **CVE lookup tool** — new CVE database lookup
-  - Fetch CVE details via `cve_lookup` tool
-  - Search by CVE ID (e.g., CVE-2024-1234)
-  - Include CVSS score, descriptions, and affected products
-  - Documented in AGENTS.md
-
-- **GitHub Milestones support** — fetch GitHub milestone information
-  - Add `github_milestone` tool to fetch milestone details
-  - Support milestone URLs in format `https://github.com/{owner}/{repo}/milestone/{number}`
-  - Auto-detect milestone URLs in user input
-  - Documented in AGENTS.md
-
-- **GitHub Issues support** — fetch GitHub issues
-  - Enhance `github_repo` tool with issue fetching capability
-  - Support issue URLs in format `https://github.com/{owner}/{repo}/issues/{number}`
-  - Auto-detect issue URLs in user input
-  - Documented in AGENTS.md
-
-- **PPTX file support** — full support for PowerPoint presentations
-  - Add `internal/pptx` package with `ReadFile` function for parsing `.pptx` files
-  - Update generic tools and indexer to support `.pptx` files
-  - Update `{{file:filename}}` preprocessor to read `.pptx` files
-  - Documented in README.md, AGENTS.md, and docs/user_manual.md
-
-- **Environment variable support to text preprocessor** — expand env vars in file paths
-  - Extend `{{file:filename}}` preprocessor to support `$env:VAR_NAME`
-  - Enable dynamic file paths via environment variables
-  - Example: `{{file:$env:DOCUMENT_PATH}}`
-  - Documented in AGENTS.md
-
-- **Chat command aliases** — add shorter aliases for common commands
-  - `/i` alias for `/index`
-  - `/f` alias for `/fetch`
-  - `/readonly` for toggling read-only mode
-
-- **/idxtab command** — batch indexing from JSON lines file
-  - Format: `{"source":"path|url","message":"text"}`
-  - Process multiple entries sequentially
-  - Documented in AGENTS.md
+- **Session management** — load/resume conversations with `--session` and `/save`
+- **Security features** — GitHub security advisories, CVE lookup
+- **GitHub integration** — fetch milestones and issues
+- **Enterprise file formats** — DOCX, PDF, ODT, PPTX support
+- **Config enhancements** — environment variables, profile-based settings
+- **Chat commands** — `/index`, `/fetch`, `/idxtab`, `/readonly` with aliases
+- **Tool categorization** — search vs lookup tools with loop protection
 
 ### Changed
 
-- **Tool categorization** — classify tools as search vs lookup
-  - Categorize tools in AGENTS.md as search or lookup type
-  - Improve loop protection logic based on tool type
-  - Search tools: `rag_search`, `web_fetch`
-  - Lookup tools: `github_repo`, `github_file`, `jira_task_get`, etc.
-
-- **Loop protection** — prevent infinite tool call chains
-  - Track tool call count per request
-  - Default limit: 10 search-related tool calls per request
-  - Error when limit exceeded to prevent infinite loops
-  - Documented in AGENTS.md
-
-- **Code optimization** — use `fmt.Fprintf` with pointer to `strings.Builder`
-  - Replace `strings.Builder.WriteString(fmt.Sprintf(...))` pattern
-  - Direct write to builder via `fmt.Fprintf(&sb, ...)`
-  - No intermediate string allocation
-  - Updated in `internal/printer/printer.go`
-
-- **Go version bump** — updated to Go 1.27.0
-  - Update minimum version requirement in README.md and AGENTS.md
-  - Update GitHub Actions workflows
-  - Update build instructions
-
-### Fixed
-
-- **Infinite loop prevention** — block potential infinite loops
-  - Implement tool call counter
-  - Exit with error when limit exceeded
-  - Prevent recursive tool calls without termination condition
-
-- **Configuration parameter** — add `llm.reasoning_effort`
-  - New parameter with values: low, medium, high (default: high)
-  - Integrated into CreateChatCompletion API calls
+- **Unified CLI** — single `agent` command replacing separate indexer/agent subcommands
+- **Go 1.27.0** — minimum version requirement
 
 ### Removed
 
-- **Indexer CLI subcommand** — removed (functionality merged into `/index` chat command)
-  - Removed `internal/cmd/indexer/cmd.go`
-  - Removed `internal/plugins/cli/indexer/plugin.go`
-
-### Documentation
-
-- **Agent tools documentation** — comprehensive tool reference
-  - Categorize tools as search vs lookup
-  - Document tool signatures and parameters
-  - Add examples for all tools
-  - Explain search strategy and tool call limits
-  - Documented in AGENTS.md
-
-- **Chat commands documentation** — complete reference
-  - Document all chat commands and aliases
-  - Add usage examples
-  - Explain interactive vs non-interactive modes
-  - Documented in AGENTS.md and README.md
+- **Indexer CLI** — functionality merged into `/index` chat command
 
 ## [v0.1.6] - 2026-09-01
 
 ### Added
 
-- **Environment variable substitution** — support for `$env:VAR_NAME` in config values
-  - Add `ResolveEnvVars()` function to replace `$env:VAR_NAME` with environment variables
-  - Substitution happens at read time (not load time), allowing dynamic changes without restart
-  - Missing environment variables resolve to empty string
-  - Documented in docs/configuration.md and AGENTS.md with examples
-
-- **Profile-based configuration** — structured config via profiles block
-  - Move LLM settings from top-level to profile-specific (`profiles.{name}.llm.*`)
-  - Add `ProfileParamString/Int/Float64/Bool` methods for automatic profile prefix resolution
-  - Refactor all plugin code to use ProfileParam* helpers instead of direct config access
-  - Document profiles section in docs/configuration.md with migration guide
+- **Config profiles** — structured configuration via `profiles` block
+- **Non-interactive mode** — `-f/--file` flag for scripting
 
 ### Changed
 
-- **Default chunking parameters** — updated to RAG sweet-spot
-  - Change `rag.chunk.size` from previous default to 2048 runes
-  - Change `rag.chunk.overlap` from previous default to 256 runes (~12.5% overlap)
-
-- **Go version bump** — updated to Go 1.27.0
-  - Update minimum version requirement in README.md and AGENTS.md
-  - Update GitHub Actions workflows
-  - Update build instructions
-
-### Fixed
-
-- **Configuration parameter** — add `llm.reasoning_effort`
-  - New parameter with values: low, medium, high (default: high)
-  - Integrated into CreateChatCompletion API calls
-
-### Improved
-
-- **Logging enhancements** — better structured logging
-  - Improved log messages for debugging
-  - Better error context
-
-- **Non-interactive mode** — add `-f/--file` flag
-  - New `-f/--file` flag to read input from file and print agent response
-  - Clarified that preprocessor and chat commands are not available in non-interactive mode
-  - Documented in README.md and AGENTS.md
+- **Default chunking** — optimized to 2048 runes with 256 overlap
+- **Go 1.27.0** — minimum version requirement
 
 ## [v0.1.5] - 2026-07-29
 
 ### Added
 
-- **DOCX file support** — full support for Microsoft Word documents
-  - Add `internal/docx` package with `ReadFile` function for parsing `.docx` documents
-  - Update `file_read` tool to support `.docx` files via `internal/docx.ReadFile`
-  - Update indexer to index `.docx` files
-  - Update `{{file:filename}}` preprocessor to read `.docx` files
-  - Update documentation in README.md, AGENTS.md, docs/user_manual.md
-- **PDF file support** — full support for PDF documents
-  - Add `internal/pdf` package with `ReadFile` function for parsing `.pdf` documents
-  - Update `file_read` tool to support `.pdf` files via `internal/pdf.ReadFile`
-  - Update indexer to index `.pdf` files
-  - Update `{{file:filename}}` preprocessor to read `.pdf` files
-  - Update documentation in README.md, AGENTS.md, docs/user_manual.md
-- **ODT file support** — full support for OpenOffice Writer documents
-  - Add `internal/odt` package with `ReadFile` function for parsing `.odt` documents
-  - Update `file_read` tool to support `.odt` files via `internal/odt.ReadFile`
-  - Update indexer to index `.odt` files
-  - Update `{{file:filename}}` preprocessor to read `.odt` files
-  - Update documentation in README.md, AGENTS.md, docs/user_manual.md
-- **User input preprocessors** — modular text preprocessing pipeline
-  - Add `hub.RegisterPreprocessor()` API for plugins to transform user input
-  - Preprocessors run after user input is displayed but before command matching or LLM processing
-  - Used for simple placeholder expansion (`{{file:filename}}`)
-- **Serial placeholders** — support for multiple `{{file:filename}}` placeholders
-  - Expand all `{{file:filename}}` placeholders in user input
-  - Reuse expansion result across multiple tool calls to avoid redundant file reads
-- **parallel tool calling** — concurrent execution of LLM tool calls
-  - Execute multiple tools in parallel when supported by LLM response
-  - Improve performance for requests requiring multiple search operations
-- **Go version bump** — updated to Go 1.26.5
-  - Update minimum version requirement in README.md and AGENTS.md
-  - Update GitHub Actions workflows
-  - Update build instructions
+- **Confluence/JIRA integration** — fetch issues and pages directly
+- **Parallel tool calling** — concurrent LLM tool execution
+- **Multiple preprocessor placeholders** — `{{file:filename}}` expansion
 
 ### Changed
 
-- **exec tool** — simplification and hardening
-  - Simplified `system_grep` tool: removed optional parameters
-  - Always use `-n -i -r -E` flags for consistent behavior
-  - Updated documentation in AGENTS.md, README.md
-- **file_list filter** — unified glob pattern interface
-  - Add `filter` parameter to `file_list` tool for glob pattern matching
-  - Replaces legacy directory listing behavior
-  - Update documentation in AGENTS.md
+- **Security hardening** — exec tool refactoring with blocklist
 
 ### Fixed
 
-- **Makefile improvements** — build process enhancements
-  - `go fix` and `go fmt` integration
-  - Automatic code formatting and fixes before build
-  - Updated `make tidy`, `make build` targets
-- **Go module fixes** — dependency management improvements
-  - Resolve `go.mod` version conflicts
-  - Update dependency constraints
+- **Build process** — `go fix`/`go fmt` integration
 
 ## [v0.1.4] - 2026-07-06
 
 ### Added
 
-- **Language parameter** — new `language` parameter for agent responses
-  - Default: `english`
-  - Configurable via `language` field in config
-  - Injected into system prompt instead of hardcoded English
-  - Updated in configs/config.yaml, README.md, AGENTS.md, docs/user_manual.md
-- **llm.temperature and llm.top_p** — new LLM parameters
-  - Default values: 0.5 and 0.95
-  - Passed to OpenAI API in CreateChatCompletion request
-  - Documented in all configuration examples
-- **/fetch chat command** — new command for URL content retrieval
-  - Alias: `/f`
-  - Fetches and displays content from URLs
-  - HTML cleanup and Markdown conversion via webfetch
-  - Terminal display with `less` if available, or save to file
-  - Example: `/fetch https://example.com/article [output.md]`
-- **JIRA Epic child issues** — fetch child issues in Epic tasks
-  - Fetch child issues via JQL search when issue type is "Epic"
-  - Add labels and parent issue fields to output
-  - Include child count and summary in Markdown output
+- **Language parameter** — configurable agent response language
+- **LLM parameters** — temperature and top_p support
+- **/fetch command** — URL content retrieval
+- **JIRA Epic support** — fetch child issues
 
 ### Changed
 
-- **Refactor exec tool** — security-focused refactoring
-  - Renamed `system_exec` to `exec` with simplified API (command + stdin)
-  - Execute via `sh -c` with clean environment and current working directory
-  - Added 1-minute timeout and 64KB output size limit
-  - Implement blocklist: rm -rf, sudo, mkfs, dd, git ops, shell pipes (bash/sh/zsh)
-  - Remove allowedCommands and read-only mode support
-- **Security hardening** — comprehensive security improvements
-  - Block execution when running as root user
-  - Expand blocklist with privileged commands: su, chmod, chown, fdisk, format, brew, apt, dpkg, npm, systemctl, useradd/userdel, passwd, etc.
-  - Add environment variable filtering to prevent credential leakage
-  - Support read-only mode check in exec tool
-  - Updated documentation and security guidelines
-
-### FIXED
-
-- **Search replace tool** — removed from generic plugin
-  - Removed `search_replace` tool from internal/tools/generic
-  - Updated documentation in AGENTS.md, README.md, docs/user_manual.md
-- **Type cast bug** — fix float64 args in file_read tool
-  - Changed limit/offset params from int to *float64 in generic tool args parsing
-  - Support JSON numbers with decimal points (e.g., 100.0)
-- **Ask tool** — removed from codebase
-  - Delete internal/plugins/ask/plugin.go
-  - Remove ask import from cmd/go-magnetar/main.go
-  - Remove ask tool documentation from AGENTS.md
-
-### Deprecated
-
-- **Search replace tool** — removed from generic plugin (functionality replaced by internal/tools/generic)
-
-### Security
-
-- **Command safety guard** — LLM-based security analysis for exec commands
-  - Implement guard agent with safety analysis
-  - Block destructive commands (rm -rf, sudo, mkfs, dd, fdisk, etc.)
-  - Block shell pipes (| bash, | sh, | zsh)
-  - Block heredoc syntax to prevent unauthorized file writes
-  - Block git operations (commit, push, rebase, etc.)
-  - Add read-only mode support
-  - Environment variable filtering to prevent credential leakage
-- **Read-only mode** — toggle via `/readonly` chat command
-  - Prevent all modifications when enabled
-  - Block file writes and command execution that modifies state
-  - Comprehensive protection via guard agent
+- **Security** — comprehensive command blocklist and read-only mode
 
 ### Removed
 
-- **Ask tool** — removed from codebase
-  - Delete internal/plugins/ask/plugin.go
-  - Remove ask import from cmd/go-magnetar/main.go
-  - Remove ask tool documentation from AGENTS.md
-- **Search replace tool** — removed from generic plugin
-  - Removed from internal/tools/generic/generic.go
-  - Updated documentation in AGENTS.md, README.md, docs/user_manual.md
-- **Guard ask flag** — simplified guard configuration
-  - Removed ask flag from guard configuration (replaced with unified guard)
-
-### Documentation
-
-- **Security documentation** — new docs/security.md
-  - Comprehensive security guidelines
-  - Command safety guard details
-  - Read-only mode explanation
-  - Root user prevention
-- **Updated documentation** — for new features
-  - AGENTS.md, README.md, docs/user_manual.md updates
-  - Command examples for /fetch and /readonly
-  - Configuration parameters for language, temperature, top_p
-  - Updated data flow diagrams
-  - Added warning about stdin input limitations (Bubble Tea requires interactive terminal)
+- **Ask tool** and **search_replace** — replaced by unified guard agent
 
 ## [v0.1.3] - 2026-06-30
 
 ### Added
 
-- **GitHub integration** - Full GitHub API integration with three new tools:
-  - `github_repo` - Fetch repository information and README
-  - `github_file` - Fetch file content from any branch
-  - `github_tree` - List files and directories in current path
-  - Support for URLs: `https://github.com/{owner}/{repo}`, `https://github.com/{owner}/{repo}/blob/{branch}/{file}`, `https://github.com/{owner}/{repo}/tree/{branch}/{path}`
-  - Configurable via `github` block in config (base_url, access_key)
-  -Integrated with `web_fetch` for automatic URL resolution
-- **Documentation** - Comprehensive documentation for GitHub integration
-  - Example URLs and configuration
-  - Command examples in user_manual.md and README.md
-  - Tool signatures and parameters
+- **GitHub API integration** — repo/file/tree tools with URL detection
 
 ### Changed
 
-- **Refactor gitlab fetch** - Move common functionality to internal/tools/gitlab/fetch.go
-  - Improved code organization
-  - Better testability
-- **Refactor web fetch** - Extract URL routing to separate handlers
-  - Cleaner separation between web, confluence, jira, gitlab, github
-  - Easier to add new URL handlers
-
-### Fixed
-
-- Removed TODO.md from commit history (all tasks completed in v0.1.3)
+- **Web fetch refactoring** — cleaner separation between handlers
 
 ## [v0.1.2] - 2026-06-28
 
 ### Added
 
-- **GitLab MR fetching** - Fetch GitLab merge requests with file changes
-  - Fetch MR details via `/api/v4/projects/{project}/merge_requests/{mr_id}`
-  - Additional call to `/api/v4/projects/{project}/merge_requests/{mr_id}/changes`
-  - Parse and include file diffs list in output
-  - Support MR URLs in format `https://gitlab.example.com/group/project/-/merge_requests/123`
-  - Configurable via `gitlab` block in config (base_url, api_key)
-  - Examples in user_manual.md and README.md
-- **version command** - Enhanced version command with timeout adjustment
-  - Improved display format
-  - Timeout adjustment support
-- **ask tool** - Clarifying questions tool for the agent
-  - Allows agent to ask user for clarification during conversation
-  - Returns user's answer as string
-- **JIRA plugin** - JIRA task fetching via LLM tool
-  - Fetch JIRA issues directly via `jira_task_get` tool
-  - Configurable via `jira` block in config
-  - Based on JIRA REST API
+- **GitLab MR fetching** — pull request changes via API
+- **JIRA plugin** — issue fetching via REST API
 
 ### Changed
 
-- **Config refactoring** - Rewrite Config to use `koanf.Koanf` directly
-  - Simplified configuration structure
-  - Better support for dynamic config loading
-  - Optimized memory usage for shared structs
-- **Plugin architecture** - Optimized plugin initialization
-  - State passed by pointer instead of value
-- **History management** - Refactored to use `internal/history` package
-  - Added `Records()` method for history iteration
-  - Optimized `New()` for empty filename
-- **Logging** - Replaced `slog` with internal `printer` package
-  - Unified logging system across the codebase
-  - Consistent output format with icons and timestamps
-- **Documentation** - Updated documentation with new features
-  - Added GitLab MR support examples
-  - Updated user_manual.md with new commands
-  - Updated README.md with all supported features
-
-### Fixed
-
-- Multiple query processing in search with better deduplication
-- Improved error handling for web fetch operations
-- URL detection for Confluence, JIRA, and GitLab resources
+- **Config refactoring** — koanf-based configuration
+- **Unified logging** — single output format across the codebase
 
 ### Removed
 
-- Separate indexer CLI subcommand (`go-magnetar index`)
-- CLI agent subcommand (functionality merged into unified agent)
+- **CLI subcommands** — indexer and agent merged
 
 ## [v0.1.1] - 2026-06-23
 
 ### Added
 
-- **exec tool** - Execute shell commands via `sh -c` with clean environment and stdin support
-- **Security restrictions** - Block list for dangerous commands (rm -rf, sudo, mkfs, dd, git operations, shell pipes)
-- **system_date tool** - Execute the `date` command to get current system time
-- **Read-only mode** - Prevent file modifications
-- **/readonly chat command** - Toggle read-only mode (`/readonly on|off`)
-- **/index command** - Unified document indexing from REPL (replaces separate CLI subcommands)
-  - Auto-detects file vs URL
-  - Supports `-m <message>` flag for prepending context to chunks
-  - Works with Confluence pages and JIRA issues
-- **/idxtab command** - Batch indexing from JSON lines file
-  - Format: `{"source":"path|url","message":"text"}`
-- **JIRA issue support** - Fetch JIRA issues directly by URL via `web_fetch` tool
-
-### Changed
-
-- **CLI structure** - Simplified to single command approach
-  - Removed `internal/cmd/indexer/cmd.go`
-  - Removed `internal/plugins/cli/agent/plugin.go`
-  - Removed `internal/plugins/cli/indexer/plugin.go`
-  - Single point of entry: `go-magnetar [flags]`
-- **Plugin architecture** - State passed by pointer instead of value
-  - Optimizes memory usage for shared structs
-- **History management** - Refactored to use `internal/history` package
-  - Added `Records()` method for history iteration
-  - Optimized `New()` for empty filename
-
-### Fixed
-
-- Refactored CLI to use `/index` chat command instead of separate indexer command
-- Replaced `kong.Plugins` with direct chat command registration for simplicity
-
-### Removed
-
-- Separate indexer CLI subcommand (`go-magnetar index`)
-- CLI agent subcommand (functionality merged into unified agent)
+- **Security restrictions** — blocklist for dangerous commands
+- **Read-only mode** — `/readonly` toggle
+- **Unified /index** — document indexing from REPL
 
 ## [v0.1.0] - 2026-06-23
 
-### Added
+- Initial release with RAG, chat agent, web fetching, and plugin architecture
 
-- Initial release
-- RAG-based knowledge base with document indexing
-- Interactive chat agent with multi-turn conversation
-- Web page fetching with HTML cleanup
-- Confluence page fetching support
-- `/save <filename>` command to save last assistant answer
-- `/version` command to display program version
-- Plugin architecture with dynamic registration
-- Search engine with multi-query and deduplication support
-
-### Changed
-
-- Plugin architecture refactoring
-- Search enhancements
-
-[Unreleased]: https://github.com/wmentor/go-magnetar/compare/v0.1.4...HEAD
-[v0.1.3]: https://github.com/wmentor/go-magnetar/compare/v0.1.2...v0.1.3
-[v0.1.2]: https://github.com/wmentor/go-magnetar/compare/v0.1.1...v0.1.2
-[v0.1.1]: https://github.com/wmentor/go-magnetar/compare/v0.1.0...v0.1.1
-[v0.1.0]: https://github.com/wmentor/go-magnetar/releases/tag/v0.1.0
+[Unreleased]: https://github.com/wmentor/go-magnetar/compare/v1.0.0...HEAD
+[v1.1.0]: https://github.com/wmentor/go-magnetar/compare/v1.0.0...HEAD
+[v1.0.0]: https://github.com/wmentor/go-magnetar/releases/tag/v1.0.0

@@ -296,6 +296,22 @@ See [docs/agent_tools.md](./docs/agent_tools.md) for a complete list of availabl
 
 See [docs/security.md](./docs/security.md) for complete security information.
 
+## Versioning and Changelog
+
+The project follows [Semantic Versioning](https://semver.org/). The [CHANGELOG.md](./CHANGELOG.md) documents user-facing changes for each release:
+
+### What's documented in CHANGELOG.md
+
+- **New user-facing features** — new tools, commands, or capabilities available to users
+- **User-impacting changes** — modifications to existing functionality that affect user experience
+- **Security fixes** — vulnerabilities and hardening changes
+
+### What's NOT documented in CHANGELOG.md
+
+- Internal refactoring without user-facing impact
+- Technical debt improvements
+- Purely internal code organization changes
+
 ## Indexer (via `/index` command)
 
 The indexer reads `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, and `.xlsx` files or web pages (by URL), splits content into overlapping chunks respecting paragraph and Markdown heading boundaries, computes embedding vectors and stores them in Qdrant. Each chunk is identified by a deterministic UUID v5 derived from its content — re-indexing the same file does not create duplicates.
