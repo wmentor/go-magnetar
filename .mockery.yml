@@ -1,0 +1,12 @@
+dir: "{{.InterfaceDir}}/testdata"
+filename: "{{.InterfaceName | firstUpper}}.go"
+pkgname: "testdata"
+structname: "{{.InterfaceName | firstUpper}}"
+recursive: true
+template-data:
+  unroll-variadic: true
+packages:
+  github.com/wmentor/go-magnetar:
+    config:
+      exclude-subpkg-regex: ["pkg/api"]
+      all: true

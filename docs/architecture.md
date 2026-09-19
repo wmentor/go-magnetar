@@ -6,10 +6,10 @@ internal/
   config/config.go               — YAML config loading, printer initialization
   chunk/chunk.go                 — text chunking (UTF-8, paragraph/heading boundaries)
   plugin/
-    plugin.go                    — Plugin, Hub, CLIPlugin, AgentHandle interfaces;
+    plugin.go                    — Plugin, Hub, AgentHandle interfaces;
                                    State, LLMTool, ChatCommand, ErrExit types
     registry.go                  — global registry; Register, InitAll, Stop,
-                                   KongPlugins, LLMTools, ChatCommands, SetRoot, Reset
+                                   LLMTools, ChatCommands, SetRoot, Reset
   plugins/
     rag/plugin.go                — rag_search LLM tool (init → Register)
     web/plugin.go                — web_fetch LLM tool (init → Register)

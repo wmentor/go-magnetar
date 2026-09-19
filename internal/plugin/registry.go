@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"os"
 	"sync"
-
-	"github.com/alecthomas/kong"
 )
 
 // entry holds a registered plugin with its name.
@@ -46,12 +44,6 @@ func (h *hub) RegisterChatCommand(cmd ChatCommand) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.commands = append(h.commands, cmd)
-}
-
-func (h *hub) RegisterCLICommand(cmd any) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.cli = append(h.cli, cmd)
 }
 
 func (h *hub) RegisterPreprocessor(fn PreprocessorFunc) {
@@ -94,14 +86,6 @@ func (h *hub) Stop() {
 	h.wg.Wait()
 }
 
-func (h *hub) cliPlugins() kong.Plugins {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	p := make(kong.Plugins, len(h.cli))
-	copy(p, h.cli)
-	return p
-}
-
 // Global registry — analogous to database/sql driver registry.
 var (
 	registryMu sync.Mutex
@@ -139,35 +123,6 @@ func Register(name string, p Plugin) {
 		}
 	}
 	registry = append(registry, entry{name: name, plugin: p})
-}
-
-// CLIPlugin is an optional interface for plugins that contribute CLI subcommands.
-// RegisterCLI is called before kong.Parse so that commands are available for
-// argument parsing. It must not depend on config (which is loaded after parsing).
-type CLIPlugin interface {
-	Plugin
-	RegisterCLI(addCmd func(cmd any))
-}
-
-// KongPlugins collects CLI commands from all registered CLIPlugin implementations
-// and returns them as a kong.Plugins slice for embedding in the root CLI struct.
-// Called before kong.Parse, so before InitAll.
-func KongPlugins() kong.Plugins {
-	registryMu.Lock()
-	entries := make([]entry, len(registry))
-	copy(entries, registry)
-	registryMu.Unlock()
-
-	var cmds []any
-	add := func(cmd any) { cmds = append(cmds, cmd) }
-	for _, e := range entries {
-		if cp, ok := e.plugin.(CLIPlugin); ok {
-			cp.RegisterCLI(add)
-		}
-	}
-	p := make(kong.Plugins, len(cmds))
-	copy(p, cmds)
-	return p
 }
 
 // InitAll initialises every registered plugin in registration order and then

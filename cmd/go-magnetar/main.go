@@ -7,6 +7,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/cmd"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/compact"
+	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/copy"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/exit"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/fetch"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/help"
