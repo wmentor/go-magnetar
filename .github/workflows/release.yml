@@ -24,7 +24,7 @@ jobs:
 
       - name: Prepare Release Notes
         run: |
-          git tag -l --format='%(contents)' ${{ github.ref_name }} > /tmp/release-notes.md
+          git for-each-ref --format='%(contents)' "refs/tags/${{ github.ref_name }}" > /tmp/release-notes.md
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6

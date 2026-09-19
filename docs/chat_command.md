@@ -14,6 +14,7 @@ go-magnetar provides several built-in chat commands accessible from the interact
 | `/index` | `/i` | Index file or URL into RAG knowledge base (auto-detects URL vs file) |
 | `/idxtab` | — | Index multiple files/URLs from a JSON lines file (one per line, format: `{"source":"path\|url","message":"text"}`) |
 | `/write` | `/w` | Write content to a file |
+| `/copy` | `/c` | Copy the last assistant answer to clipboard |
 | `/readonly` | — | Toggle read-only mode (blocks all modification operations) |
 | `/fetch` | `/f` | Fetch content from a URL, optionally save to file |
 | `/session.save` | — | Save current conversation session to a file |

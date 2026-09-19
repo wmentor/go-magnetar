@@ -46,10 +46,6 @@ type Hub interface {
 	// RegisterChatCommand adds a slash command to the chat REPL.
 	RegisterChatCommand(cmd ChatCommand)
 
-	// RegisterCLICommand adds a subcommand to the CLI.
-	// cmd must be a pointer to a kong-annotated struct with a Run() method.
-	RegisterCLICommand(cmd any)
-
 	// RegisterPreprocessor adds a text preprocessor that will be applied
 	// to text content before it is displayed or processed further.
 	// Preprocessors are applied in the order they are registered.
