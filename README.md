@@ -49,7 +49,7 @@ See [docs/configuration.md](./docs/configuration.md) for complete configuration 
 ### 4. Index your documents
 
 ```bash
-./bin/go-magnetar -c my-config.yaml agent
+./bin/go-magnetar
 > /index docs/guide.md or docs/report.odt
 
 # From URL
@@ -73,7 +73,7 @@ See [docs/configuration.md](./docs/configuration.md) for complete configuration 
 The `/fetch` command retrieves content from URLs, cleans HTML, and displays it in the terminal:
 
 ```bash
-./bin/go-magnetar -c my-config.yaml agent
+./bin/go-magnetar
 > /fetch https://example.com/article
 
 # Save to file
@@ -83,7 +83,7 @@ The `/fetch` command retrieves content from URLs, cleans HTML, and displays it i
 ### 6. Ask questions
 
 ```bash
-./bin/go-magnetar -c my-config.yaml agent
+./bin/go-magnetar
 ```
 
 ```
