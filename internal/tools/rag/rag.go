@@ -49,8 +49,8 @@ func New(cfg *config.Config) (*RAGTools, error) {
 	embedClient := openai.NewClientWithConfig(embedCfg)
 
 	// Build LLM client for query expansion (reuses main LLM config).
-	llmCfg := openai.DefaultConfig(cfg.String("llm.api_key"))
-	llmCfg.BaseURL = cfg.String("llm.base_url")
+	llmCfg := openai.DefaultConfig(cfg.ProfileParamString("llm.api_key"))
+	llmCfg.BaseURL = cfg.ProfileParamString("llm.base_url")
 	llmClient := openai.NewClientWithConfig(llmCfg)
 
 	// Parse connstr to extract host and port for gRPC.
@@ -185,7 +185,7 @@ func (r *RAGTools) expandQuery(ctx context.Context, query string, n int) []strin
 	defer cancel()
 
 	resp, err := r.llmClient.CreateChatCompletion(reqCtx, openai.ChatCompletionRequest{
-		Model: r.cfg.String("llm.model"),
+		Model: r.cfg.ProfileParamString("llm.model"),
 		Messages: []openai.ChatCompletionMessage{
 			{Role: openai.ChatMessageRoleUser, Content: prompt},
 		},
@@ -397,7 +397,7 @@ func (r *RAGTools) RagSave(content string, prepend string, part int) bool {
 // When cfg.Float64("rag.search.dedup_threshold") > 0 near-duplicate chunks (cosine
 // similarity above the threshold) are suppressed before returning results.
 func (r *RAGTools) RagSearch(query string) string {
-	printer.ToolCall(printer.IconSearch, "rad_search", "query", query)
+	printer.ToolCall(printer.IconSearch, "rag_search", "query", query)
 
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()

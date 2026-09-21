@@ -41,7 +41,7 @@ See [configuration.md](./configuration.md) for complete configuration options.
 ### 4. Index Documents
 
 ```bash
-./bin/go-magnetar -c my-config.yaml agent
+./bin/go-magnetar
 > /index docs/guide.md
 
 # From URL (web page)
@@ -67,7 +67,7 @@ See [configuration.md](./configuration.md) for complete configuration options.
 The `/fetch` command retrieves content from URLs, cleans HTML, and displays it in the terminal:
 
 ```bash
-./bin/go-magnetar -c my-config.yaml agent
+./bin/go-magnetar
 > /fetch https://example.com/article
 
 # Save to file
@@ -79,7 +79,7 @@ The command uses the configured `webfetch` block to clean HTML content and conve
 ### 6. Ask Questions
 
 ```bash
-./bin/go-magnetar -c my-config.yaml agent
+./bin/go-magnetar
 ```
 
 ```
@@ -94,18 +94,12 @@ It supports the /index and /fetch commands and chat commands like /help, /exit..
 
 ## CLI
 
-The `-c`/`--config` flag is **global** and must be placed before the command:
-
-```
-go-magnetar [-c <config>] <command> [flags]
-```
-
-If `-c` is omitted, `~/.go-magnetar.yaml` is used. The flag can also be set via the `GO_MAGNETAR_CONFIG` environment variable.
+Configuration file is always loaded from `~/.go-magnetar/config.yml`.
 
 ### `-p/--profile` — select configuration profile
 
 ```
-go-magnetar [-c <config>] -p <profile_name>
+go-magnetar -p <profile_name>
 ```
 
 The `-p` flag overrides the profile specified in the configuration file. This allows switching between different configurations (e.g., `default`, `production`, `development`) without modifying the config file.
@@ -113,7 +107,7 @@ The `-p` flag overrides the profile specified in the configuration file. This al
 ### `-f/--file` — non-interactive mode
 
 ```
-go-magnetar [-c <config>] -f <input-file>
+go-magnetar -f <input-file>
 ```
 
 Reads input from the specified file, sends it to the agent, prints the answer, and exits. This mode is useful for scripting and batch processing.
@@ -122,10 +116,10 @@ Reads input from the specified file, sends it to the agent, prints the answer, a
 
 ## Commands
 
-### `agent` — interactive chat
+### Interactive chat
 
 ```
-go-magnetar [-c <config>] agent
+go-magnetar
 ```
 
 The REPL reads questions from stdin. Press `Ctrl+D` to exit.

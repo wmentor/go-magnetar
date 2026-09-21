@@ -39,7 +39,7 @@ type WebTools struct {
 // New creates a new WebTools instance.
 func New(cfg *config.Config, root *os.Root) (*WebTools, error) {
 	var preprocessor *sanitizer.Preprocessor
-	if cfg.String("webfetch.base_url") != "" && !cfg.Bool("webfetch.disable") {
+	if cfg.String("webfetch.base_url") != "" && cfg.Bool("webfetch.enable") {
 		p, err := sanitizer.New(cfg, root)
 		if err != nil {
 			return nil, fmt.Errorf("web_fetch: failed to create preprocessor: %w", err)
@@ -110,7 +110,7 @@ func (w *WebTools) preprocessMarkdown(markdownStr string) (string, error) {
 func (w *WebTools) WebFetch(url string) (string, error) {
 	printer.ToolCall(printer.IconSearch, "web_fetch", "url", url)
 
-	if w.cfg.String("confluence.base_url") != "" && !w.cfg.Bool("confluence.disable") {
+	if w.cfg.String("confluence.base_url") != "" && w.cfg.Bool("confluence.enable") {
 		if strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/spaces/") || strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/x/") || strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/p/") {
 			pageID, err := extractPageIDFromConfluenceURL(url)
 			if err == nil && pageID != "" {
@@ -120,7 +120,7 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 		}
 	}
 
-	if w.cfg.String("jira.base_url") != "" && !w.cfg.Bool("jira.disable") {
+	if w.cfg.String("jira.base_url") != "" && w.cfg.Bool("jira.enable") {
 		if strings.HasPrefix(url, w.cfg.String("jira.base_url")) && (strings.Contains(url, "/browse/") || strings.Contains(url, "/issues/")) {
 			issueKey, err := extractIssueKeyFromJIRAURL(url)
 			if err == nil && issueKey != "" {
@@ -129,7 +129,7 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 		}
 	}
 
-	if w.cfg.String("gitlab.base_url") != "" && !w.cfg.Bool("gitlab.disable") {
+	if w.cfg.String("gitlab.base_url") != "" && w.cfg.Bool("gitlab.enable") {
 		if strings.HasPrefix(url, w.cfg.String("gitlab.base_url")) && strings.Contains(url, "/-/merge_requests/") {
 			projectPath, issueID, err := extractProjectAndMergeRequestFromGitLabURL(url, w.cfg.String("gitlab.base_url"))
 			if err == nil && projectPath != "" && issueID != "" {
@@ -138,7 +138,7 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 		}
 	}
 
-	if w.cfg.String("github.base_url") != "" && !w.cfg.Bool("github.disable") {
+	if w.cfg.String("github.base_url") != "" && w.cfg.Bool("github.enable") {
 		if strings.Contains(url, "github.com/") {
 			if strings.Contains(url, "/blob/") {
 				owner, repo, branch, file, err := extractGitHubFileURL(url)

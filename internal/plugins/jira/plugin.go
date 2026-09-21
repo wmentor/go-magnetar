@@ -22,7 +22,7 @@ type Plugin struct {
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	p.state = s
 
-	if s.Config.Bool("jira.disable") || s.Config.String("jira.base_url") == "" {
+	if !s.Config.Bool("jira.enable") || s.Config.String("jira.base_url") == "" {
 		return nil
 	}
 

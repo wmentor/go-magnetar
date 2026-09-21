@@ -18,9 +18,9 @@ Build the binary and place it in bin/go-magnetar.
 
 Remove the bin/ directory and all built binaries.
 
-### make run-agent
+### make run
 
-Build and run the chat agent with the configuration file configs/config.yaml.
+Build and run the application with the configuration file configs/config.yaml.
 
 ### make format
 
@@ -55,7 +55,7 @@ This command:
 
 ## Usage Notes
 
-- Most targets depend on others (e.g., run-agent depends on build)
+- Most targets depend on others (e.g., run depends on build)
 - The all target runs targets in a specific order: clean → fix → format → generate → tidy → test → lint → build
 - Run make without arguments to execute make all
 - Individual targets can be run independently for faster development cycles

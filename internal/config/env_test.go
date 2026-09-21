@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -176,4 +177,107 @@ func TestResolveEnvVars(t *testing.T) {
 			}
 		})
 	}
+
+	t.Run("file relative to baseDir", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		testFile := filepath.Join(tmpDir, "test.txt")
+		if err := os.WriteFile(testFile, []byte("content from baseDir"), 0644); err != nil {
+			t.Fatalf("failed to create test file: %v", err)
+		}
+
+		result := ResolveEnvVars("content: $file:test.txt", tmpDir)
+		expected := "content: content from baseDir"
+		if result != expected {
+			t.Errorf("ResolveEnvVars with baseDir = %q, want %q", result, expected)
+		}
+	})
+
+	t.Run("file with absolute path ignores baseDir", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		testFile := filepath.Join(tmpDir, "absolute.txt")
+		if err := os.WriteFile(testFile, []byte("absolute content"), 0644); err != nil {
+			t.Fatalf("failed to create test file: %v", err)
+		}
+
+		result := ResolveEnvVars("$file:"+testFile, "/some/other/dir")
+		expected := "absolute content"
+		if result != expected {
+			t.Errorf("ResolveEnvVars with absolute path = %q, want %q", result, expected)
+		}
+	})
+
+	t.Run("file with ~/ path", func(t *testing.T) {
+		home, _ := os.UserHomeDir()
+		tmpDir := t.TempDir()
+
+		testDir := filepath.Join(tmpDir, "testdir")
+		if err := os.MkdirAll(testDir, 0755); err != nil {
+			t.Fatalf("failed to create test dir: %v", err)
+		}
+
+		testFile := filepath.Join(testDir, "tilde.txt")
+		if err := os.WriteFile(testFile, []byte("tilde content"), 0644); err != nil {
+			t.Fatalf("failed to create test file: %v", err)
+		}
+
+		relPath, _ := filepath.Rel(home, testDir)
+		result := ResolveEnvVars("$file:~/" + relPath + "/tilde.txt")
+		expected := "tilde content"
+		if result != expected {
+			t.Errorf("ResolveEnvVars with ~/ path = %q, want %q", result, expected)
+		}
+	})
+
+	t.Run("file with nested env var", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		testFile := filepath.Join(tmpDir, "nested.txt")
+		if err := os.WriteFile(testFile, []byte("nested content"), 0644); err != nil {
+			t.Fatalf("failed to create test file: %v", err)
+		}
+
+		os.Setenv("FILE_VAR", "nested.txt")
+		defer os.Unsetenv("FILE_VAR")
+
+		result := ResolveEnvVars("$file:$env:FILE_VAR", tmpDir)
+		expected := "nested content"
+		if result != expected {
+			t.Errorf("ResolveEnvVars with nested env = %q, want %q", result, expected)
+		}
+	})
+
+	t.Run("config config", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		configFile := filepath.Join(tmpDir, "config.yml")
+		configContent := `version: "1.0"
+profile: default
+profiles:
+  default:
+    llm:
+      api_key: $file:secrets/api_key.txt
+`
+		if err := os.WriteFile(configFile, []byte(configContent), 0644); err != nil {
+			t.Fatalf("failed to create config file: %v", err)
+		}
+
+		secretsDir := filepath.Join(tmpDir, "secrets")
+		if err := os.MkdirAll(secretsDir, 0755); err != nil {
+			t.Fatalf("failed to create secrets dir: %v", err)
+		}
+
+		apiKeyFile := filepath.Join(secretsDir, "api_key.txt")
+		if err := os.WriteFile(apiKeyFile, []byte("my-secret-key"), 0644); err != nil {
+			t.Fatalf("failed to create api key file: %v", err)
+		}
+
+		cfg, err := Load(configFile)
+		if err != nil {
+			t.Fatalf("failed to load config: %v", err)
+		}
+
+		apiKey := cfg.ProfileParamString("llm.api_key")
+		expected := "my-secret-key"
+		if apiKey != expected {
+			t.Errorf("ProfileParamString = %q, want %q", apiKey, expected)
+		}
+	})
 }

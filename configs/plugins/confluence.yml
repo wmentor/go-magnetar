@@ -1,0 +1,4 @@
+confluence:
+  enable: false  # enable/disable Confluence fetching (default: false)
+  base_url: https://your-domain.atlassian.net  # Confluence base URL
+  api_key: ""  # Confluence API key

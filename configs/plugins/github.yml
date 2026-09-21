@@ -1,0 +1,4 @@
+github:
+  enable: false  # enable/disable GitHub integration (default: false)
+  base_url: https://api.github.com  # GitHub API URL
+  access_key: ""  # GitHub access key (PAT)

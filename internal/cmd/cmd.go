@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/alecthomas/kong"
 	"github.com/pkg/errors"
@@ -15,12 +16,13 @@ import (
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	version "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/version"
 	"github.com/wmentor/go-magnetar/internal/printer"
+	"github.com/wmentor/go-magnetar/internal/template"
 )
 
 type Globals struct {
-	Config  string `short:"c" type:"path" default:"~/.go-magnetar.yaml" help:"Path to config file" env:"GO_MAGNETAR_CONFIG"`
 	File    string `short:"f" type:"path" help:"Input file"`
 	Profile string `short:"p" help:"Profile name to use"`
+	Config  string `type:"path" help:"Configuration file path (default: ~/.go-magnetar/config.yml)"`
 	Session string `type:"path" help:"Load conversation session from file"`
 }
 
@@ -37,7 +39,18 @@ func Execute() error {
 		kong.Bind(&root.Globals),
 	)
 
-	cfg, err := config.Load(root.Globals.Config)
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return fmt.Errorf("get home dir error: %w", err)
+	}
+	configPath := filepath.Join(homeDir, ".go-magnetar", "config.yml")
+
+	// Ensure config directory and sync templates
+	if err := template.EnsureConfigDir(homeDir); err != nil {
+		return fmt.Errorf("ensure config dir error: %w", err)
+	}
+
+	cfg, err := config.Load(configPath)
 	if err != nil {
 		return err
 	}
@@ -134,23 +147,23 @@ func loadSession(a *chat.ChatAgent, filename string) error {
 
 func printEnabledModules(cfg *config.Config) {
 	has := false
-	if cfg.String("confluence.base_url") != "" && !cfg.Bool("confluence.disable") {
+	if cfg.String("confluence.base_url") != "" && cfg.Bool("confluence.enable") {
 		printer.Print(printer.IconModule, "confluence plugin is enabled")
 		has = true
 	}
-	if cfg.String("gitlab.base_url") != "" && !cfg.Bool("gitlab.disable") {
+	if cfg.String("gitlab.base_url") != "" && cfg.Bool("gitlab.enable") {
 		printer.Print(printer.IconModule, "gitlab plugin is enabled")
 		has = true
 	}
-	if cfg.String("github.base_url") != "" && !cfg.Bool("github.disable") {
+	if cfg.String("github.base_url") != "" && cfg.Bool("github.enable") {
 		printer.Print(printer.IconModule, "github plugin is enabled")
 		has = true
 	}
-	if cfg.String("jira.base_url") != "" && !cfg.Bool("jira.disable") {
+	if cfg.String("jira.base_url") != "" && cfg.Bool("jira.enable") {
 		printer.Print(printer.IconModule, "jira plugin is enabled")
 		has = true
 	}
-	if cfg.String("rag.llm.base_url") != "" && !cfg.Bool("rag.disable") {
+	if cfg.String("rag.llm.base_url") != "" && cfg.Bool("rag.enable") {
 		printer.Print(printer.IconModule, "rag plugin is enabled")
 		has = true
 	}

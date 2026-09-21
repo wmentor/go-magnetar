@@ -1,0 +1,4 @@
+gitlab:
+  enable: false  # enable/disable GitLab fetching (default: false)
+  base_url: https://gitlab.example.com  # GitLab base URL
+  api_key: ""  # GitLab API key

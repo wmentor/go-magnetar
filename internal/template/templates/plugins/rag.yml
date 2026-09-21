@@ -1,0 +1,18 @@
+rag:
+  enable: false  # enable/disable RAG (default: false)
+  chunk:
+    size: 2048  # maximum size of a chunk in runes (default: 2048)
+    overlap: 256  # number of runes that overlap between adjacent chunks (default: 256)
+  search:
+    limit: 10  # maximum number of results returned per query (default: 10)
+    threshold: 0.40  # minimum cosine-similarity score 0-1 (default: 0.40)
+    multi_query: 2  # number of additional query reformulations (default: 2)
+    dedup_threshold: 0.95  # cosine similarity for near-duplicate suppression (default: 0.95)
+  qdrant:
+    connstr: http://localhost:6333  # Qdrant address (REST port; gRPC 6334 is used automatically)
+    collection: documents  # collection name (created automatically if missing)
+  llm:
+    base_url: https://api.openai.com/v1  # OpenAI-compatible endpoint URL
+    api_key: ""  # API key for embedding model
+    model: text-embedding-3-small  # embedding model name
+    vector_size: 1536  # vector dimensionality of the model (text-embedding-3-small: 1536)

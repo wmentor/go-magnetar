@@ -1,259 +1,224 @@
 # Configuration
 
-Copy the example and fill in actual values:
+go-magnetar uses YAML configuration files to control all aspects of the application, from LLM settings to plugin configurations.
+
+## Configuration File Location
+
+By default, go-magnetar looks for the configuration file at `~/.go-magnetar/config.yml`.
+
+## Profile-based Configuration
+
+Configuration supports multiple profiles, allowing you to switch between different setups (e.g., development, production) without modifying the main config:
 
 ```bash
-cp configs/config.yaml my-config.yaml
+go-magnetar -p production
 ```
+
+## Configuration Structure
+
+### Top-Level Keys
+
+| Key | Type | Description |
+|---|---|---|
+| `version` | string | Configuration file format version |
+| `language` | string | Language for agent responses (default: `english`) |
+| `verbose` | boolean | Enable verbose tool call output (default: `true`) |
+| `profile` | string | Default profile name to use |
+| `include` | array | List of plugin configuration files to include |
+| `profiles` | object | Profile definitions for multi-environment support |
+
+### LLM Configuration
+
+The `llm` block configures the primary language model for chat responses:
+
+| Key | Type | Description |
+|---|---|---|
+| `base_url` | string | OpenAI-compatible endpoint URL (e.g., `https://api.openai.com/v1`) |
+| `api_key` | string | API key for the LLM service |
+| `model` | string | Model name (e.g., `gpt-4o`) |
+| `context` | integer | Context window size in tokens (default: `128000`) |
+| `temperature` | float | Temperature for response generation (default: `0.9`) |
+| `top_p` | float | Top-p sampling value (default: `0.95`) |
+| `reasoning_effort` | string | Reasoning effort level: `low`, `medium`, or `high` (default: `high`) |
+
+### RAG Configuration
+
+The `rag` block controls retrieval-augmented generation settings:
+
+| Key | Type | Description |
+|---|---|---|
+| `enable` | boolean | Enable/disable RAG functionality (default: `false`) |
+| `llm` | object | Embedding model configuration (same structure as `llm` block) |
+| `chunk` | object | Document chunking parameters |
+| `search` | object | Search parameters |
+| `qdrant` | object | Qdrant vector database connection |
+
+#### RAG Chunk Parameters
+
+| Key | Type | Description |
+|---|---|---|
+| `size` | integer | Maximum chunk size in runes (default: `2048`) |
+| `overlap` | integer | Overlapping runes between chunks (default: `256`) |
+
+#### RAG Search Parameters
+
+| Key | Type | Description |
+|---|---|---|
+| `limit` | integer | Maximum results per query (default: `10`) |
+| `threshold` | float | Minimum cosine similarity score (default: `0.40`) |
+| `multi_query` | integer | Number of additional query reformulations (default: `2`) |
+| `dedup_threshold` | float | Near-duplicate suppression threshold (default: `0.95`) |
+
+#### Qdrant Configuration
+
+| Key | Type | Description |
+|---|---|---|
+| `connstr` | string | Qdrant connection string (REST port 6333; gRPC 6334 used automatically) |
+| `collection` | string | Collection name (created automatically if missing) |
+
+### Plugin Configuration
+
+All plugins are disabled by default. Enable a plugin by setting `enable: true`:
+
+#### Web Fetch (`webfetch`)
+
+| Key | Type | Description |
+|---|---|---|
+| `enable` | boolean | Enable/disable web page preprocessing (default: `false`) |
+| `base_url` | string | LLM endpoint URL |
+| `api_key` | string | API key |
+| `model` | string | Model name for HTML cleaning |
+| `context` | integer | Context window size |
+
+#### Confluence (`confluence`)
+
+| Key | Type | Description |
+|---|---|---|
+| `enable` | boolean | Enable/disable Confluence fetching (default: `false`) |
+| `base_url` | string | Confluence base URL (e.g., `https://your-domain.atlassian.net`) |
+| `api_key` | string | Confluence API key |
+
+#### JIRA (`jira`)
+
+| Key | Type | Description |
+|---|---|---|
+| `enable` | boolean | Enable/disable JIRA fetching (default: `false`) |
+| `base_url` | string | JIRA base URL |
+| `api_key` | string | JIRA API key |
+
+#### GitLab (`gitlab`)
+
+| Key | Type | Description |
+|---|---|---|
+| `enable` | boolean | Enable/disable GitLab fetching (default: `false`) |
+| `base_url` | string | GitLab base URL |
+| `api_key` | string | GitLab API key |
+
+#### GitHub (`github`)
+
+| Key | Type | Description |
+|---|---|---|
+| `enable` | boolean | Enable/disable GitHub fetching (default: `false`) |
+| `base_url` | string | GitHub API base URL (default: `https://api.github.com`) |
+| `access_key` | string | GitHub access token |
+
+#### Guard (`guard`)
+
+| Key | Type | Description |
+|---|---|---|
+| `enable` | boolean | Enable guard agent for exec commands (default: `false`) |
+| `ask` | boolean | Ask user for confirmation when guard blocks a command (default: `false`) |
+
+#### SSH (`ssh`)
+
+| Key | Type | Description |
+|---|---|---|
+| `enable` | boolean | Enable SSH execution (default: `false`) |
+| `user` | string | SSH username (optional, defaults to current user) |
+| `key` | string | SSH private key path (default: `~/.ssh/id_rsa`) |
+| `password` | string | SSH password (optional) |
+| `use_ssh_agent` | boolean | Use ssh-agent for authentication (default: `false`) |
+| `remote_dir` | string | Remote working directory (optional, default: `$HOME`) |
+| `timeout` | integer | SSH command timeout in seconds (default: `120`) |
+
+### Compact Configuration
+
+Controls conversation history compression:
+
+| Key | Type | Description |
+|---|---|---|
+| `threshold` | integer | Token threshold for compression; `0` = auto (80% of `llm.context`) |
+| `save_tail` | integer | Number of trailing messages to preserve unchanged (default: `6`) |
+
+## Environment Variables and File Substitution
+
+All string parameters support the following substitution syntaxes:
 
 ### Environment Variables
 
-Configuration values can reference environment variables using the `$env:VAR_NAME` syntax.
-This is useful for sensitive data like API keys to keep them out of your config files.
-
-```bash
-export OPENAI_API_KEY="sk-..."
-export EMBEDDING_API_KEY="sk-..."
-```
+Use `$env:VAR_NAME` to reference environment variables:
 
 ```yaml
 llm:
   api_key: $env:OPENAI_API_KEY
-  base_url: https://api.openai.com/v1
-
-rag:
-  llm:
-    api_key: $env:EMBEDDING_API_KEY
 ```
+
+If an environment variable is not set, it will be replaced with an empty string.
 
 ### File Content Substitution
 
-You can also substitute file contents using the `$file:filename` syntax.
-This is useful for loading secrets or large text blocks from external files.
+Use `$file:filename` to substitute file contents:
 
 ```yaml
 llm:
   api_key: $file:secrets/api_key.txt
-  base_url: https://api.openai.com/v1
+```
+
+File paths are resolved relative to the configuration file location. This allows organizing secrets in subdirectories relative to your config file.
+
+Absolute paths and `~/` home directory shortcuts are also supported:
+
+```yaml
+llm:
+  api_key: /absolute/path/to/api_key.txt
+  secret: ~/.secrets/my-secret.txt
 ```
 
 File contents are substituted at read time. If a file is not found, it will be replaced with an empty string.
-Environment variables can be used in file paths to dynamically resolve filenames.
+
+Environment variables can be used in file paths to dynamically resolve filenames:
 
 ```yaml
 llm:
   api_key: $file:$env:API_KEY_FILE
-  base_url: https://api.openai.com/v1
 ```
 
-The environment variable is substituted at read time, so changes to environment variables
-take effect immediately without restarting the application.
+The environment variable is substituted first, then the file is read.
 
-If an environment variable is not set, it will be replaced with an empty string.
+## Include Directive
 
-## Configuration file locations
-
-The application looks for the configuration file in the following order:
+Use the `include` directive to split configuration across multiple files:
 
 ```yaml
-language: english  # language for agent responses (default: english)
-
+version: "1.0"
 profile: default
-
-profiles:
-  default:
-    llm:
-      base_url: https://api.openai.com/v1
-      api_key: YOUR_API_KEY
-      model: gpt-4o
-      context: 128000
-      temperature: 0.9   # LLM temperature for response generation (default: 0.9)
-      top_p: 0.95        # LLM top_p for response generation (default: 0.95)
-      reasoning_effort: high  # reasoning effort: low, medium, or high (default: high)
-
-rag:
-  disable: false                         # disable RAG (default: false)
-  llm:
-    base_url: https://api.openai.com/v1
-    api_key: YOUR_API_KEY
-    model: text-embedding-3-small        # embedding model
-    vector_size: 1536                    # vector dimensionality of the model
-  chunk:
-    size: 2048                           # maximum size of a chunk in runes (default: 2048)
-    overlap: 256                         # number of runes that overlap between adjacent chunks (default: 256)
-  search:
-    limit: 10                            # maximum number of results returned per query (default: 10)
-    threshold: 0.40                      # minimum cosine-similarity score 0–1 (default: 0.40)
-    multi_query: 2                       # number of additional query reformulations generated by the LLM
-                                         # to improve recall. 0 disables multi-query. Each extra query adds one
-                                         # embedding call + one Qdrant call. Recommended: 1–3. (default: 2)
-    dedup_threshold: 0.95                # cosine similarity above which two result chunks are
-                                         # considered near-duplicates; the lower-scoring one is dropped.
-                                         # 0 disables deduplication. Recommended: 0.92–0.95. (default: 0.95)
-  qdrant:
-    connstr: http://localhost:6333       # Qdrant address (REST port; gRPC 6334 is used automatically)
-    collection: documents                # collection name (created automatically if missing)
-
-verbose: true                          # enables verbose tool call output (default: true)
-
-compact:
-  threshold: 0    # token threshold for history compression; 0 = auto (80% of llm.context)
-  save_tail: 6    # number of trailing messages kept unchanged
-
-webfetch:
-  base_url: https://api.openai.com/v1
-  api_key: YOUR_API_KEY
-  model: gpt-4o
-  context: 128000
-  disable: false                       # disable web page preprocessing (default: false)
-
-confluence:
-  base_url: https://your-domain.atlassian.net
-  api_key: YOUR_API_KEY
-  disable: false                       # disable Confluence fetching (default: false)
-
-jira:
-  base_url: https://jira.example.com
-  api_key: YOUR_API_KEY
-  disable: false                       # disable JIRA fetching (default: false)
-
-gitlab:
-  base_url: https://gitlab.example.com
-  api_key: YOUR_API_KEY
-  disable: false                       # disable GitLab fetching (default: false)
-
-github:
-  base_url: https://api.github.com
-  api_key: YOUR_API_KEY
-  disable: false
-
-guard:
-  disable: false
-  ask: false
+include:
+  - plugins/jira.yml
+  - plugins/github.yml
+  - plugins/rag.yml
+  - plugins/guard.yml
 ```
 
-> If the `webfetch` block is specified, the listed model parameters are used to clean HTML content obtained from web pages.
+Include files are loaded **after** the main config, so they **override** values from the main configuration file.
 
-> The `confluence` block enables fetching Confluence pages directly by URL (both standard and short links).
+### Config Loading Order
 
-> The `jira` block enables fetching JIRA issues directly by URL.
+1. Default values
+2. Main config file
+3. Include files (override main config values)
 
-> `vector_size` must match the dimensionality of the chosen embedding model.
-> For `text-embedding-3-small` — 1536, for `text-embedding-ada-002` — 1536, for `text-embedding-3-large` — 3072.
+This order ensures that plugin-specific settings in include files take precedence over general settings in the main config.
 
-### Parameter `language`
+## Example Configuration
 
-| Parameter | Default | Description |
-|---|---|---|
-| `language` | `english` | Language used for agent responses in chat conversations (does not affect code comments, documentation, or other technical writing) |
-
-### Profile parameters
-
-All profile-specific parameters are prefixed with `profiles.{profile}.` in the configuration file. The `profile` key selects which profile to use.
-
-| Parameter | Default | Description |
-|---|---|---|
-| `profiles.{profile}.llm.base_url` | — | OpenAI-compatible endpoint URL |
-| `profiles.{profile}.llm.api_key` | — | API key for the LLM and embedding model |
-| `profiles.{profile}.llm.model` | — | Model name |
-| `profiles.{profile}.llm.context` | — | Token limit of the context window |
-| `profiles.{profile}.llm.temperature` | `0.9` | LLM temperature for response generation |
-| `profiles.{profile}.llm.top_p` | `0.95` | LLM top_p for response generation |
-| `profiles.{profile}.llm.reasoning_effort` | `high` | LLM reasoning effort. Valid values: `low`, `medium`, `high` |
-
-### RAG parameters
-
-| Parameter | Default | Description |
-|---|---|---|
-| `rag.disable` | `false` | Disable RAG |
-| `rag.llm.base_url` | — | OpenAI-compatible endpoint URL for embedding model |
-| `rag.llm.api_key` | — | API key for embedding model |
-| `rag.llm.model` | — | Embedding model name |
-| `rag.llm.vector_size` | — | Vector dimensionality of the model |
-| `rag.chunk.size` | `2048` | Maximum size of a chunk in Unicode runes |
-| `rag.chunk.overlap` | `256` | Number of runes that overlap between adjacent chunks (~12.5 %) |
-| `rag.search.limit` | `10` | Maximum number of results returned by Qdrant per query |
-| `rag.search.threshold` | `0.40` | Minimum cosine-similarity score 0–1 |
-| `rag.search.multi_query` | `2` | Number of additional query reformulations generated by the LLM to improve recall. `0` disables multi-query. Each extra query adds one embedding call + one Qdrant call. Recommended: 1–3. |
-| `rag.search.dedup_threshold` | `0.95` | Cosine similarity above which two result chunks are considered near-duplicates; the lower-scoring one is dropped. `0` disables deduplication. Recommended: 0.92–0.95. |
-| `rag.qdrant.connstr` | — | Qdrant address (REST port; gRPC 6334 is used automatically) |
-| `rag.qdrant.collection` | `documents` | Collection name (created automatically if missing) |
-
-### Compact parameters
-
-| Parameter | Default | Description |
-|---|---|---|
-| `compact.threshold` | `0` | Token count threshold that triggers history compression. `0` = auto: 80 % of `llm.context` |
-| `compact.save_tail` | `6` | Number of trailing messages kept unchanged during summarization. `< 1` — compress all messages |
-
-### Web fetch parameters
-
-| Parameter | Default | Description |
-|---|---|---|
-| `webfetch.base_url` | — | OpenAI-compatible endpoint URL |
-| `webfetch.api_key` | — | API key |
-| `webfetch.model` | — | Model name |
-| `webfetch.context` | — | Token limit of the context window |
-| `webfetch.disable` | `false` | Disable web page preprocessing |
-
-### Confluence parameters
-
-| Parameter | Default | Description |
-|---|---|---|
-| `confluence.base_url` | — | Confluence base URL |
-| `confluence.api_key` | — | Confluence API key |
-| `confluence.disable` | `false` | Disable Confluence fetching |
-
-### JIRA parameters
-
-| Parameter | Default | Description |
-|---|---|---|
-| `jira.base_url` | — | JIRA base URL |
-| `jira.api_key` | — | JIRA API key |
-| `jira.disable` | `false` | Disable JIRA fetching |
-
-### GitLab parameters
-
-| Parameter | Default | Description |
-|---|---|---|
-| `gitlab.base_url` | — | GitLab base URL |
-| `gitlab.api_key` | — | GitLab API key |
-| `gitlab.disable` | `false` | Disable GitLab fetching |
-
-### GitHub parameters
-
-| Parameter | Default | Description |
-|---|---|---|
-| `github.base_url` | — | GitHub API URL |
-| `github.api_key` | — | GitHub API key (PAT) |
-| `github.disable` | `false` | Disable GitHub fetching |
-
-### Guard configuration
-
-| Parameter | Default | Description |
-|---|---|---|
-| `guard.disable` | `false` | Disable guard agent for exec commands. When true, security checks via guard are skipped |
-| `guard.ask` | `false` | If true and guard blocks a command, ask user for confirmation before execution. If user confirms with 'y', the command executes; otherwise, it is blocked |
-
-### SSH configuration
-
-| Parameter | Default | Description |
-|---|---|---|
-| `ssh.disable` | `false` | Disable SSH execution. When true, attempts to execute remote commands via SSH will fail with an error |
-| `ssh.user` | current user | SSH username (optional, defaults to current system user) |
-| `ssh.key` | — | Path to SSH private key file (optional, for key-based authentication) |
-| `ssh.password` | — | SSH password (optional, for password-based authentication) |
-| `ssh.use_ssh_agent` | `false` | Use ssh-agent for authentication (default: false) |
-| `ssh.remote_dir` | `$HOME` | Remote working directory (optional) |
-| `ssh.timeout` | `120` | SSH command timeout in seconds (default: 120) |
-
-### Verbose mode
-
-| Parameter | Default | Description |
-|---|---|---|
-| `verbose` | `true` | Enable verbose tool call output |
-
-### Environment variable and file parameters
-
-All string parameters support the `$env:VAR_NAME` and `$file:filename` syntaxes to reference environment variables and file contents respectively.
-This applies to all parameters listed above including profile parameters, API keys, URLs, etc.
+See [example-config.md](./example-config.md) for a complete example configuration file.

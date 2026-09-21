@@ -4,12 +4,14 @@
 cmd/go-magnetar/main.go          — entry point; blank plugin imports
 internal/
   config/config.go               — YAML config loading, printer initialization
+  template/
+    template.go                  — config directory creation and template synchronization (embed.FS)
   chunk/chunk.go                 — text chunking (UTF-8, paragraph/heading boundaries)
   plugin/
     plugin.go                    — Plugin, Hub, AgentHandle interfaces;
-                                   State, LLMTool, ChatCommand, ErrExit types
+                                    State, LLMTool, ChatCommand, ErrExit types
     registry.go                  — global registry; Register, InitAll, Stop,
-                                   LLMTools, ChatCommands, SetRoot, Reset
+                                    LLMTools, ChatCommands, SetRoot, Reset
   plugins/
     rag/plugin.go                — rag_search LLM tool (init → Register)
     web/plugin.go                — web_fetch LLM tool (init → Register)
@@ -49,7 +51,8 @@ main()
   └── blank imports → each plugin's init() runs
         └── plugin.Register("name", &Plugin{})
   cmd.Execute()
-  ├── kong.Parse(cli, ...)             — parses flags; -c resolved here
+  ├── kong.Parse(cli, ...)             — parses flags
+  ├── template.EnsureConfigDir(home)   — creates ~/.go-magnetar/ and syncs templates
   ├── config.Load(path)                — loads YAML
   ├── printer.New(verbose)             — initializes printer
   ├── plugin.InitAll(State{Config})

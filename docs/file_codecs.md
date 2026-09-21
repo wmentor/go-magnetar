@@ -45,7 +45,7 @@ File paths can be absolute or use `~/` for the home directory prefix.
 The indexer automatically uses codecs when reading files for indexing. Supported formats can be indexed via:
 
 ```bash
-./bin/go-magnetar -c my-config.yaml agent
+./bin/go-magnetar
 > /index path/to/document.csv
 > /index path/to/document.tsv
 > /index path/to/document.docx

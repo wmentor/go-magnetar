@@ -75,7 +75,7 @@ The session is saved in OpenAI-compatible JSON format with the following structu
 To load a previously saved session:
 
 ```bash
-go-magnetar -c config.yaml --session /path/to/session.json
+go-magnetar --session /path/to/session.json
 ```
 
 The conversation history is restored, and you can continue from where you left off.
@@ -85,7 +85,7 @@ The conversation history is restored, and you can continue from where you left o
 You can also use saved sessions with the `-f` flag:
 
 ```bash
-go-magnetar -c config.yaml -f commands.txt --session session.json
+go-magnetar -f commands.txt --session session.json
 ```
 
 In this mode, text preprocessors are applied but chat commands (e.g., `/readonly`, `/fetch`, `/index`) are not available.

@@ -74,7 +74,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 			return p.get().Dispatch("exec", args), nil
 		},
 	})
-	if !p.state.Config.Bool("ssh.disable") {
+	if p.state.Config.Bool("ssh.enable") {
 		hub.RegisterTool(plugin.LLMTool{
 			Definition: generic.StaticDefinitionSSH,
 			Execute: func(_ context.Context, args string) (string, error) {

@@ -1,0 +1,6 @@
+webfetch:
+  enable: false  # disable web page preprocessing (default: false)
+  base_url: https://api.openai.com/v1  # OpenAI-compatible endpoint URL
+  api_key: ""  # API key
+  model: gpt-4o  # model name
+  context: 128000  # token limit of the context window

@@ -332,7 +332,7 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 						Content:    "error: this tool was called earlier with the same parameters",
 						ToolCallID: toolCall.ID,
 					})
-					printer.Warn("llm require double tool call %s %s", toolKey.Name, toolKey.Args)
+					printer.Warn("llm require double tool call", "tool", toolKey.Name, "args", toolKey.Args)
 					continue
 				} else {
 					alreadyDoneToolCalls[toolKey] = struct{}{}

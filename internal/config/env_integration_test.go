@@ -6,7 +6,7 @@ import (
 )
 
 func TestEnvVarSubstitution(t *testing.T) {
-	testConfig := `
+	testConfig := `version: "1.0"
 profile: default
 
 profiles:
