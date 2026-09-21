@@ -104,6 +104,12 @@ cd go-magnetar
 make build
 ```
 
+or
+
+```bash
+go install github.com/wmentor/go-magnetar/cmd/go-magnetar
+```
+
 ## Command history
 
 The chat agent maintains command history in `~/.go-magnetar-history.json`. Use **↑/↓** arrows to navigate through previous commands. History is persisted across sessions and limited to 200 entries.
