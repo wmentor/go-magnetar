@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v1.2.0] - 2026-09-21
+
+### Added
+
+- **Config versioning and include directive** — support for version field and file inclusion in config files (#37)
+- **Multi-profile configuration** — organize configs with `profiles.{profile_name}.` prefix (#37)
+- **Template-based config auto-creation** — automatically create `~/.go-magnetar/` directory on first run (#37)
+- **Clipboard copy command** — `/copy` chat command (aliases: `/c`) to copy last assistant answer to clipboard (#34)
+- **Mockery support** — add `.mockery.yml` for mock generation (#34)
+- **Release documentation** — add `docs/release.md` documenting GitHub Flow release process (#34)
+
+### Changed
+
+- **CLI simplification** — remove `-c/--config` global flag; config always loaded from `~/.go-magnetar/config.yml` (#37)
+- **Plugin enable flags** — change from `disable` to `enable` (rag, github, gitlab, jira, confluence, guard, ssh, webfetch) (#37)
+- **Plugin system refactoring** — remove `CLIPlugin` interface and kong integration; use unified plugin system (#34)
+- **Config flag semantics** — `--config` now specifies config file path (defaults to `~/.go-magnetar/config.yml`) (#37)
+
+### Fixed
+
+- **Guard tool security check** — fix inverted condition in security check logic (#37)
+
+### Removed
+
+- **configs/config.yaml** — replaced by template-based auto-creation (#37)
+
 ## [v1.1.0] - 2026-09-18
 
 ### Added
@@ -124,6 +150,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Initial release with RAG, chat agent, web fetching, and plugin architecture
 
-[Unreleased]: https://github.com/wmentor/go-magnetar/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/wmentor/go-magnetar/compare/v1.1.0...HEAD
+[v1.2.0]: https://github.com/wmentor/go-magnetar/compare/v1.1.0...HEAD
 [v1.1.0]: https://github.com/wmentor/go-magnetar/compare/v1.0.0...HEAD
 [v1.0.0]: https://github.com/wmentor/go-magnetar/releases/tag/v1.0.0
