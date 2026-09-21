@@ -1,0 +1,3 @@
+guard:
+  enable: false  # disable guard agent for exec commands (default: false)
+  ask: false  # ask user for confirmation when guard blocks a command (default: false)

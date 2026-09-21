@@ -1,0 +1,29 @@
+language: english  # language for agent responses (default: english)
+verbose: true       # enable verbose tool call output (default: true)
+
+profile: default
+
+include:
+  - plugins/jira.yml
+  - plugins/github.yml
+  - plugins/confluence.yml
+  - plugins/gitlab.yml
+  - plugins/rag.yml
+  - plugins/guard.yml
+  - plugins/ssh.yml
+  - plugins/webfetch.yml
+
+profiles:
+  default:
+    llm:
+      base_url: https://api.openai.com/v1
+      api_key: YOUR_API_KEY
+      model: gpt-4o
+      context: 128000
+      temperature: 0.9   # LLM temperature for response generation (default: 0.9)
+      top_p: 0.95        # LLM top_p for response generation (default: 0.95)
+      reasoning_effort: high  # reasoning effort: low, medium, or high (default: high)
+
+compact:
+  threshold: 0    # token count at which history summarization is triggered. If not set (or 0), defaults to 80 % of llm.context.
+  save_tail: 6    # number of most-recent messages to preserve unchanged during summarization. If less than 1, all non-system messages are summarized.

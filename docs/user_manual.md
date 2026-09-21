@@ -94,18 +94,12 @@ It supports the /index and /fetch commands and chat commands like /help, /exit..
 
 ## CLI
 
-The `-c`/`--config` flag is **global** and must be placed before the command:
-
-```
-go-magnetar [-c <config>] <command> [flags]
-```
-
-If `-c` is omitted, `~/.go-magnetar.yaml` is used. The flag can also be set via the `GO_MAGNETAR_CONFIG` environment variable.
+Configuration file is always loaded from `~/.go-magnetar/config.yml`.
 
 ### `-p/--profile` — select configuration profile
 
 ```
-go-magnetar [-c <config>] -p <profile_name>
+go-magnetar -p <profile_name>
 ```
 
 The `-p` flag overrides the profile specified in the configuration file. This allows switching between different configurations (e.g., `default`, `production`, `development`) without modifying the config file.
@@ -113,7 +107,7 @@ The `-p` flag overrides the profile specified in the configuration file. This al
 ### `-f/--file` — non-interactive mode
 
 ```
-go-magnetar [-c <config>] -f <input-file>
+go-magnetar -f <input-file>
 ```
 
 Reads input from the specified file, sends it to the agent, prints the answer, and exits. This mode is useful for scripting and batch processing.
@@ -125,7 +119,7 @@ Reads input from the specified file, sends it to the agent, prints the answer, a
 ### `agent` — interactive chat
 
 ```
-go-magnetar [-c <config>] agent
+go-magnetar agent
 ```
 
 The REPL reads questions from stdin. Press `Ctrl+D` to exit.

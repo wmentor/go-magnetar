@@ -40,6 +40,10 @@ The binary will be placed at `bin/go-magnetar`.
 
 ### 3. Configure
 
+Configuration files are automatically created in `~/.go-magnetar/` on first run with default plugin configurations.
+
+Plugin configurations are disabled by default. To enable a plugin, set `enable: true` in its configuration file.
+
 See [docs/configuration.md](./docs/configuration.md) for complete configuration options.
 
 ### 4. Index your documents
@@ -108,18 +112,12 @@ The chat agent maintains command history in `~/.go-magnetar-history.json`. Use *
 
 ## Commands
 
-The `-c`/`--config` flag is global and must be placed **before** the command:
-
-```
-go-magnetar [-c <config>] <command> [flags]
-```
-
-If `-c` is omitted, `~/.go-magnetar.yaml` is used. The flag can also be set via the `GO_MAGNETAR_CONFIG` environment variable.
+Configuration file is always loaded from `~/.go-magnetar/config.yml`.
 
 ### `-p/--profile` — select configuration profile
 
 ```
-go-magnetar [-c <config>] -p <profile_name>
+go-magnetar -p <profile_name>
 ```
 
 The `-p` flag overrides the profile specified in the configuration file. This allows switching between different configurations (e.g., `default`, `production`, `development`) without modifying the config file.
@@ -127,7 +125,7 @@ The `-p` flag overrides the profile specified in the configuration file. This al
 ### `-f/--file` — non-interactive mode
 
 ```
-go-magnetar [-c <config>] -f <input-file>
+go-magnetar -f <input-file>
 ```
 
 Reads input from the specified file, sends it to the agent, prints the answer, and exits. This mode is useful for scripting and batch processing.
@@ -135,7 +133,7 @@ Reads input from the specified file, sends it to the agent, prints the answer, a
 > **Note:** In `-f/--file` mode, text preprocessors are applied but chat commands (e.g., `/readonly`, `/fetch`, `/index`) are not available. The text preprocessor expands placeholders like `{{home}}`, `{{uuid}}`, `{{date}}`, `{{now}}`, and `{{file:filename}}`.
 
 ```
-go-magnetar [-c <config>]
+go-magnetar
 ```
 
 Run the interactive agent REPL. Press `Ctrl+D` to exit.

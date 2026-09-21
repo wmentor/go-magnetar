@@ -22,7 +22,7 @@ type Plugin struct {
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	p.state = s
 
-	if s.Config.Bool("github.disable") || s.Config.String("github.base_url") == "" {
+	if !s.Config.Bool("github.enable") || s.Config.String("github.base_url") == "" {
 		p.enabled = false
 		return nil
 	}

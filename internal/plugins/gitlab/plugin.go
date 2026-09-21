@@ -22,7 +22,7 @@ type Plugin struct {
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	p.state = s
 
-	if s.Config.Bool("gitlab.disable") || s.Config.String("gitlab.base_url") == "" {
+	if !s.Config.Bool("gitlab.enable") || s.Config.String("gitlab.base_url") == "" {
 		return nil
 	}
 

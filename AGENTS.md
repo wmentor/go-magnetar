@@ -94,18 +94,14 @@ func (p *MyPlugin) Init(s plugin.State, hub plugin.Hub) error {
 
 ## CLI
 
-The `-c`/`--config` flag is **global** — it must be placed before the command:
+Configuration files are automatically created in `~/.go-magnetar/` on first run with default plugin configurations.
 
-```
-go-magnetar [-c <config>] <command> [flags]
-```
-
-If omitted, `~/.go-magnetar.yaml` is used. Can also be set via `GO_MAGNETAR_CONFIG` env var.
+Plugin configurations are disabled by default. To enable a plugin, set `enable: true` in its configuration file.
 
 ### `-p/--profile` — select configuration profile
 
 ```
-go-magnetar [-c <config>] -p <profile_name>
+go-magnetar -p <profile_name>
 ```
 
 The `-p` flag overrides the profile specified in the configuration file. This allows switching between different configurations (e.g., `default`, `production`, `development`) without modifying the config file.
@@ -113,7 +109,7 @@ The `-p` flag overrides the profile specified in the configuration file. This al
 ### `-f/--file` — non-interactive mode
 
 ```
-go-magnetar [-c <config>] -f <input-file>
+go-magnetar -f <input-file>
 ```
 
 Reads input from the specified file, sends it to the agent, prints the answer, and exits. This mode is useful for scripting and batch processing.
@@ -261,7 +257,7 @@ To test go-magnetar, run it interactively:
 For scripting and batch processing, use the `-f`/`--file` flag:
 
 ```bash
-go-magnetar [-c <config>] -f <input-file>
+go-magnetar -f <input-file>
 ```
 
 ### Loading saved sessions
@@ -269,7 +265,7 @@ go-magnetar [-c <config>] -f <input-file>
 Use the `--session` flag to load a previously saved conversation session:
 
 ```bash
-go-magnetar [-c <config>] --session <session-file.json>
+go-magnetar --session <session-file.json>
 ```
 
 The session file contains the full conversation history in JSON format. This is useful for resuming interrupted conversations or restoring previous contexts.

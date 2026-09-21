@@ -1,0 +1,8 @@
+ssh:
+  enable: false  # disable SSH execution (default: false)
+  user: $env:USER  # SSH username (optional, defaults to current user)
+  key: ~/.ssh/id_rsa  # SSH private key path (optional, supports ~)
+  password: ""  # SSH password (optional)
+  use_ssh_agent: false  # use ssh-agent for authentication (default: false)
+  remote_dir: ""  # remote working directory (optional, default: $HOME)
+  timeout: 120  # SSH command timeout in seconds (default: 120)

@@ -371,7 +371,7 @@ func (g *GenericTools) checkSecurity(command string) (bool, string) {
 		return false, "blocked by security patterns"
 	}
 
-	if !g.cfg.Bool("guard.disable") {
+	if !g.cfg.Bool("guard.enable") {
 		allowed, reason, err := g.guard.CheckSecurity(command, g.state.ReadOnly)
 		if err != nil {
 			return false, fmt.Sprintf("security check failed: %v", err)
@@ -398,7 +398,7 @@ func (g *GenericTools) SSHExec(command, stdin, addr, userParam, dirParam string)
 		return "error: the ssh tool is forbidden in read-only mode"
 	}
 
-	if g.cfg.Bool("ssh.disable") {
+	if g.cfg.Bool("ssh.enable") {
 		printer.Print(printer.IconBlocked, "ssh: disabled")
 		return "error: ssh disabled"
 	}
