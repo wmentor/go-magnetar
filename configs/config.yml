@@ -1,5 +1,5 @@
 ---
-
+version: "1.0"
 language: english  # language for agent responses (default: english)
 verbose: true       # enable verbose tool call output (default: true)
 

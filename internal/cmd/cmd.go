@@ -22,6 +22,7 @@ import (
 type Globals struct {
 	File    string `short:"f" type:"path" help:"Input file"`
 	Profile string `short:"p" help:"Profile name to use"`
+	Config  string `type:"path" help:"Configuration file path (default: ~/.go-magnetar/config.yml)"`
 	Session string `type:"path" help:"Load conversation session from file"`
 }
 

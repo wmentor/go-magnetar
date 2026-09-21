@@ -41,7 +41,7 @@ See [configuration.md](./configuration.md) for complete configuration options.
 ### 4. Index Documents
 
 ```bash
-./bin/go-magnetar -c my-config.yaml agent
+./bin/go-magnetar
 > /index docs/guide.md
 
 # From URL (web page)
@@ -67,7 +67,7 @@ See [configuration.md](./configuration.md) for complete configuration options.
 The `/fetch` command retrieves content from URLs, cleans HTML, and displays it in the terminal:
 
 ```bash
-./bin/go-magnetar -c my-config.yaml agent
+./bin/go-magnetar
 > /fetch https://example.com/article
 
 # Save to file
@@ -79,7 +79,7 @@ The command uses the configured `webfetch` block to clean HTML content and conve
 ### 6. Ask Questions
 
 ```bash
-./bin/go-magnetar -c my-config.yaml agent
+./bin/go-magnetar
 ```
 
 ```
@@ -116,10 +116,10 @@ Reads input from the specified file, sends it to the agent, prints the answer, a
 
 ## Commands
 
-### `agent` — interactive chat
+### Interactive chat
 
 ```
-go-magnetar agent
+go-magnetar
 ```
 
 The REPL reads questions from stdin. Press `Ctrl+D` to exit.

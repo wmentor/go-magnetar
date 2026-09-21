@@ -371,7 +371,7 @@ func (g *GenericTools) checkSecurity(command string) (bool, string) {
 		return false, "blocked by security patterns"
 	}
 
-	if !g.cfg.Bool("guard.enable") {
+	if g.cfg.Bool("guard.enable") {
 		allowed, reason, err := g.guard.CheckSecurity(command, g.state.ReadOnly)
 		if err != nil {
 			return false, fmt.Sprintf("security check failed: %v", err)

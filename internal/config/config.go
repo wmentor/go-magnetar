@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os/user"
+	"path/filepath"
 
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/confmap"
@@ -10,10 +11,15 @@ import (
 	"github.com/knadh/koanf/v2"
 )
 
+const (
+	currentVersion = "1.0"
+)
+
 // Config is the root configuration structure.
 type Config struct {
-	cfg     *koanf.Koanf
-	profile string
+	cfg       *koanf.Koanf
+	profile   string
+	configDir string
 }
 
 // defaults holds default config values that are applied before the
@@ -57,19 +63,44 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("config: failed to load defaults: %w", err)
 	}
 
+	// Load main config file (overrides defaults)
 	if err := k.Load(file.Provider(path), yaml.Parser()); err != nil {
 		return nil, fmt.Errorf("config: failed to load %q: %w", path, err)
 	}
 
+	if ver := k.String("version"); ver != currentVersion {
+		return nil, fmt.Errorf("config: unsupported config version %q", ver)
+	}
+
+	// Load include files (override main values)
+	includes := k.Strings("include")
+	for _, includePath := range includes {
+		if includePath == "" {
+			continue
+		}
+		// Resolve include path relative to main config directory
+		includeAbsPath, err := filepath.Abs(filepath.Join(filepath.Dir(path), includePath))
+		if err != nil {
+			return nil, fmt.Errorf("config: failed to resolve include path %q: %w", includePath, err)
+		}
+
+		if err := k.Load(file.Provider(includeAbsPath), yaml.Parser()); err != nil {
+			return nil, fmt.Errorf("config: failed to load include %q: %w", includeAbsPath, err)
+		}
+	}
+
+	configDir := filepath.Dir(path)
+
 	return &Config{
-		cfg:     k,
-		profile: k.String("profile"),
+		cfg:       k,
+		profile:   k.String("profile"),
+		configDir: configDir,
 	}, nil
 }
 
 // String returns the string value for the given key.
 func (c *Config) String(key string) string {
-	return ResolveEnvVars(c.cfg.String(key))
+	return ResolveEnvVars(c.cfg.String(key), c.configDir)
 }
 
 // Bool returns the boolean value for the given key.
@@ -89,7 +120,7 @@ func (c *Config) Float64(key string) float64 {
 
 // String returns the string value for the given key.
 func (c *Config) ProfileParamString(key string) string {
-	return ResolveEnvVars(c.cfg.String(c.makeProfileKey(key)))
+	return ResolveEnvVars(c.cfg.String(c.makeProfileKey(key)), c.configDir)
 }
 
 // Bool returns the boolean value for the given key.
