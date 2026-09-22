@@ -18,6 +18,30 @@ go-magnetar provides several built-in chat commands accessible from the interact
 | `/readonly` | — | Toggle read-only mode (blocks all modification operations) |
 | `/fetch` | `/f` | Fetch content from a URL, optionally save to file |
 | `/session.save` | — | Save current conversation session to a file |
+| `/profile` | — | Show current profile or switch to a different profile |
+
+## /profile Command
+
+Display available profiles and their status:
+
+```
+> /profile
+Available profiles:
+ *> default
+   production
+   development
+
+Current profile: default
+LLM model: gpt-4o
+Total messages: 15
+```
+
+Switch to a different profile:
+
+```
+> /profile production
+Switched to profile: production
+```
 
 ## Command Syntax
 
