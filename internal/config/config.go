@@ -1,10 +1,13 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os/user"
 	"path/filepath"
+	"sort"
 
+	"github.com/charmbracelet/x/exp/slice"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/confmap"
 	"github.com/knadh/koanf/providers/file"
@@ -21,6 +24,10 @@ type Config struct {
 	profile   string
 	configDir string
 }
+
+var (
+	ErrProfileNotFound = errors.New("profile not found")
+)
 
 // defaults holds default config values that are applied before the
 // YAML file is loaded, so the user doesn't need to set them.
@@ -98,6 +105,12 @@ func Load(path string) (*Config, error) {
 	}, nil
 }
 
+func (c *Config) Profiles() []string {
+	list := c.cfg.MapKeys("profiles")
+	sort.Strings(list)
+	return list
+}
+
 // String returns the string value for the given key.
 func (c *Config) String(key string) string {
 	return ResolveEnvVars(c.cfg.String(key), c.configDir)
@@ -139,8 +152,20 @@ func (c *Config) ProfileParamFloat64(key string) float64 {
 }
 
 // SetProfile sets the profile name to use for parameter lookup.
-func (c *Config) SetProfile(profile string) {
-	c.profile = profile
+func (c *Config) SetProfile(profile string) error {
+	profiles := c.Profiles()
+
+	if slice.ContainsAny(profiles, profile) {
+		c.profile = profile
+		return nil
+	}
+
+	return ErrProfileNotFound
+}
+
+// Profile returns the current profile name.
+func (c *Config) Profile() string {
+	return c.profile
 }
 
 func (c *Config) makeProfileKey(key string) string {
