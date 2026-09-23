@@ -23,7 +23,6 @@ include:
   - plugins/rag.yml
   - plugins/guard.yml
   - plugins/ssh.yml
-  - plugins/webfetch.yml
 
 profiles:
   default:
@@ -61,14 +60,6 @@ rag:
 compact:
   threshold: 0
   save_tail: 6
-
-# Web page preprocessing (optional)
-webfetch:
-  enable: false
-  base_url: https://api.openai.com/v1
-  api_key: YOUR_API_KEY
-  model: gpt-4o
-  context: 128000
 
 # Confluence integration (optional)
 confluence:

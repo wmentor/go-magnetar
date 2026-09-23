@@ -9,6 +9,7 @@ go-magnetar supports reading multiple file formats through a unified codec inter
 | `.csv` | `csv.Codec` | CSV files (comma-separated values) |
 | `.tsv` | `tsv.Codec` | TSV files (tab-separated values) |
 | `.docx` | `docx.Codec` | Microsoft Word documents |
+| `.html` | `html.Codec` | HTML files (cleaned and converted to Markdown) |
 | `.pdf` | `pdf.Codec` | PDF documents |
 | `.odt` | `odt.Codec` | OpenOffice Writer documents |
 | `.pptx` | `pptx.Codec` | PowerPoint presentations |
@@ -53,6 +54,7 @@ The indexer automatically uses codecs when reading files for indexing. Supported
 > /index path/to/document.odt
 > /index path/to/document.pptx
 > /index path/to/document.xlsx
+> /index path/to/document.html
 ```
 
 ## File Content Substitution

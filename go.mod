@@ -25,6 +25,7 @@ require (
 	github.com/qdrant/go-client v1.19.2
 	github.com/razvandimescu/gopdf v0.10.2
 	github.com/sashabaranov/go-openai v1.42.1
+	github.com/wmentor/html v1.0.5
 	github.com/xuri/excelize/v2 v2.11.0
 	golang.org/x/net v0.59.0
 	golang.org/x/term v0.46.0

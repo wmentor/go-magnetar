@@ -13,7 +13,6 @@ include:
   - plugins/rag.yml
   - plugins/guard.yml
   - plugins/ssh.yml
-  - plugins/webfetch.yml
 
 profiles:
   default:
