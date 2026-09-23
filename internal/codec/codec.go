@@ -7,6 +7,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/codec/csv"
 	"github.com/wmentor/go-magnetar/internal/codec/docx"
 	"github.com/wmentor/go-magnetar/internal/codec/excel"
+	"github.com/wmentor/go-magnetar/internal/codec/html"
 	"github.com/wmentor/go-magnetar/internal/codec/odt"
 	"github.com/wmentor/go-magnetar/internal/codec/pdf"
 	"github.com/wmentor/go-magnetar/internal/codec/pptx"
@@ -19,6 +20,8 @@ var (
 	codecs = map[string]Codec{
 		".csv":  &csv.Codec{},
 		".docx": &docx.Codec{},
+		".htm":  &html.Codec{},
+		".html": &html.Codec{},
 		".odt":  &odt.Codec{},
 		".pdf":  &pdf.Codec{},
 		".pptx": &pptx.Codec{},
@@ -26,6 +29,8 @@ var (
 		".xlsx": &excel.Codec{},
 		"csv":   &csv.Codec{},
 		"docx":  &docx.Codec{},
+		"htm":   &html.Codec{},
+		"html":  &html.Codec{},
 		"odt":   &odt.Codec{},
 		"pdf":   &pdf.Codec{},
 		"pptx":  &pptx.Codec{},

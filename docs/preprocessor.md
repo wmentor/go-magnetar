@@ -12,7 +12,7 @@ The built-in generic plugin provides the following placeholders that are automat
 | `{{uuid}}` | A random UUID v4 |
 | `{{date}}` | Current date in `YYYY-MM-DD` format |
 | `{{now}}` | Current date and time in `YYYY-MM-DD HH:MM:SS` format |
-| `{{file:filename}}` | Reads file content and replaces placeholder with the file contents. Supports `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, and `.xlsx` files, absolute paths and `~/` home directory prefix |
+| `{{file:filename}}` | Reads file content and replaces placeholder with the file contents. Supports `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`, and `.html` files, absolute paths and `~/` home directory prefix |
 | `{{env:VARIABLE}}` | Value of environment variable `VARIABLE` |
 
 ## File content substitution

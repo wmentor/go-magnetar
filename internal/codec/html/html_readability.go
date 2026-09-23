@@ -1,4 +1,4 @@
-package web
+package html
 
 import (
 	"bytes"
@@ -9,7 +9,7 @@ import (
 	readability "codeberg.org/readeck/go-readability/v2"
 )
 
-func ProcessReadability(content, page string) (string, error) {
+func processReadability(content, page string) (string, error) {
 	baseURL, _ := url.Parse(page)
 
 	article, err := readability.FromReader(strings.NewReader(content), baseURL)

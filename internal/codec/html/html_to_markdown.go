@@ -1,15 +1,14 @@
-package web
+package html
 
 import (
-	"fmt"
-
 	"github.com/JohannesKaufmann/html-to-markdown/v2/converter"
 	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/base"
 	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/commonmark"
 	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/table"
+	"github.com/wmentor/html"
 )
 
-func HTMLToMarkdown(html string) (string, error) {
+func htmlToText(content string, page string) (string, error) {
 	conv := converter.NewConverter(
 		converter.WithPlugins(
 			base.NewBasePlugin(),             // Essential DOM/Node pruning behavior
@@ -18,9 +17,14 @@ func HTMLToMarkdown(html string) (string, error) {
 		),
 	)
 
-	result, err := conv.ConvertString(html)
+	result, err := conv.ConvertString(content)
 	if err != nil {
-		return "", fmt.Errorf("convert html to markdown error: %w", err)
+		parser := html.New()
+
+		parser.ParseString(content)
+
+		data := parser.Text()
+		return string(data), nil
 	}
 
 	return result, nil

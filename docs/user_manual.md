@@ -8,9 +8,9 @@ go-magnetar — a knowledge base tool built on RAG (Retrieval-Augmented Generati
 - **Index command** — `/index <path|url> [-m <message>]` indexes documents directly from the chat REPL
 - **Fetch command** — `/fetch <url> [file]` retrieves and displays content from URLs
 
-> If the `webfetch` block is configured, it is used to clean HTML content from ads, navigation, and other noise when processing web pages. Confluence URLs (both standard and short links) are also supported via the `confluence` block. JIRA issues are supported via the `jira` block. GitLab merge requests (including file changes) are supported via the `gitlab` block. GitHub repositories, files, and directory trees are supported via the `github` block.
+> Web pages are cleaned of ads, navigation, and other noise, then processed through readability extraction and converted to Markdown. Confluence URLs (both standard and short links) are also supported via the `confluence` block. JIRA issues are supported via the `jira` block. GitLab merge requests (including file changes) are supported via the `gitlab` block. GitHub repositories, files, and directory trees are supported via the `github` block.
 
-Supported file formats for indexing: `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`. See [docs/file_codecs.md](./docs/file_codecs.md) for complete format support and codec details.
+Supported file formats for indexing: `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`, and `.html`. See [docs/file_codecs.md](./docs/file_codecs.md) for complete format support and codec details.
 
 ## Requirements
 
@@ -60,7 +60,7 @@ See [configuration.md](./configuration.md) for complete configuration options.
 > /index https://github.com/owner/repo
 ```
 
-> If the `webfetch` block is configured in the config, web pages are cleaned of ads and navigation using an AI agent before being converted to Markdown and indexed. Confluence pages are also indexed via the `confluence` block. JIRA issues are indexed via the `jira` block.
+> Web pages are cleaned of ads and navigation, then processed through readability extraction and converted to Markdown before being indexed. Confluence pages are also indexed via the `confluence` block. JIRA issues are indexed via the `jira` block.
 
 ### 5. Fetch Content from URLs
 
@@ -74,7 +74,7 @@ The `/fetch` command retrieves content from URLs, cleans HTML, and displays it i
 > /fetch https://example.com/article output.md
 ```
 
-The command uses the configured `webfetch` block to clean HTML content and convert it to Markdown. If a filename is provided, the content is saved to that file; otherwise, it's displayed in the terminal (using `less` if available).
+The command cleans HTML content and converts it to Markdown. If a filename is provided, the content is saved to that file; otherwise, it's displayed in the terminal (using `less` if available).
 
 ### 6. Ask Questions
 

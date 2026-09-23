@@ -17,7 +17,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"golang.org/x/net/html/charset"
 
-	sanitizer "github.com/wmentor/go-magnetar/internal/agent/markdown"
+	"github.com/wmentor/go-magnetar/internal/codec/html"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools/github"
@@ -32,24 +32,13 @@ const (
 
 // WebTools provides web fetching operations as LLM tools.
 type WebTools struct {
-	cfg          *config.Config
-	preprocessor *sanitizer.Preprocessor
+	cfg *config.Config
 }
 
 // New creates a new WebTools instance.
 func New(cfg *config.Config, root *os.Root) (*WebTools, error) {
-	var preprocessor *sanitizer.Preprocessor
-	if cfg.String("webfetch.base_url") != "" && cfg.Bool("webfetch.enable") {
-		p, err := sanitizer.New(cfg, root)
-		if err != nil {
-			return nil, fmt.Errorf("web_fetch: failed to create preprocessor: %w", err)
-		}
-		preprocessor = p
-	}
-
 	return &WebTools{
-		cfg:          cfg,
-		preprocessor: preprocessor,
+		cfg: cfg,
 	}, nil
 }
 
@@ -97,13 +86,6 @@ func (w *WebTools) fetchURLWithMediaType(url string) (string, string, error) {
 	}
 
 	return string(body), contentType, nil
-}
-
-func (w *WebTools) preprocessMarkdown(markdownStr string) (string, error) {
-	if w.preprocessor == nil {
-		return markdownStr, nil
-	}
-	return w.preprocessor.ProcessMDString(markdownStr)
 }
 
 // WebFetch fetches a web page, preprocesses it (if HTML), and returns the cleaned content.
@@ -194,31 +176,9 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 	}
 
 	if contentType != "" && strings.Contains(strings.ToLower(contentType), "text/html") {
-		content, err := CleanHTML(content)
-		if err != nil {
-			printer.ToolCall(printer.IconError, "web_fetch: clean html error", "url", url, "err", err)
-			return "", fmt.Errorf("web_fetch: URL %q clean html error: %w", url, err)
-		}
+		codec := &html.Codec{}
 
-		content, err = ProcessReadability(content, url)
-		if err != nil {
-			printer.ToolCall(printer.IconError, "web_fetch: process readability", "url", url, "err", err)
-			return "", fmt.Errorf("web_fetch: URL %q error: %w", url, err)
-		}
-
-		content, err = HTMLToMarkdown(content)
-		if err != nil {
-			printer.ToolCall(printer.IconError, "web_fetch: html to markdown", "url", url, "err", err)
-			return "", fmt.Errorf("web_fetch: URL %q html to markdown error: %w", url, err)
-		}
-
-		content, err = w.preprocessMarkdown(content)
-		if err != nil {
-			printer.ToolCall(printer.IconError, "web_fetch: preprocessing failed", "url", url, "err", err)
-			return "", fmt.Errorf("web_fetch: preprocessing failed for URL %q", url)
-		}
-
-		return content, nil
+		return codec.ProcessContent(content, url)
 	}
 
 	return content, nil

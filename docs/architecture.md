@@ -34,14 +34,13 @@ internal/
     cmd.go                       — root CLI (kong); config load; plugin.InitAll; defer Stop
   tools/
     rag/rag.go                   —     rag_save and rag_search tools — removed rag_save from dispatch
-    web/fetch.go                 — web_fetch tool; HTML fetching and cleaning
+    web/fetch.go                 — web_fetch tool; HTML fetching and conversion to Markdown
     generic/generic.go           — file_read, file_list, file_write, file_exists, system_grep, tools
   agent/
     guard/agent.go               — security guard for exec commands
     indexer/indexer.go           — indexer agent (used by /index command)
     chat/agent.go                — chat agent, REPL, tool-use loop, agentHandle adapter
     summarizer/summarizer.go     — history compression agent
-    markdown/preprocessor.go     — AI-based Markdown cleaner (webfetch post-processing)
 ```
 
 ### Plugin lifecycle
@@ -115,7 +114,7 @@ REPL --> user_input
                           --> trim to search.limit
                           --> dedup by cosine similarity
                           --> return joined top-N texts
-                    --> web_fetch:  fetch -> HTML clean -> Markdown
+                    --> web_fetch:  fetch -> HTML cleanup -> Readability extraction -> Markdown
                     --> file_*:     sandboxed filesystem ops
    --> output answer to stdout
 ```

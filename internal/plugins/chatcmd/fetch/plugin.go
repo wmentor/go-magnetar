@@ -57,16 +57,7 @@ func (p *Plugin) execute(_ context.Context, a plugin.AgentHandle, args string) e
 		filename = filepath.Clean(parts[1])
 	}
 
-	var content string
-	var err error
-
-	if p.tools != nil {
-		content, err = p.tools.WebFetch(url)
-	} else {
-		fmt.Fprintln(os.Stdout, "Error: webfetch is not configured")
-		return nil
-	}
-
+	content, err := p.tools.WebFetch(url)
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "Error fetching URL: %v\n", err)
 		return nil

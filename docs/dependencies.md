@@ -13,7 +13,7 @@
 | `github.com/melbahja/goph/v2` | SSH client for remote command execution |
 | `github.com/razvandimescu/gopdf` | PDF document generation and manipulation |
 | `github.com/xuri/excelization/v2` | Excel (.xlsx) file reading and writing |
-| `github.com/PuerkitoBio/goquery` | HTML parsing and DOM manipulation (used by webfetch) |
+| `github.com/PuerkitoBio/goquery` | HTML parsing and DOM manipulation (used by web_fetch tool) |
 | `github.com/atotto/clipboard` | Clipboard operations (used by /copy command) |
 | `github.com/stretchr/testify` | Testing framework (test mocks and assertions) |
 | `github.com/vektra/mockery` | Mock generation for testing |

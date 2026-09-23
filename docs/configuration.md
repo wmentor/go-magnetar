@@ -80,16 +80,6 @@ The `rag` block controls retrieval-augmented generation settings:
 
 All plugins are disabled by default. Enable a plugin by setting `enable: true`:
 
-#### Web Fetch (`webfetch`)
-
-| Key | Type | Description |
-|---|---|---|
-| `enable` | boolean | Enable/disable web page preprocessing (default: `false`) |
-| `base_url` | string | LLM endpoint URL |
-| `api_key` | string | API key |
-| `model` | string | Model name for HTML cleaning |
-| `context` | integer | Context window size |
-
 #### Confluence (`confluence`)
 
 | Key | Type | Description |
