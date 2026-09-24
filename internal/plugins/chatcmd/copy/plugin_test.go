@@ -106,6 +106,9 @@ func (a *mockAgent) Compact() error {
 func (a *mockAgent) Reset() {
 }
 
+func (a *mockAgent) Reconfigure() {
+}
+
 type mockHub struct {
 	lastCommand *plugin.ChatCommand
 }
