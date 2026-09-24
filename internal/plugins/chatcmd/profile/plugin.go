@@ -33,6 +33,8 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 				return err
 			}
 
+			a.Reconfigure()
+
 			fmt.Printf("Switched to profile: %s\n", args)
 			return nil
 		},

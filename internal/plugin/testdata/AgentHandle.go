@@ -173,6 +173,39 @@ func (_c *AgentHandle_Messages_Call) RunAndReturn(run func() []openai.ChatComple
 	return _c
 }
 
+// Reconfigure provides a mock function for the type AgentHandle
+func (_mock *AgentHandle) Reconfigure() {
+	_mock.Called()
+	return
+}
+
+// AgentHandle_Reconfigure_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Reconfigure'
+type AgentHandle_Reconfigure_Call struct {
+	*mock.Call
+}
+
+// Reconfigure is a helper method to define mock.On call
+func (_e *AgentHandle_Expecter) Reconfigure() *AgentHandle_Reconfigure_Call {
+	return &AgentHandle_Reconfigure_Call{Call: _e.mock.On("Reconfigure")}
+}
+
+func (_c *AgentHandle_Reconfigure_Call) Run(run func()) *AgentHandle_Reconfigure_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *AgentHandle_Reconfigure_Call) Return() *AgentHandle_Reconfigure_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *AgentHandle_Reconfigure_Call) RunAndReturn(run func()) *AgentHandle_Reconfigure_Call {
+	_c.Run(run)
+	return _c
+}
+
 // Reset provides a mock function for the type AgentHandle
 func (_mock *AgentHandle) Reset() {
 	_mock.Called()

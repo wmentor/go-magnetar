@@ -126,6 +126,12 @@ func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
 	}, nil
 }
 
+func (a *ChatAgent) Reconfigure() {
+	llmCfg := openai.DefaultConfig(a.cfg.ProfileParamString("llm.api_key"))
+	llmCfg.BaseURL = a.cfg.ProfileParamString("llm.base_url")
+	a.llm = openai.NewClientWithConfig(llmCfg)
+}
+
 func (a *ChatAgent) SetMessages(msgs []openai.ChatCompletionMessage) {
 	a.messages = msgs
 }
@@ -136,6 +142,10 @@ func (a *ChatAgent) SetMessages(msgs []openai.ChatCompletionMessage) {
 // command plugins through the plugin.AgentHandle interface.
 type agentHandle struct {
 	a *ChatAgent
+}
+
+func (h *agentHandle) Reconfigure() {
+	h.a.Reconfigure()
 }
 
 func (h *agentHandle) Messages() []openai.ChatCompletionMessage {

@@ -37,6 +37,9 @@ func (a *mockAgent) Compact() error {
 func (a *mockAgent) Reset() {
 }
 
+func (a *mockAgent) Reconfigure() {
+}
+
 func TestSaveSessionCommand(t *testing.T) {
 	t.Parallel()
 

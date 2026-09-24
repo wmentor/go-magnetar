@@ -97,6 +97,8 @@ type AgentHandle interface {
 	SetMessages([]openai.ChatCompletionMessage)
 	// Config returns the agent's effective configuration.
 	Config() *config.Config
+	// Reconfigure OpenAI client
+	Reconfigure()
 	// Compact runs history compression via the summarizer and replaces
 	// the history with the compacted version.
 	Compact() error
