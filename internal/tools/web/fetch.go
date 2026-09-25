@@ -6,9 +6,11 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"regexp"
 	"strings"
@@ -90,7 +92,13 @@ func (w *WebTools) fetchURLWithMediaType(url string) (string, string, error) {
 
 // WebFetch fetches a web page, preprocesses it (if HTML), and returns the cleaned content.
 func (w *WebTools) WebFetch(url string) (string, error) {
-	printer.ToolCall(printer.IconSearch, "web_fetch", "url", url)
+	return w.webFetch(url, true)
+}
+
+func (w *WebTools) webFetch(url string, isFetch bool) (string, error) {
+	if isFetch {
+		printer.ToolCall(printer.IconSearch, "web_fetch", "url", url)
+	}
 
 	if w.cfg.String("confluence.base_url") != "" && w.cfg.Bool("confluence.enable") {
 		if strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/spaces/") || strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/x/") || strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/p/") {
@@ -171,17 +179,27 @@ func (w *WebTools) WebFetch(url string) (string, error) {
 
 	content, contentType, err := w.fetchURLWithMediaType(url)
 	if err != nil {
-		printer.ToolCall(printer.IconError, "web_fetch: failed to fetch URL", "url", url, "err", err)
-		return "", fmt.Errorf("web_fetch: failed to fetch URL %q", url)
+		if isFetch {
+			printer.ToolCall(printer.IconError, "web_fetch: failed to fetch URL", "url", url, "err", err)
+			return "", fmt.Errorf("web_fetch: failed to fetch URL %q", url)
+		}
+		return "", errors.New("web_search: failed")
 	}
 
 	if contentType != "" && strings.Contains(strings.ToLower(contentType), "text/html") {
 		codec := &html.Codec{}
-
 		return codec.ProcessContent(content, url)
 	}
 
 	return content, nil
+}
+
+// WebSearch executes web search and returns results in Markdown format.
+func (w *WebTools) WebSearch(query string) (string, error) {
+	printer.ToolCall(printer.IconSearch, "web_search", "query", query)
+	encodedQuery := url.QueryEscape(query)
+	searchURL := fmt.Sprintf("https://html.duckduckgo.com/html/?q=%s", encodedQuery)
+	return w.webFetch(searchURL, false)
 }
 
 // extractIssueKeyFromJIRAURL extracts the issue key (e.g., GOARCH-60) from a JIRA URL.
@@ -426,6 +444,27 @@ func (w *WebTools) Definition() openai.Tool {
 	}
 }
 
+// DefinitionSearch returns the OpenAI tool schema for web_search.
+func (w *WebTools) DefinitionSearch() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "web_search",
+			Description: "Execute web search and return results in Markdown format",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"query": map[string]any{
+						"type":        "string",
+						"description": "Search query string",
+					},
+				},
+				"required": []string{"query"},
+			},
+		},
+	}
+}
+
 // Dispatch handles a tool call by name, parsing JSON args and returning the result as a string.
 func (w *WebTools) Dispatch(name string, args string) string {
 	switch name {
@@ -438,6 +477,19 @@ func (w *WebTools) Dispatch(name string, args string) string {
 			return "error: failed to parse arguments"
 		}
 		content, err := w.WebFetch(params.URL)
+		if err != nil {
+			return fmt.Sprintf("error: %v", err)
+		}
+		return content
+	case "web_search":
+		var params struct {
+			Query string `json:"query"`
+		}
+		if err := json.Unmarshal([]byte(args), &params); err != nil {
+			printer.Error("web_search: failed to parse args", "args", args, "err", err)
+			return "error: failed to parse arguments"
+		}
+		content, err := w.WebSearch(params.Query)
 		if err != nil {
 			return fmt.Sprintf("error: %v", err)
 		}
@@ -650,6 +702,28 @@ func StaticDefinition() openai.Tool {
 					},
 				},
 				"required": []string{"url"},
+			},
+		},
+	}
+}
+
+// StaticDefinitionSearch returns the OpenAI tool schema for web_search without
+// requiring an initialised WebTools instance. Used by the plugin for lazy init.
+func StaticDefinitionSearch() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "web_search",
+			Description: "Execute web search and return results in Markdown format",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"query": map[string]any{
+						"type":        "string",
+						"description": "Search query string",
+					},
+				},
+				"required": []string{"query"},
 			},
 		},
 	}

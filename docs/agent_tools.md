@@ -13,6 +13,7 @@ go-magnetar provides the following tools for the chat agent:
 | `system_grep` | `(filename: string, pattern: string) -> string` | Executes system grep command with safe parameters: -n (always), -i (case-insensitive), -r (recursive), -E (extended regex) |
 | `rag_search` | `(query: string) -> string` | Returns top-N relevant fragments from Qdrant (N is set by `rag.search.limit`) |
 | `web_fetch` | `(url: string) -> string` | Fetches a web page and returns Markdown content (also fetches Confluence pages, JIRA issues, GitHub repositories/Issues/milestones, GitLab merge requests) |
+| `web_search` | `(query: string) -> string` | Execute web search and return results in Markdown format (performs web search and returns results as Markdown) |
 | `cve` | `(id: string) -> string` | Fetches vulnerability information from OSV database; supports all OSV database identifiers (CVE-, GO-, GHSA-, OSV-, GSD-, ALPINE-, and 50+ more). See [vulnerability_lookup.md](./vulnerability_lookup.md) for complete documentation |
 | `github_repo` | `(repo: string) -> string` | Fetches GitHub repository information and returns its details in Markdown format |
 | `github_file` | `(repo: string, branch: string, file: string) -> string` | Fetches a file from GitHub repository and returns its content |
@@ -22,10 +23,10 @@ go-magnetar provides the following tools for the chat agent:
 
 ## Search strategy
 
-The agent **always** first calls `rag_search`, even if it believes it already knows the answer. If `rag_search` returns relevant results, the answer is formed exclusively based on those results, `web_fetch` is not called. `web_fetch` is used only as a fallback: when `rag_search` returns no relevant results and the user needs external or up-to-date information. If neither tool provides a result, the agent explicitly states this.
+The agent **always** first calls `rag_search`, even if it believes it already knows the answer. If `rag_search` returns relevant results, the answer is formed exclusively based on those results, `web_fetch` and `web_search` are not called. Both `web_fetch` and `web_search` are used only as fallbacks: when `rag_search` returns no relevant results and the user needs external or up-to-date information. If neither tool provides a result, the agent explicitly states this.
 
 ### Search tool call limit
 
-To prevent infinite loops, each user request is limited to a maximum number of search-related tool calls (`rag_search` + `web_fetch`). By default, the limit is 20 calls per request. When the limit is exceeded, an error message is sent to the LLM and no more search tools are invoked for that request.
+To prevent infinite loops, each user request is limited to a maximum number of search-related tool calls (`rag_search` + `web_fetch` + `web_search`). By default, the limit is 20 calls per request. When the limit is exceeded, an error message is sent to the LLM and no more search tools are invoked for that request.
 
 See [chat_agent_ask.md](./chat_agent_ask.md) for complete documentation on the Ask method, including tool categorization, protection mechanisms, and full algorithm description.

@@ -1,190 +1,220 @@
 # go-magnetar
 
-A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines a **chat agent** with an integrated **index command** for document ingestion — all in a unified interactive REPL.
+An AI chat agent with an integrated knowledge base. Chat with any OpenAI-compatible LLM, index documents and web pages into a local vector database, and get answers grounded in your own content.
 
-## How it works
+## What it does
 
-**Indexing** — reads `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`, and `.html` files or web pages (via URL), splits content into overlapping chunks respecting paragraph and Markdown heading boundaries, computes embedding vectors and stores each chunk in Qdrant. Each chunk is identified by a deterministic UUID v5 derived from its content, making re-indexing idempotent: the same chunk is never stored twice.
+- **Chat** — interactive REPL with multi-turn conversation and automatic context compaction
+- **Index** — `/index <file|url>` adds documents to your RAG knowledge base (optional)
+- **Fetch** — `/fetch <url>` retrieves and displays web content as Markdown
+- **Integrations** — Confluence, JIRA, GitHub, GitLab (all optional, disabled by default)
 
-**Chat** — an interactive REPL with multi-turn conversation support. The agent always tries `rag_search` first; if the knowledge base returns relevant results, the answer is based exclusively on those results. `web_fetch` is used only as a fallback when the knowledge base has no relevant information and the user needs external or up-to-date data. If neither source has an answer, the agent says so explicitly. Conversation history is automatically managed to stay within the configured context window: when history approaches the token threshold it is compacted by the built-in summarizer, which replaces older turns with a concise summary while keeping the most recent ones verbatim.
-
-**Indexing via chat** — the `/index` command (alias `/i`) replaces the separate indexer CLI subcommand. Simply type `/index <path|url>` in the REPL to index documents directly.
-
-**Fetch content** — the `/fetch` command (alias `/f`) retrieves content from URLs, cleans HTML, and displays it in the terminal (using `less` if available) or saves it to a file.
-
-**Search tool call limit** — to prevent infinite loops, each user request is limited to a maximum number of search-related tool calls (`rag_search` + `web_fetch`). By default, the limit is 10 calls per request. When the limit is reached, an error message is sent to the LLM.
-
-**HTML Preprocessing** — web pages fetched via `web_fetch` are cleaned of ads, navigation, cookie banners, and other noise, then processed through readability extraction and converted to Markdown before being indexed or returned to the agent. Confluence URLs are also handled via the `confluence` block to fetch pages by ID, JIRA issues via the `jira` block, GitHub repositories via the `github` block to fetch repository information, files, and directory trees, and GitLab merge requests via the `gitlab` block to fetch MR details and file changes.
+Supported file formats: `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`, `.html`
 
 ## Requirements
 
-- Go 1.27.0
-- [Qdrant](https://qdrant.tech/) — vector database
-- An API key for any OpenAI-compatible provider (for the chat model, embedding model, and optionally for web page preprocessing)
+- Go 1.27+ (or download a pre-built binary)
+- API key for any OpenAI-compatible provider (OpenAI, Azure OpenAI, Ollama, etc.)
+- [Qdrant](https://qdrant.tech/) — only if you want to use the RAG knowledge base (`rag.enable: true`)
 
 ## Quick start
 
-### 1. Start Qdrant
+### 1. Install
+
+**Option A — pre-built binary:**
+
+Download from [GitHub Releases](https://github.com/wmentor/go-magnetar/releases/) and place it in your `$PATH`.
+
+**Option B — `go install`:**
+
+```bash
+go install github.com/wmentor/go-magnetar/cmd/go-magnetar@v1.2.0
+```
+
+**Option C — build from source:**
+
+```bash
+git clone https://github.com/wmentor/go-magnetar.git
+cd go-magnetar
+make build          # binary → bin/go-magnetar
+```
+
+### 2. Configure
+
+On first run, go-magnetar creates `~/.go-magnetar/config.yml` automatically.
+
+Edit it to set your LLM API key and model:
+
+```yaml
+version: "1.0"
+language: english
+verbose: true
+profile: default
+
+profiles:
+  default:
+    llm:
+      base_url: https://api.openai.com/v1
+      api_key: $env:OPENAI_API_KEY   # or paste the key directly
+      model: gpt-4o
+      context: 128000
+      temperature: 0.9
+```
+
+For a complete list of options see [docs/configuration.md](./docs/configuration.md).
+
+### 3. Run
+
+```bash
+go-magnetar
+```
+
+This opens the interactive chat REPL. Type a question and press Enter:
+
+```
+> What is the capital of France?
+Paris is the capital of France.
+
+> /help
+...
+
+> ^D   ← Ctrl+D or /exit to quit
+```
+
+## What the agent can do
+
+Beyond answering questions, the agent has access to tools it can call automatically:
+
+| Tool | Description |
+|---|---|
+| `file_read` | Read local files (`.md`, `.txt`, `.pdf`, `.docx`, `.xlsx`, and more) |
+| `file_list` | List files in the current directory by glob pattern |
+| `file_write` | Write content to a file |
+| `exec` | Run shell commands (with a built-in safety guard) |
+| `system_grep` | Search file contents with grep |
+| `web_fetch` | Fetch a URL and return its content as Markdown |
+| `web_search` | Search the web and return results |
+| `rag_search` | Search your indexed knowledge base (when RAG is enabled) |
+| `ssh` | Execute commands on a remote server via SSH (when enabled) |
+| `cve` | Look up vulnerability info from the OSV database |
+| `github_*` | Read GitHub repos, files, issues, milestones |
+
+The agent picks tools automatically based on your question. You don't need to specify which tool to use.
+
+## Using the knowledge base (RAG)
+
+The RAG feature is **optional**. Enable it when you want the agent to answer questions based on your own documents.
+
+### Start Qdrant
 
 ```bash
 docker run -p 6333:6333 -p 6334:6334 qdrant/qdrant
 ```
 
-### 2. Build the binary
+### Enable RAG in config
+
+Edit `~/.go-magnetar/plugins/rag.yml` (created automatically on first run):
+
+```yaml
+rag:
+  enable: true
+  llm:
+    base_url: https://api.openai.com/v1
+    api_key: $env:OPENAI_API_KEY
+    model: text-embedding-3-small
+    vector_size: 1536
+  qdrant:
+    connstr: http://localhost:6333
+    collection: documents
+```
+
+The main `~/.go-magnetar/config.yml` already includes `plugins/rag.yml` via the `include` directive — no changes to it are needed.
+
+### Index documents
 
 ```bash
-make build
-```
-
-The binary will be placed at `bin/go-magnetar`.
-
-### 3. Configure
-
-Configuration files are automatically created in `~/.go-magnetar/` on first run with default plugin configurations.
-
-Plugin configurations are disabled by default. To enable a plugin, set `enable: true` in its configuration file.
-
-See [docs/configuration.md](./docs/configuration.md) for complete configuration options.
-
-### 4. Index your documents
-
-```bash
-./bin/go-magnetar
-> /index docs/guide.md or docs/report.odt
-
-# From URL
-> /index https://example.com/article
-
-# From Confluence URL (standard or short link)
-> /index https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/123456
-
-# From JIRA issue URL
-> /index https://jira.example.com/browse/PROJECT-123
-
-# From GitLab merge request URL
-> /index https://gitlab.example.com/namespace/project/-/merge_requests/123
-
-# From GitHub URL (repository, file, or tree)
-> /index https://github.com/owner/repo
-```
-
-### 5. Fetch content from URLs
-
-The `/fetch` command retrieves content from URLs, cleans HTML, and displays it in the terminal:
-
-```bash
-./bin/go-magnetar
-> /fetch https://example.com/article
-
-# Save to file
-> /fetch https://example.com/article output.md
-```
-
-### 6. Ask questions
-
-```bash
-./bin/go-magnetar
-```
-
-```
-> What is go-magnetar?
-go-magnetar is a RAG-based knowledge base tool...
-
-> What commands does it support?
-It supports the /index and /fetch commands and chat commands like /help, /exit...
-
-> ^D
-```
-
-## Installation
-
-```bash
-git clone https://github.com/wmentor/go-magnetar
-cd go-magnetar
-make build
-```
-
-or
-
-```bash
-go install github.com/wmentor/go-magnetar/cmd/go-magnetar
-```
-
-## Command history
-
-The chat agent maintains command history in `~/.go-magnetar-history.json`. Use **↑/↓** arrows to navigate through previous commands. History is persisted across sessions and limited to 200 entries.
-
-
-
-## Commands
-
-Configuration file is always loaded from `~/.go-magnetar/config.yml`.
-
-### `-p/--profile` — select configuration profile
-
-```
-go-magnetar -p <profile_name>
-```
-
-The `-p` flag overrides the profile specified in the configuration file. This allows switching between different configurations (e.g., `default`, `production`, `development`) without modifying the config file.
-
-### `-f/--file` — non-interactive mode
-
-```
-go-magnetar -f <input-file>
-```
-
-Reads input from the specified file, sends it to the agent, prints the answer, and exits. This mode is useful for scripting and batch processing.
-
-> **Note:** In `-f/--file` mode, text preprocessors are applied but chat commands (e.g., `/readonly`, `/fetch`, `/index`) are not available. The text preprocessor expands placeholders like `{{home}}`, `{{uuid}}`, `{{date}}`, `{{now}}`, and `{{file:filename}}`.
-
-```
 go-magnetar
+> /index docs/guide.md
+> /index https://example.com/article
+> /index https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/123456
+> /index https://jira.example.com/browse/PROJECT-123
 ```
 
-Run the interactive agent REPL. Press `Ctrl+D` to exit.
+The agent will now search the knowledge base before answering any question.
 
-#### Chat commands
+## Chat commands
 
-See [docs/chat_command.md](./docs/chat_command.md) for complete documentation on chat commands.
+| Command | Alias | Description |
+|---|---|---|
+| `/help` | `/h` | Show available commands |
+| `/exit` | `/quit` | Exit the program |
+| `/index <path\|url>` | `/i` | Index a file or URL into the knowledge base |
+| `/fetch <url> [file]` | `/f` | Fetch URL content, display or save to file |
+| `/copy` | `/c` | Copy the last answer to clipboard |
+| `/write <file>` | `/w` | Write last answer to a file |
+| `/new` | — | Clear conversation history and start fresh |
+| `/compact` | — | Compress conversation history immediately |
+| `/stat` | — | Show context stats (tokens, messages, models) |
+| `/profile [name]` | — | Show or switch profile |
+| `/readonly` | — | Toggle read-only mode |
+| `/session.save <file>` | — | Save conversation to a JSON file |
 
-#### Text preprocessing
+Use **↑/↓** arrow keys to navigate command history (stored in `~/.go-magnetar-history.json`).
 
-See [docs/preprocessor.md](./docs/preprocessor.md) for a complete reference on text preprocessors and available placeholders.
+## Sessions
 
-#### Command history
+Save the current conversation to a file and restore it later:
 
-The REPL supports command history navigation with arrow keys:
-- **↑** — previous command
-- **↓** — next command
-
-History is persistently stored in `~/.go-magnetar-history.json` and limited to 200 entries.
-
-## Makefile
+```
+> /session.save /tmp/my-session.json
+```
 
 ```bash
-make build      # compile -> bin/go-magnetar
-make clean      # remove bin/
-make run-agent  # build and run the agent with configs/config.yaml
-make lint       # go vet ./...
-make tidy       # go mod tidy
+# Resume later
+go-magnetar --session /tmp/my-session.json
 ```
 
-## Architecture
+## Security
 
-See [docs/architecture.md](./docs/architecture.md) for complete architecture documentation.
+The agent can execute shell commands via the `exec` tool. To stay safe:
 
-## Logging
+- **Safety guard** — dangerous commands (`rm -rf /`, `sudo`, `git push`, package managers, etc.) are blocked automatically. Enable with `guard.enable: true` in config.
+- **Read-only mode** — toggle with `/readonly` to block all file writes and shell modifications for the session.
+- **Root user** — go-magnetar refuses to run as root.
+- **Sensitive env vars** — variables matching patterns like `TOKEN`, `KEY`, `PASS`, `SECRET` are stripped from the command environment before execution.
 
-Set `verbose: true` in the config for verbose output.
+See [docs/security.md](./docs/security.md) for details.
 
-## Dependencies
+## CLI flags
 
-See [docs/dependencies.md](./docs/dependencies.md) for a complete list of dependencies.
+| Flag | Description |
+|---|---|
+| `-p <profile>` | Use a specific configuration profile |
+| `-f <file>` | Non-interactive mode: read input from file, print answer, exit |
+| `--session <file>` | Load a previously saved conversation session |
 
-## Security restrictions
+```bash
+# Non-interactive (scripting / batch)
+go-magnetar -f questions.txt
 
-See [docs/security.md](./docs/security.md) for complete security information.
+# Load a saved session
+go-magnetar --session session.json
+
+# Use a named profile
+go-magnetar -p production
+```
+
+> **Note:** In `-f` mode, chat commands (`/index`, `/fetch`, etc.) are not available. Text preprocessor placeholders like `{{date}}`, `{{uuid}}`, `{{file:path}}` are expanded.
+
+## Documentation
+
+- [Configuration reference](./docs/configuration.md)
+- [Chat commands](./docs/chat_command.md)
+- [Agent tools](./docs/agent_tools.md)
+- [File format support](./docs/file_codecs.md)
+- [Text preprocessor](./docs/preprocessor.md)
+- [Security](./docs/security.md)
+- [User manual](./docs/user_manual.md)
 
 ## License
 
