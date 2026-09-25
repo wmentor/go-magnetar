@@ -1,120 +1,69 @@
 # go-magnetar
 
-A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines a **chat agent** with an integrated **index command** for document ingestion — all in a unified interactive REPL.
+An AI agent that combines retrieval capabilities with a powerful plugin system. The agent can index documents, fetch web content, and execute tools through a unified interactive REPL.
 
 ## How it works
 
 **Indexing** — reads `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`, and `.html` files or web pages (via URL), splits content into overlapping chunks respecting paragraph and Markdown heading boundaries, computes embedding vectors and stores each chunk in Qdrant. Each chunk is identified by a deterministic UUID v5 derived from its content, making re-indexing idempotent: the same chunk is never stored twice.
 
-**Chat** — an interactive REPL with multi-turn conversation support. The agent always tries `rag_search` first; if the knowledge base returns relevant results, the answer is based exclusively on those results. `web_fetch` is used only as a fallback when the knowledge base has no relevant information and the user needs external or up-to-date data. If neither source has an answer, the agent says so explicitly. Conversation history is automatically managed to stay within the configured context window: when history approaches the token threshold it is compacted by the built-in summarizer, which replaces older turns with a concise summary while keeping the most recent ones verbatim.
+**Chat agent** — an interactive REPL with multi-turn conversation support. The agent automatically decides which tools to call based on the user query. It always tries `rag_search` first; if relevant results are found in the knowledge base, the answer is based exclusively on those results. `web_fetch` and `web_search` are used as fallbacks when external or up-to-date information is needed. If no tool can provide an answer, the agent explicitly states this. Conversation history is automatically managed to stay within the configured context window: when history approaches the token threshold it is compacted by the built-in summarizer, which replaces older turns with a concise summary while keeping the most recent ones verbatim.
 
-**Indexing via chat** — the `/index` command (alias `/i`) replaces the separate indexer CLI subcommand. Simply type `/index <path|url>` in the REPL to index documents directly.
+**Indexing via chat** — the `/index` command (alias `/i`) allows direct document indexing from the REPL. Simply type `/index <path|url>` to add documents to your knowledge base.
 
 **Fetch content** — the `/fetch` command (alias `/f`) retrieves content from URLs, cleans HTML, and displays it in the terminal (using `less` if available) or saves it to a file.
-
-**Search tool call limit** — to prevent infinite loops, each user request is limited to a maximum number of search-related tool calls (`rag_search` + `web_fetch`). By default, the limit is 10 calls per request. When the limit is reached, an error message is sent to the LLM.
 
 **HTML Preprocessing** — web pages fetched via `web_fetch` are cleaned of ads, navigation, cookie banners, and other noise, then processed through readability extraction and converted to Markdown before being indexed or returned to the agent. Confluence URLs are also handled via the `confluence` block to fetch pages by ID, JIRA issues via the `jira` block, GitHub repositories via the `github` block to fetch repository information, files, and directory trees, and GitLab merge requests via the `gitlab` block to fetch MR details and file changes.
 
 ## Requirements
 
 - Go 1.27.0
-- [Qdrant](https://qdrant.tech/) — vector database
 - An API key for any OpenAI-compatible provider (for the chat model, embedding model, and optionally for web page preprocessing)
 
 ## Quick start
 
-### 1. Start Qdrant
+### 1. Installation
+
+#### Option 1: Download pre-built binary
+
+Download the latest release for your platform and architecture from [GitHub Releases](https://github.com/wmentor/go-magnetar/releases/). Extract the archive and run the binary directly.
+
+#### Option 2: Install via go install
+
+The easiest way to install go-magnetar is via `go install`:
 
 ```bash
-docker run -p 6333:6333 -p 6334:6334 qdrant/qdrant
+go install github.com/wmentor/go-magnetar/cmd/go-magnetar@v1.2.0
 ```
 
-### 2. Build the binary
+The binary will be placed in your `$GOPATH/bin` or `$GOBIN` directory.
+
+#### Option 3: Build from source
+
+Clone the repository and build manually:
 
 ```bash
-make build
-```
-
-The binary will be placed at `bin/go-magnetar`.
-
-### 3. Configure
-
-Configuration files are automatically created in `~/.go-magnetar/` on first run with default plugin configurations.
-
-Plugin configurations are disabled by default. To enable a plugin, set `enable: true` in its configuration file.
-
-See [docs/configuration.md](./docs/configuration.md) for complete configuration options.
-
-### 4. Index your documents
-
-```bash
-./bin/go-magnetar
-> /index docs/guide.md or docs/report.odt
-
-# From URL
-> /index https://example.com/article
-
-# From Confluence URL (standard or short link)
-> /index https://your-domain.atlassian.net/wiki/spaces/SPACE/pages/123456
-
-# From JIRA issue URL
-> /index https://jira.example.com/browse/PROJECT-123
-
-# From GitLab merge request URL
-> /index https://gitlab.example.com/namespace/project/-/merge_requests/123
-
-# From GitHub URL (repository, file, or tree)
-> /index https://github.com/owner/repo
-```
-
-### 5. Fetch content from URLs
-
-The `/fetch` command retrieves content from URLs, cleans HTML, and displays it in the terminal:
-
-```bash
-./bin/go-magnetar
-> /fetch https://example.com/article
-
-# Save to file
-> /fetch https://example.com/article output.md
-```
-
-### 6. Ask questions
-
-```bash
-./bin/go-magnetar
-```
-
-```
-> What is go-magnetar?
-go-magnetar is a RAG-based knowledge base tool...
-
-> What commands does it support?
-It supports the /index and /fetch commands and chat commands like /help, /exit...
-
-> ^D
-```
-
-## Installation
-
-```bash
-git clone https://github.com/wmentor/go-magnetar
+git clone https://github.com/wmentor/go-magnetar.git
 cd go-magnetar
 make build
 ```
 
-or
+The binary will be placed at `${HOME}/.local/bin/go-magnetar`.
+
+### 2. Configure
+
+Configuration files are automatically created in `~/.go-magnetar/` on first run with default plugin configurations.
+
+Plugin configurations are disabled by default. To enable a plugin (e.g., rag), set `enable: true` in its configuration file.
+
+See [docs/configuration.md](./docs/configuration.md) for complete configuration options.
+
+### 3. Ask questions
 
 ```bash
-go install github.com/wmentor/go-magnetar/cmd/go-magnetar
+./bin/go-magnetar
 ```
 
-## Command history
-
-The chat agent maintains command history in `~/.go-magnetar-history.json`. Use **↑/↓** arrows to navigate through previous commands. History is persisted across sessions and limited to 200 entries.
-
-
+This opens an interactive chat session with the AI agent. Enter your questions or chat commands to interact with the agent.
 
 ## Commands
 
@@ -143,48 +92,6 @@ go-magnetar
 ```
 
 Run the interactive agent REPL. Press `Ctrl+D` to exit.
-
-#### Chat commands
-
-See [docs/chat_command.md](./docs/chat_command.md) for complete documentation on chat commands.
-
-#### Text preprocessing
-
-See [docs/preprocessor.md](./docs/preprocessor.md) for a complete reference on text preprocessors and available placeholders.
-
-#### Command history
-
-The REPL supports command history navigation with arrow keys:
-- **↑** — previous command
-- **↓** — next command
-
-History is persistently stored in `~/.go-magnetar-history.json` and limited to 200 entries.
-
-## Makefile
-
-```bash
-make build      # compile -> bin/go-magnetar
-make clean      # remove bin/
-make run-agent  # build and run the agent with configs/config.yaml
-make lint       # go vet ./...
-make tidy       # go mod tidy
-```
-
-## Architecture
-
-See [docs/architecture.md](./docs/architecture.md) for complete architecture documentation.
-
-## Logging
-
-Set `verbose: true` in the config for verbose output.
-
-## Dependencies
-
-See [docs/dependencies.md](./docs/dependencies.md) for a complete list of dependencies.
-
-## Security restrictions
-
-See [docs/security.md](./docs/security.md) for complete security information.
 
 ## License
 

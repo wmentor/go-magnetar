@@ -33,3 +33,4 @@ test:
 install: build
 	mkdir -p ${HOME}/.local/bin
 	mv bin/go-magnetar ${HOME}/.local/bin/
+

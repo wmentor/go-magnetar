@@ -56,7 +56,28 @@ Commands are entered in the REPL and always start with `/`:
 
 ## Command History
 
-Use **↑/↓** arrows to navigate through previously entered commands. History is persisted in `~/.go-magnetar-history.json` and limited to 200 entries.
+The chat agent maintains command history in `~/.go-magnetar-history.json`. Use **↑/↓** arrows to navigate through previously entered commands.
+
+### History Storage
+
+- **Location**: `~/.go-magnetar-history.json`
+- **Format**: JSON lines file (one command per line)
+- **Limit**: 200 entries (oldest entries are removed when limit is exceeded)
+
+### Usage
+
+- **↑** — navigate to previous command
+- **↓** — navigate to next command
+
+### Example
+
+```
+> ./bin/go-magnetar
+> /index docs/guide.md
+Indexed 15 chunks from docs/guide.md
+> /fetch https://example.com/article
+> # Press ↑ to see previous commands
+```
 
 ## Command Execution Flow
 
