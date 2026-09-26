@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: ❓ Questions
+    url: https://github.com/wmentor/go-magnetar/discussions
+    about: Ask questions here
+  - name: 📚 Documentation
+    url: https://github.com/wmentor/go-magnetar/tree/master/docs
+    about: Check our documentation first
