@@ -1,156 +1,226 @@
-# Changelog
+# CHANGELOG
 
-All notable changes to go-magnetar will be documented in this file.
+## [1.3.0] - 2026-09-26
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+### 🚀 Features
 
-## [Unreleased]
+- Add /profile chat command for profile switching
+- Add full HTML support across all tools (file_read, indexing, web_fetch)
+- Web_search tool integration
 
-## [v1.2.0] - 2026-09-21
+### 🐛 Bug Fixes
 
-### Added
+- *(profile)* Reconfigure OpenAI client when switching profiles (#47)
+- Fix release script
 
-- **Config versioning and include directive** — support for version field and file inclusion in config files (#37)
-- **Multi-profile configuration** — organize configs with `profiles.{profile_name}.` prefix (#37)
-- **Template-based config auto-creation** — automatically create `~/.go-magnetar/` directory on first run (#37)
-- **Clipboard copy command** — `/copy` chat command (aliases: `/c`) to copy last assistant answer to clipboard (#34)
-- **Mockery support** — add `.mockery.yml` for mock generation (#34)
-- **Release documentation** — add `docs/release.md` documenting GitHub Flow release process (#34)
+### ⚙️ Miscellaneous Tasks
 
-### Changed
+- *(templates)* Bug and feature request templates
+- Fix changelog script
 
-- **CLI simplification** — remove `-c/--config` global flag; config always loaded from `~/.go-magnetar/config.yml` (#37)
-- **Plugin enable flags** — change from `disable` to `enable` (rag, github, gitlab, jira, confluence, guard, ssh, webfetch) (#37)
-- **Plugin system refactoring** — remove `CLIPlugin` interface and kong integration; use unified plugin system (#34)
-- **Config flag semantics** — `--config` now specifies config file path (defaults to `~/.go-magnetar/config.yml`) (#37)
+### 💼 Other
 
-### Fixed
+- *(release)* Using git cliff to generate CHANGELOG.md and a release page
+- *(release)* Build release script
+## [1.2.0] - 2026-09-21
 
-- **Guard tool security check** — fix inverted condition in security check logic (#37)
+### 🚀 Features
 
-### Removed
+- Add clipboard copy command and refactor plugin system (#34)
+- Add config versioning, include directive support, fix rag indexer, change config location (#37)
 
-- **configs/config.yaml** — replaced by template-based auto-creation (#37)
+### 💼 Other
 
-## [v1.1.0] - 2026-09-18
+- Bump external dependencies
+## [1.1.0] - 2026-09-18
 
-### Added
+### 🚀 Features
 
-- **Automated releases via goreleaser** — GitHub Actions workflow for CI/CD
-- **SSH tool** — execute remote commands via SSH with key/password/agent auth
-- **Spreadsheet support** — CSV, XLSX, and TSV file reading
-- **Unified codec system** — single package for all file format readers
+- Add CSV and XLSX file support
+- Add SSH tool with optional user and dir parameters
+- Add TSV file support in file reading
 
-### Changed
+### 🚜 Refactor
 
-- **Security by default** — all external integrations disabled unless explicitly enabled
+- Disable external integrations by default in config
 
-## [v1.0.0] - 2026-09-13
+### 💼 Other
 
-### Added
+- Integrating a build project via goreleaser when submitting a tag (#30)
+## [1.0.0] - 2026-09-13
 
-- **Session management** — load/resume conversations with `--session` and `/save`
-- **Security features** — GitHub security advisories, CVE lookup
-- **GitHub integration** — fetch milestones and issues
-- **Enterprise file formats** — DOCX, PDF, ODT, PPTX support
-- **Config enhancements** — environment variables, profile-based settings
-- **Chat commands** — `/index`, `/fetch`, `/idxtab`, `/readonly` with aliases
-- **Tool categorization** — search vs lookup tools with loop protection
+### 🚀 Features
 
-### Changed
+- Add -p/--profile flag to override configuration profile
+- *(config)* Add $file:filename support for file content substitution
+- Add GitHub Issues support to web_fetch and github_repo tool
+- Add GitHub Milestones support to web_fetch and github_milestone tool
+- Add .pptx support via internal/common package
+- Add environment variable support to text preprocessor
+- *(github)* Add security advisory support
+- Add CVE lookup tool and update agent tools documentation
+- Add session loading support and refactor chat commands documentation
 
-- **Unified CLI** — single `agent` command replacing separate indexer/agent subcommands
-- **Go 1.27.0** — minimum version requirement
+### 🐛 Bug Fixes
 
-### Removed
+- Potential infinite loop
 
-- **Indexer CLI** — functionality merged into `/index` chat command
+### 🚜 Refactor
 
-## [v0.1.6] - 2026-09-01
+- Replace strings.Builder.WriteString with fmt.Fprintf for better efficiency
+- Categorize tools as search vs lookup and improve loop protection
+## [0.1.6] - 2026-09-01
 
-### Added
+### 🚀 Features
 
-- **Config profiles** — structured configuration via `profiles` block
-- **Non-interactive mode** — `-f/--file` flag for scripting
+- Add -f/--file flag for non-interactive mode
+- Add llm.reasoning_effort configuration parameter
+- *(config)* Profile params
+- Implement profile-based configuration with ProfileParam* helpers
+- Add environment variable substitution support ($env:VAR_NAME)
 
-### Changed
+### 🐛 Bug Fixes
 
-- **Default chunking** — optimized to 2048 runes with 256 overlap
-- **Go 1.27.0** — minimum version requirement
+- Bump go 1.27.0 . bump dependencies. go fix
 
-## [v0.1.5] - 2026-07-29
+### 📚 Documentation
 
-### Added
+- Add docs/configuration.md
+- Update README.md and docs/user_manual.md
+## [0.1.5] - 2026-07-29
 
-- **Confluence/JIRA integration** — fetch issues and pages directly
-- **Parallel tool calling** — concurrent LLM tool execution
-- **Multiple preprocessor placeholders** — `{{file:filename}}` expansion
+### 🚀 Features
 
-### Changed
+- Add DOCX file support to file_read tool, indexer, and preprocessor
+- Add PDF support to file_read tool, indexer, and preprocessor
+- Add ODT file support to file_read, indexer, and preprocessor
+- Add ODT file support to documentation
+## [0.1.4] - 2026-07-06
 
-- **Security hardening** — exec tool refactoring with blocklist
+### 🚀 Features
 
-### Fixed
+- *(generic)* Add search_replace tool for regex-based file text replacement
+- Refactor exec tool with security restrictions and stdin support
+- Add security guard for exec commands with read-only mode support
+- Add security hardening improvements
+- Add /fetch chat command for URL content retrieval
+- Add guard configuration options (disable, ask)
 
-- **Build process** — `go fix`/`go fmt` integration
+### 🐛 Bug Fixes
 
-## [v0.1.4] - 2026-07-06
+- Handle float64 args in file_read tool
 
-### Added
+### 📚 Documentation
 
-- **Language parameter** — configurable agent response language
-- **LLM parameters** — temperature and top_p support
-- **/fetch command** — URL content retrieval
-- **JIRA Epic support** — fetch child issues
+- Add warning about stdin input in AGENTS.md
 
-### Changed
+### 🚜 Refactor
 
-- **Security** — comprehensive command blocklist and read-only mode
+- Remove ask tool from codebase
 
-### Removed
+### 🛡️ Security
 
-- **Ask tool** and **search_replace** — replaced by unified guard agent
+- Harden command execution with root prevention and expanded guard
 
-## [v0.1.3] - 2026-06-30
+### 💼 Other
 
-### Added
+- Add support for fetching child issues in Epic tasks
+- Add allowed system commands
+- Type cast
+## [0.1.3] - 2026-06-30
 
-- **GitHub API integration** — repo/file/tree tools with URL detection
+### 🚀 Features
 
-### Changed
+- Add jira_task_search tool with JQL support and pagination
+- Add GitHub integration with repo/file/tree tools
 
-- **Web fetch refactoring** — cleaner separation between handlers
+### 🚜 Refactor
 
-## [v0.1.2] - 2026-06-28
+- Replace printer.Debug with printer.ToolCall in gitlab and rag
+- Replace printer.Info with printer.Print for indexed file/URL logging
 
-### Added
+### 💼 Other
 
-- **GitLab MR fetching** — pull request changes via API
-- **JIRA plugin** — issue fetching via REST API
+- Replace tput with golang.org/x/term for width detection
+## [0.1.2] - 2026-06-28
 
-### Changed
+### 🚀 Features
 
-- **Config refactoring** — koanf-based configuration
-- **Unified logging** — single output format across the codebase
+- Add GitLab merge request fetching support
+- Add version command with enhanced display and timeout adjustment
+- Add ask tool plugin for clarifying user questions
+- Add JIRA plugin with jira_task_get LLM tool
 
-### Removed
+### 🚜 Refactor
 
-- **CLI subcommands** — indexer and agent merged
+- *(config)* Rewrite Config to use koanf.Koanf directly
+- Replace slog with internal/printer package
 
-## [v0.1.1] - 2026-06-23
+### ⚙️ Miscellaneous Tasks
 
-### Added
+- Update documentation to reflect codebase changes
+## [0.1.1] - 2026-06-25
 
-- **Security restrictions** — blocklist for dangerous commands
-- **Read-only mode** — `/readonly` toggle
-- **Unified /index** — document indexing from REPL
+### 🚀 Features
 
-## [v0.1.0] - 2026-06-23
+- Add /readonly chat command
+- Add read-only mode to prevent file modifications
+- *(web)* Add JIRA issue support to web_fetch tool
+- *(generic)* Add line-based file_read with limit/offset support
+- *(generic)* Add system_grep tool with safety checks and /less availability check
+- Add /idxtab command for batch indexing from JSON lines file
+- *(system_exec)* Add system_exec tool with mode-based command permissions
+- Add system_exec with mode-based permissions and system_date tool
 
-- Initial release with RAG, chat agent, web fetching, and plugin architecture
+### 📚 Documentation
 
-[Unreleased]: https://github.com/wmentor/go-magnetar/compare/v1.1.0...HEAD
-[v1.2.0]: https://github.com/wmentor/go-magnetar/compare/v1.1.0...HEAD
-[v1.1.0]: https://github.com/wmentor/go-magnetar/compare/v1.0.0...HEAD
-[v1.0.0]: https://github.com/wmentor/go-magnetar/releases/tag/v1.0.0
+- Update AGENTS.md, README.md, docs/user_manual.md
+
+### 🚜 Refactor
+
+- *(chat)* Replace inline history with internal/history package
+- *(cli)* Replace subcommands with /index chat command
+
+### 💼 Other
+
+- Pass State by pointer instead of by value
+- Add install target and improve version command
+- Add /less command to view last answer with less
+- Optimize New() for empty filename and add Records() method
+- Add tests for Storage with t.Parallel
+## [0.1.0] - 2026-06-23
+
+### 🚀 Features
+
+- Add Confluence page fetching support to web_fetch tool
+## [0.0.3] - 2026-06-22
+
+### 🚜 Refactor
+
+- Plugin architecture and search enhancements
+## [0.0.2] - 2026-06-21
+
+### 🚀 Features
+
+- *(indexer)* Add -m/--message flag to prepend custom text to chunks
+- Add maximum search tool call limit to prevent infinite loops
+- *(chat)* Add command history navigation with arrow keys
+
+### 📚 Documentation
+
+- Translate all docs to English and add webfetch config description
+
+### ⚙️ Miscellaneous Tasks
+
+- *(indexer)* Remove directory indexing mode, keep only file and URL
+## [0.0.1] - 2026-06-20
+
+### 🚀 Features
+
+- Add /new command to start a new session and clear context
+- Add file_write tool to generic tools
+- Add file_exists tool and load AGENTS.md into system prompt
+
+### 🐛 Bug Fixes
+
+- Allow file_list extension filter without leading dot
