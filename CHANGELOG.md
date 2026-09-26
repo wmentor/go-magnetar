@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## [1.3.0] - 2026-09-26
+
+### 🚀 Features
+
+- Add /profile chat command for profile switching
+- Add full HTML support across all tools (file_read, indexing, web_fetch)
+- Web_search tool integration
+
+### 🐛 Bug Fixes
+
+- *(profile)* Reconfigure OpenAI client when switching profiles (#47)
+- Fix release script
+
+### ⚙️ Miscellaneous Tasks
+
+- *(templates)* Bug and feature request templates
+- Fix changelog script
+
+### 💼 Other
+
+- *(release)* Using git cliff to generate CHANGELOG.md and a release page
+- *(release)* Build release script
 ## [1.2.0] - 2026-09-21
 
 ### 🚀 Features
