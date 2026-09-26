@@ -9,7 +9,7 @@ permissions:
   contents: write
 
 jobs:
-  goreleaser:
+  release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -21,16 +21,22 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.27.0'
+          cache: true
 
-      - name: Prepare Release Notes
-        run: |
-          git for-each-ref --format='%(contents)' "refs/tags/${{ github.ref_name }}" > /tmp/release-notes.md
+      - name: Generate Changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --latest
+        env:
+          OUTPUT: /tmp/release-notes.md
+          RUST_LOG: off
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
           distribution: goreleaser
-          version: '~> v2'
+          version: latest
           args: release --clean --release-notes=/tmp/release-notes.md
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
