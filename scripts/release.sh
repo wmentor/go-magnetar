@@ -8,7 +8,7 @@ command -v git-cliff >/dev/null 2>&1 || { echo "Error: git-cliff is required."; 
 echo "work directory: $(pwd)"
 echo "check uncommited changes"
 
-git diff --quiet HEAD || { echo "found local chnages" && exit 1 }
+git diff --quiet HEAD || { echo "found local chnages" ; exit 1; }
 
 export NEXT_TAG=$(git cliff --bumped-version 2> /dev/null)
 
