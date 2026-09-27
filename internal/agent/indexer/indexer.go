@@ -9,6 +9,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/chunk"
 	"github.com/wmentor/go-magnetar/internal/codec"
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
 	"github.com/wmentor/go-magnetar/internal/tools/web"
@@ -22,13 +23,13 @@ type Indexer struct {
 }
 
 // New creates a new Indexer instance.
-func New(cfg *config.Config, root *os.Root) (*Indexer, error) {
+func New(cfg *config.Config, root *os.Root, state *plugin.State) (*Indexer, error) {
 	ragTools, err := rag.New(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("indexer: failed to initialise RAG tools: %w", err)
 	}
 
-	webTools, err := web.New(cfg, root)
+	webTools, err := web.New(cfg, root, state)
 	if err != nil {
 		return nil, fmt.Errorf("indexer: failed to initialise web tools: %w", err)
 	}

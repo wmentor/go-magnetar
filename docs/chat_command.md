@@ -17,6 +17,45 @@ go-magnetar provides several built-in chat commands accessible from the interact
 | `/copy` | `/c` | Copy the last assistant answer to clipboard |
 | `/readonly` | — | Toggle read-only mode (blocks all modification operations) |
 | `/fetch` | `/f` | Fetch content from a URL, optionally save to file |
+| `/confluence.edit` | — | Edit a Confluence page using Markdown content from a file |
+
+## /confluence.edit Command
+
+Edit a Confluence page by uploading Markdown content:
+
+```
+> /confluence.edit <url> <markdown_file>
+```
+
+**Parameters:**
+- `url` — Confluence page URL (supports full or short links)
+- `markdown_file` — Path to local Markdown file containing the new page content
+
+**Example:**
+```
+> /confluence.edit https://confluence.example.com/spaces/TEAM/pages/123456 /path/to/content.md
+```
+
+The command:
+1. Extracts page ID and space key from the URL
+2. Reads Markdown content from the specified file
+3. Converts Markdown to HTML for Confluence storage format
+4. Updates the page via Confluence REST API
+5. Increments page version number automatically
+
+**Configuration:**
+
+Enable Confluence editing in your config:
+
+```yaml
+confluence:
+  enable: true
+  base_url: https://confluence.example.com
+  api_key: $env:CONFLUENCE_API_KEY
+```
+
+See [docs/security.md](./security.md) for Confluence security considerations.
+
 | `/session.save` | — | Save current conversation session to a file |
 | `/profile` | — | Show current profile or switch to a different profile |
 

@@ -33,7 +33,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	}
 	defer root.Close()
 
-	p.idx, err = indexer.New(s.Config, root)
+	p.idx, err = indexer.New(s.Config, root, s)
 	if err != nil {
 		return fmt.Errorf("indexcmd: failed to create indexer: %w", err)
 	}
