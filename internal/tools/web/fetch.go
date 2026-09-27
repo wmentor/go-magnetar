@@ -3,8 +3,6 @@ package web
 import (
 	"context"
 	"crypto/tls"
-	"encoding/base64"
-	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,6 +20,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/codec/html"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/printer"
+	"github.com/wmentor/go-magnetar/internal/tools/confluence"
 	"github.com/wmentor/go-magnetar/internal/tools/github"
 	"github.com/wmentor/go-magnetar/internal/tools/gitlab"
 	"github.com/wmentor/go-magnetar/internal/tools/jira"
@@ -102,10 +101,11 @@ func (w *WebTools) webFetch(url string, isFetch bool) (string, error) {
 
 	if w.cfg.String("confluence.base_url") != "" && w.cfg.Bool("confluence.enable") {
 		if strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/spaces/") || strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/x/") || strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/p/") {
-			pageID, err := extractPageIDFromConfluenceURL(url)
+			pageID, err := confluence.ExtractPageIDURL(url)
 			if err == nil && pageID != "" {
 				isShortID := strings.Contains(url, "/x/") || strings.Contains(url, "/p/")
-				return w.fetchConfluencePage(pageID, isShortID)
+				confluencePlugin := confluence.New(w.cfg)
+				return confluencePlugin.FetchPage(pageID, isShortID)
 			}
 		}
 	}
@@ -241,186 +241,6 @@ func extractIssueKeyFromJIRAURL(url string) (string, error) {
 	}
 
 	return "", fmt.Errorf("not a JIRA issue URL")
-}
-
-// extractPageIDFromConfluenceURL parses a Confluence URL and returns the page ID.
-func extractPageIDFromConfluenceURL(url string) (string, error) {
-	// Handle short link: .../x/{page_id}
-	if _, after, ok := strings.Cut(url, "/x/"); ok {
-		idPart := after
-		if idx2 := strings.Index(idPart, "/"); idx2 != -1 {
-			idPart = idPart[:idx2]
-		}
-		if idx2 := strings.Index(idPart, "?"); idx2 != -1 {
-			idPart = idPart[:idx2]
-		}
-		if idx2 := strings.Index(idPart, "#"); idx2 != -1 {
-			idPart = idPart[:idx2]
-		}
-		if idPart == "" {
-			return "", fmt.Errorf("page ID is empty")
-		}
-		return idPart, nil
-	}
-
-	// Handle share link: .../p/{page_id}
-	if _, after, ok := strings.Cut(url, "/p/"); ok {
-		idPart := after
-		if idx2 := strings.Index(idPart, "/"); idx2 != -1 {
-			idPart = idPart[:idx2]
-		}
-		if idx2 := strings.Index(idPart, "?"); idx2 != -1 {
-			idPart = idPart[:idx2]
-		}
-		if idx2 := strings.Index(idPart, "#"); idx2 != -1 {
-			idPart = idPart[:idx2]
-		}
-		if idPart == "" {
-			return "", fmt.Errorf("page ID is empty")
-		}
-		return idPart, nil
-	}
-
-	// Handle standard URL: .../spaces/{space}/pages/{page_id}[/{suffix}]
-	parts := strings.Split(url, "/pages/")
-	if len(parts) != 2 {
-		return "", fmt.Errorf("not a Confluence page URL")
-	}
-
-	idPart := parts[1]
-	if idx := strings.Index(idPart, "/"); idx != -1 {
-		idPart = idPart[:idx]
-	}
-	if idx := strings.Index(idPart, "?"); idx != -1 {
-		idPart = idPart[:idx]
-	}
-	if idx := strings.Index(idPart, "#"); idx != -1 {
-		idPart = idPart[:idx]
-	}
-
-	if idPart == "" {
-		return "", fmt.Errorf("page ID is empty")
-	}
-
-	return idPart, nil
-}
-
-// decodeShortPageID decodes a Confluence short page ID (e.g., "A4HhC") to numeric ID using Base64.
-// Confluence pads the code to 11 chars with 'A' and adds '=' for padding, then decodes to 32-bit LE integer.
-func decodeShortPageID(shortCode string) (int64, error) {
-	// 1. Pad to 11 characters with 'A' and add '='
-	paddedCode := shortCode
-	if len(paddedCode) < 11 {
-		paddedCode = paddedCode + strings.Repeat("A", 11-len(paddedCode))
-	}
-	paddedCode += "="
-
-	// 2. Decode Base64 to bytes
-	decoded, err := base64.StdEncoding.DecodeString(paddedCode)
-	if err != nil {
-		return 0, fmt.Errorf("web_fetch: failed to decode short code %q: %w", shortCode, err)
-	}
-
-	// 3. Unpack 32-bit Little-Endian integer using binary package
-	if len(decoded) < 4 {
-		return 0, fmt.Errorf("web_fetch: decoded data too short for page ID")
-	}
-	pageID := binary.LittleEndian.Uint32(decoded[:4])
-
-	return int64(pageID), nil
-}
-
-// resolveShortPageID resolves a short Confluence page code (e.g., AgA5) to numeric ID.
-func (w *WebTools) resolveShortPageID(shortCode string) (string, error) {
-	printer.ToolCall(printer.IconSearch, "web_fetch: resolving short Confluence page ID", "short_code", shortCode)
-
-	pageID, err := decodeShortPageID(shortCode)
-	if err != nil {
-		return "", err
-	}
-
-	printer.ToolCall(printer.IconSearch, "web_fetch: decoded short page ID", "short", shortCode, "numeric", pageID)
-	return fmt.Sprintf("%d", pageID), nil
-}
-
-// fetchConfluencePage fetches a Confluence page by ID and returns its content in Markdown.
-func (w *WebTools) fetchConfluencePage(pageID string, isShortID bool) (string, error) {
-	printer.ToolCall(printer.IconSearch, "web_fetch: detected Confluence page", "page_id", pageID, "is_short_id", isShortID)
-
-	if isShortID {
-		numID, err := w.resolveShortPageID(pageID)
-		if err == nil {
-			pageID = numID
-			printer.ToolCall(printer.IconSearch, "web_fetch: resolved short page ID", "short", pageID, "numeric", numID)
-		} else {
-			printer.ToolCall(printer.IconError, "web_fetch: failed to resolve short page ID, trying as numeric", "page_id", pageID, "err", err)
-		}
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
-	defer cancel()
-
-	tr := &http.Transport{
-		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
-		DisableKeepAlives: true,
-	}
-
-	client := &http.Client{
-		Timeout:   defaultTimeout,
-		Transport: tr,
-	}
-
-	apiURL := fmt.Sprintf("%s/rest/api/content/%s?expand=body.storage,version.history", w.cfg.String("confluence.base_url"), pageID)
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
-	if err != nil {
-		return "", fmt.Errorf("web_fetch: failed to create Confluence request for page %q: %w", pageID, err)
-	}
-
-	req.Header.Set("Authorization", "Bearer "+w.cfg.String("confluence.api_key"))
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("web_fetch: failed to fetch Confluence page %q: %w", pageID, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("web_fetch: Confluence page %q returned status %d", pageID, resp.StatusCode)
-	}
-
-	contentType := resp.Header.Get("Content-Type")
-	utf8, err1 := charset.NewReader(resp.Body, contentType)
-	if err1 != nil {
-		return "", fmt.Errorf("web_fetch: decode Confluence page %q error: %w", pageID, err1)
-	}
-
-	body, err := io.ReadAll(utf8)
-	if err != nil {
-		return "", fmt.Errorf("web_fetch: failed to read Confluence response body: %w", err)
-	}
-
-	var result struct {
-		ID      string `json:"id"`
-		Title   string `json:"title"`
-		Version struct {
-			Number  int    `json:"number"`
-			Author  string `json:"author"`
-			Updated string `json:"when"`
-		} `json:"version"`
-		Body struct {
-			Storage struct {
-				Value string `json:"value"`
-			} `json:"storage"`
-		} `json:"body"`
-	}
-
-	if err := json.Unmarshal(body, &result); err != nil {
-		return "", fmt.Errorf("web_fetch: failed to parse Confluence response: %w", err)
-	}
-
-	return fmt.Sprintf("Title: %s\nVersion: %d\nAuthor: %s\nUpdated: %s\nBody:\n%s", result.Title, result.Version.Number, result.Version.Author, result.Version.Updated, result.Body.Storage.Value), nil
 }
 
 // Definition returns the OpenAI tool schema for web_fetch.
