@@ -20,6 +20,7 @@ go-magnetar provides the following tools for the chat agent:
 | `github_tree` | `(repo: string, branch: string, path: string) -> string` | Lists repository contents at root or specified path |
 | `github_issue` | `(repo: string, issue: string) -> string` | Fetches a GitHub issue and its comments, returns issue details in Markdown format |
 | `github_milestone` | `(repo: string, milestone: string) -> string` | Fetches a GitHub milestone and returns its details in Markdown format |
+| `confluence_page_edit` | `(page_id: string, markdown: string) -> string` | Edits a Confluence page by converting Markdown to HTML and updating via REST API |
 
 ## Search strategy
 

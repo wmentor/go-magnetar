@@ -19,6 +19,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/codec/html"
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools/confluence"
 	"github.com/wmentor/go-magnetar/internal/tools/github"
@@ -33,13 +34,15 @@ const (
 
 // WebTools provides web fetching operations as LLM tools.
 type WebTools struct {
-	cfg *config.Config
+	cfg   *config.Config
+	state *plugin.State
 }
 
 // New creates a new WebTools instance.
-func New(cfg *config.Config, root *os.Root) (*WebTools, error) {
+func New(cfg *config.Config, root *os.Root, state *plugin.State) (*WebTools, error) {
 	return &WebTools{
-		cfg: cfg,
+		cfg:   cfg,
+		state: state,
 	}, nil
 }
 
@@ -104,7 +107,7 @@ func (w *WebTools) webFetch(url string, isFetch bool) (string, error) {
 			pageID, err := confluence.ExtractPageIDURL(url)
 			if err == nil && pageID != "" {
 				isShortID := strings.Contains(url, "/x/") || strings.Contains(url, "/p/")
-				confluencePlugin := confluence.New(w.cfg)
+				confluencePlugin := confluence.New(w.cfg, w.state)
 				return confluencePlugin.FetchPage(pageID, isShortID)
 			}
 		}

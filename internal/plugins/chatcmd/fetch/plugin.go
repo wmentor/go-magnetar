@@ -22,7 +22,7 @@ type Plugin struct {
 }
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
-	webTools, err := web.New(s.Config, s.Root)
+	webTools, err := web.New(s.Config, s.Root, s)
 	if err != nil {
 		return fmt.Errorf("indexer: failed to initialise web tools: %w", err)
 	}

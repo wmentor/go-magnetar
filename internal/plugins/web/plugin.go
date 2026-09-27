@@ -58,7 +58,7 @@ func (p *Plugin) get() (*web.WebTools, error) {
 	if p.tools != nil && p.root == root {
 		return p.tools, nil
 	}
-	t, err := web.New(p.state.Config, root)
+	t, err := web.New(p.state.Config, root, p.state)
 	if err != nil {
 		return nil, err
 	}

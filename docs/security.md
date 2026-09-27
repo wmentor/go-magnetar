@@ -17,6 +17,7 @@ When the system is in read-only mode, **NO modification operations are allowed**
 
 The read-only mode can be toggled via the `/readonly` chat command. In this mode:
 - File writes (`file_write`) are blocked
+- Tool operations that modify external systems (e.g., `confluence_page_edit`) are blocked
 - Command execution that modifies files or system state is blocked
 - Only read-only operations are permitted
 
