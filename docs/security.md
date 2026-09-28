@@ -13,15 +13,28 @@ All commands executed via the `exec` tool are analyzed by a built-in security gu
 
 When the system is in read-only mode, **NO modification operations are allowed** — all such commands are automatically rejected.
 
-## Read-only mode
+## Extra protection
 
-The read-only mode can be toggled via the `/readonly` chat command. In this mode:
-- File writes (`file_write`) are blocked
-- Tool operations that modify external systems (e.g., `confluence_page_edit`) are blocked
-- Command execution that modifies files or system state is blocked
-- Only read-only operations are permitted
+For enhanced security, certain plugins provide additional protection mechanisms beyond the global read-only mode:
 
-No output is ever displayed from blocked commands — they return an error message instead.
+### Confluence plugin: read-only mode
+
+The Confluence plugin supports a `readonly` configuration parameter that completely disables Confluence page editing:
+
+```yaml
+confluence:
+  enable: true
+  readonly: true  # Disables confluence_page_edit tool registration
+  base_url: https://your-domain.atlassian.net
+  api_key: ""  # API key not required in read-only mode
+```
+
+When `confluence.readonly` is set to `true`:
+- The `confluence_page_edit` tool is **not registered**, making it impossible for the agent to invoke it
+- This setting persists across sessions and cannot be overridden at runtime
+- Useful for production systems or audit scenarios where Confluence editing should never be allowed
+
+Note: If the Confluence plugin is enabled without the `readonly` flag, the API key is required for the `confluence_page_edit` tool to function.
 
 ## Root user prevention
 

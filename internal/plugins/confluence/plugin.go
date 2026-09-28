@@ -31,12 +31,14 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		return err
 	}
 
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: confluence.StaticDefinitionEdit,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return tools.Dispatch("confluence_page_edit", args), nil
-		},
-	})
+	if !s.Config.Bool("confluence.readonly") {
+		hub.RegisterTool(plugin.LLMTool{
+			Definition: confluence.StaticDefinitionEdit,
+			Execute: func(_ context.Context, args string) (string, error) {
+				return tools.Dispatch("confluence_page_edit", args), nil
+			},
+		})
+	}
 
 	return nil
 }
