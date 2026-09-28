@@ -215,7 +215,7 @@ func decodeShortPageID(shortCode string) (int64, error) {
 // EditPage edits a Confluence page by ID with Markdown content.
 func (c *ConfluenceTools) EditPage(pageID string, markdownContent string) (string, error) {
 	printer.ToolCall(printer.IconSave, "confluence_page_edit", "page_id", pageID)
-	if c.state.ReadOnly {
+	if c.state.ReadOnly || c.cfg.Bool("confluence.readonly") {
 		printer.ToolCall(printer.IconError, "confluence_page_edit: read-only mode", "page_id", pageID)
 		return "", errors.New("confluence_page_edit: forbidden read-only mode")
 	}

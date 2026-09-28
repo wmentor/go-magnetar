@@ -22,11 +22,13 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	tools := confluence.New(s.Config, s)
 	p.tools = tools
 
-	hub.RegisterChatCommand(plugin.ChatCommand{
-		Name:    "confluence.edit",
-		Help:    "Edit a Confluence page. Usage: /confluence.edit <url> <markdown_file>",
-		Execute: p.execute,
-	})
+	if s.Config.Bool("confluence.enable") && s.Config.String("confluence.base_url") != "" {
+		hub.RegisterChatCommand(plugin.ChatCommand{
+			Name:    "confluence.edit",
+			Help:    "Edit a Confluence page. Usage: /confluence.edit <url> <markdown_file>",
+			Execute: p.execute,
+		})
+	}
 
 	return nil
 }

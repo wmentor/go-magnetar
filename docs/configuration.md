@@ -85,6 +85,7 @@ All plugins are disabled by default. Enable a plugin by setting `enable: true`:
 | Key | Type | Description |
 |---|---|---|
 | `enable` | boolean | Enable/disable Confluence fetching (default: `false`) |
+| `readonly` | boolean | Read-only mode: disables page editing (default: `false`) |
 | `base_url` | string | Confluence base URL (e.g., `https://your-domain.atlassian.net`) |
 | `api_key` | string | Confluence API key |
 
