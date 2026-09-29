@@ -20,9 +20,10 @@ import (
 )
 
 type Globals struct {
-	File    string `short:"f" type:"path" help:"Input file"`
-	Profile string `short:"p" help:"Profile name to use"`
-	Session string `type:"path" help:"Load conversation session from file"`
+	File     string `short:"f" type:"path" help:"Input file"`
+	Profile  string `short:"p" help:"Profile name to use"`
+	Session  string `type:"path" help:"Load conversation session from file"`
+	ReadOnly bool   `long:"read-only" help:"Run in read-only mode"`
 }
 
 type cli struct {
@@ -65,7 +66,7 @@ func Execute() error {
 		printEnabledModules(cfg)
 	}
 
-	if err := plugin.InitAll(&plugin.State{Config: cfg}); err != nil {
+	if err := plugin.InitAll(&plugin.State{Config: cfg, ReadOnly: root.Globals.ReadOnly}); err != nil {
 		return err
 	}
 	defer plugin.Stop()
