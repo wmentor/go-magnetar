@@ -92,12 +92,13 @@ Beyond answering questions, the agent has access to tools it can call automatica
 | `file_write` | Write content to a file |
 | `exec` | Run shell commands (with a built-in safety guard) |
 | `system_grep` | Search file contents with grep |
-| `web_fetch` | Fetch a URL and return its content as Markdown |
+| `web_fetch` | Fetch a URL and return its content as Markdown (transparently handles Confluence, JIRA, GitHub, GitLab when corresponding plugins are enabled) |
 | `web_search` | Search the web and return results |
 | `rag_search` | Search your indexed knowledge base (when RAG is enabled) |
 | `ssh` | Execute commands on a remote server via SSH (when enabled) |
 | `cve` | Look up vulnerability info from the OSV database |
 | `github_*` | Read GitHub repos, files, issues, milestones |
+| `confluence_page_edit` | Edit a Confluence page by ID with Markdown content |
 
 The agent picks tools automatically based on your question. You don't need to specify which tool to use.
 
@@ -157,6 +158,8 @@ The agent will now search the knowledge base before answering any question.
 | `/stat` | — | Show context stats (tokens, messages, models) |
 | `/profile [name]` | — | Show or switch profile |
 | `/readonly` | — | Toggle read-only mode |
+| `/confluence.edit <page-id> <content>` | — | Edit a Confluence page by ID with Markdown content |
+| `/idxtab <file>` | — | Index multiple documents from a JSON lines file |
 | `/session.save <file>` | — | Save conversation to a JSON file |
 
 Use **↑/↓** arrow keys to navigate command history (stored in `~/.go-magnetar-history.json`).
@@ -192,6 +195,7 @@ See [docs/security.md](./docs/security.md) for details.
 | `-p <profile>` | Use a specific configuration profile |
 | `-f <file>` | Non-interactive mode: read input from file, print answer, exit |
 | `--session <file>` | Load a previously saved conversation session |
+| `--read-only` | Run in read-only mode (disable file writes and shell modifications) |
 
 ```bash
 # Non-interactive (scripting / batch)
@@ -202,6 +206,9 @@ go-magnetar --session session.json
 
 # Use a named profile
 go-magnetar -p production
+
+# Run in read-only mode
+go-magnetar --read-only
 ```
 
 > **Note:** In `-f` mode, chat commands (`/index`, `/fetch`, etc.) are not available. Text preprocessor placeholders like `{{date}}`, `{{uuid}}`, `{{file:path}}` are expanded.
