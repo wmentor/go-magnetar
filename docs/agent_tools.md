@@ -12,7 +12,7 @@ go-magnetar provides the following tools for the chat agent:
 | `system_date` | `() -> string` | Executes the date command to get the current system time |
 | `system_grep` | `(filename: string, pattern: string) -> string` | Executes system grep command with safe parameters: -n (always), -i (case-insensitive), -r (recursive), -E (extended regex) |
 | `rag_search` | `(query: string) -> string` | Returns top-N relevant fragments from Qdrant (N is set by `rag.search.limit`) |
-| `web_fetch` | `(url: string) -> string` | Fetches a web page and returns Markdown content (also fetches Confluence pages, JIRA issues, GitHub repositories/Issues/milestones, GitLab merge requests) |
+| `web_fetch` | `(url: string) -> string` | Fetches a web page and returns Markdown content (also fetches Confluence pages, JIRA issues, GitHub repositories/Issues/milestones, GitLab merge requests, RSS feeds). See [tool_web_fetch.md](./tool_web_fetch.md) for complete documentation |
 | `web_search` | `(query: string) -> string` | Execute web search and return results in Markdown format (performs web search and returns results as Markdown) |
 | `cve` | `(id: string) -> string` | Fetches vulnerability information from OSV database; supports all OSV database identifiers (CVE-, GO-, GHSA-, OSV-, GSD-, ALPINE-, and 50+ more). See [vulnerability_lookup.md](./vulnerability_lookup.md) for complete documentation |
 | `github_repo` | `(repo: string) -> string` | Fetches GitHub repository information and returns its details in Markdown format |

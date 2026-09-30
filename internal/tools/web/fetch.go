@@ -25,6 +25,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/tools/github"
 	"github.com/wmentor/go-magnetar/internal/tools/gitlab"
 	"github.com/wmentor/go-magnetar/internal/tools/jira"
+	"github.com/wmentor/go-magnetar/internal/tools/rss"
 )
 
 const (
@@ -189,9 +190,24 @@ func (w *WebTools) webFetch(url string, isFetch bool) (string, error) {
 		return "", errors.New("web_search: failed")
 	}
 
-	if contentType != "" && strings.Contains(strings.ToLower(contentType), "text/html") {
+	contentType = strings.ToLower(contentType)
+
+	if strings.Contains(contentType, "text/html") {
 		codec := &html.Codec{}
 		return codec.ProcessContent(content, url)
+	}
+
+	for _, rssType := range []string{"application/rss+xml", "text/xml", "application/xml"} {
+		if strings.Contains(contentType, rssType) {
+			if r, e := rss.Decode(strings.NewReader(content)); e == nil {
+				if len(r.Channel.Items) == 0 {
+					break
+				}
+				return r.String(), nil
+			} else {
+				break
+			}
+		}
 	}
 
 	return content, nil
