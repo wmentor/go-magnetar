@@ -28,7 +28,7 @@ Download from [GitHub Releases](https://github.com/wmentor/go-magnetar/releases/
 **Option B — `go install`:**
 
 ```bash
-go install github.com/wmentor/go-magnetar/cmd/go-magnetar@v1.2.0
+go install github.com/wmentor/go-magnetar/cmd/go-magnetar@latest
 ```
 
 **Option C — build from source:**
@@ -92,7 +92,7 @@ Beyond answering questions, the agent has access to tools it can call automatica
 | `file_write` | Write content to a file |
 | `exec` | Run shell commands (with a built-in safety guard) |
 | `system_grep` | Search file contents with grep |
-| `web_fetch` | Fetch a URL and return its content as Markdown (transparently handles Confluence, JIRA, GitHub, GitLab when corresponding plugins are enabled) |
+| `web_fetch` | Fetch a URL and return its content as Markdown (transparently handles Confluence, JIRA, GitHub, GitLab, RSS feeds when corresponding plugins are enabled). See [docs/tool_web_fetch.md](./docs/tool_web_fetch.md) for complete documentation |
 | `web_search` | Search the web and return results |
 | `rag_search` | Search your indexed knowledge base (when RAG is enabled) |
 | `ssh` | Execute commands on a remote server via SSH (when enabled) |
