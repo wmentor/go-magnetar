@@ -496,7 +496,7 @@ func (g *GenericTools) SystemDate() string {
 		return fmt.Sprintf("error: %v\n%s", err, string(output))
 	}
 
-	return string(strings.TrimSpace(string(output)))
+	return strings.TrimSpace(string(output))
 }
 
 // SystemGrep executes the system grep command with a limited set of safe arguments:
@@ -506,7 +506,7 @@ func (g *GenericTools) SystemGrep(filename string, pattern string) string {
 
 	cmd := []string{"grep", "-n", "-i", "-r", "-E", pattern, filename}
 
-	output, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput()
+	output, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput() //nolint:gosec // it's ok.
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
@@ -643,8 +643,9 @@ func (g *GenericTools) DefinitionExec() openai.Tool {
 	return openai.Tool{
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
-			Name:        "exec",
-			Description: "Execute a shell command via \"sh -c\". The command runs with a clean environment and the current working directory. Stdin can be provided for input.",
+			Name: "exec",
+			Description: "Execute a shell command via \"sh -c\". The command runs with a clean environment and the " +
+				"current working directory. Stdin can be provided for input.",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
@@ -709,8 +710,9 @@ func (g *GenericTools) DefinitionSSH() openai.Tool {
 	return openai.Tool{
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
-			Name:        "ssh",
-			Description: "Execute a shell command on a remote server via SSH. Connection parameters (user, port, key, password, use_ssh_agent) are loaded from ssh.* config.",
+			Name: "ssh",
+			Description: "Execute a shell command on a remote server via SSH. Connection parameters (user, port, key, " +
+				"password, use_ssh_agent) are loaded from ssh.* config.",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
@@ -929,8 +931,9 @@ func StaticDefinitionExec() openai.Tool {
 	return openai.Tool{
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
-			Name:        "exec",
-			Description: "Execute a shell command via \"sh -c\". The command runs with a clean environment and the current working directory. Stdin can be provided for input.",
+			Name: "exec",
+			Description: "Execute a shell command via \"sh -c\". The command runs with a clean environment and the current " +
+				"working directory. Stdin can be provided for input.",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
@@ -995,8 +998,9 @@ func StaticDefinitionSSH() openai.Tool {
 	return openai.Tool{
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
-			Name:        "ssh",
-			Description: "Execute a shell command on a remote server via SSH. Connection parameters (user, port, key, password, use_ssh_agent) are loaded from ssh.* config.",
+			Name: "ssh",
+			Description: "Execute a shell command on a remote server via SSH. Connection parameters (user, port, key, " +
+				"password, use_ssh_agent) are loaded from ssh.* config.",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{

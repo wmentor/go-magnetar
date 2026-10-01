@@ -38,7 +38,8 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 			}
 
 			fmt.Fprintf(os.Stdout,
-				"Context stats:\n  messages    : %d\n  tokens      : ~%d (estimated)\n  bytes       : %s\n  llm model   : %s\n  rag model   : %s\n  vector size : %d\n\n",
+				"Context stats:\n  messages    : %d\n  tokens      : ~%d (estimated)\n  bytes       : %s\n  llm model   : %s\n"+
+					"  rag model   : %s\n  vector size : %d\n\n",
 				len(msgs),
 				totalTokens,
 				units.HumanSize(float64(totalBytes)),

@@ -60,11 +60,10 @@ func (p *Plugin) execute(ctx context.Context, agent plugin.AgentHandle, args str
 		return fmt.Errorf("usage: /index <path|url> [-m <message>]")
 	}
 
-	target := strings.TrimSpace(args)
 	message := ""
 
 	parts := strings.Fields(args)
-	target = parts[0]
+	target := parts[0]
 	for i := 1; i < len(parts); i++ {
 		if parts[i] == "-m" && i+1 < len(parts) {
 			message = parts[i+1]

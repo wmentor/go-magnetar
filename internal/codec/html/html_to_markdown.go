@@ -24,7 +24,7 @@ func htmlToText(content string, page string) (string, error) {
 		parser.ParseString(content)
 
 		data := parser.Text()
-		return string(data), nil
+		return string(data), nil //nolint:nilerr // it's as expected.
 	}
 
 	return result, nil

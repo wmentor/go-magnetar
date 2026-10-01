@@ -515,7 +515,6 @@ func (r *RAGTools) DefinitionSearch() openai.Tool {
 // Dispatch handles a tool call by name, parsing JSON args and returning the result as a string.
 func (r *RAGTools) Dispatch(name string, args string) string {
 	switch name {
-
 	case "rag_search":
 		var params struct {
 			Query string `json:"query"`

@@ -25,7 +25,8 @@ Return a JSON object with:
 - "allowed": boolean (true if safe, false if dangerous)
 - "reason": string explaining the decision
 
-IMPORTANT: Return ONLY the raw JSON object. Do NOT wrap it in markdown code blocks (` + "```json ... ```" + `), do NOT add any explanations, do NOT add any additional text before or after the JSON object.
+IMPORTANT: Return ONLY the raw JSON object. Do NOT wrap it in markdown code blocks (` + "```json ... ```" + `),
+do NOT add any explanations, do NOT add any additional text before or after the JSON object.
 
 Security criteria to check:
 - Destructive commands (rm -rf /, sudo, mkfs, dd with /dev/, fdisk, chmod 777)
@@ -35,7 +36,8 @@ Security criteria to check:
 
 Always check for danger patterns first. If the command looks dangerous, return allowed=false with a clear reason.
 
-IMPORTANT: If you are uncertain about whether the command is safe, ALWAYS return allow=false with a reason explaining your concerns. Err on the side of caution - better to block a safe command than to allow a dangerous one.
+IMPORTANT: If you are uncertain about whether the command is safe, ALWAYS return allow=false with a
+reason explaining your concerns. Err on the side of caution - better to block a safe command than to allow a dangerous one.
 
 Command to analyze:
 {{COMMAND}}
@@ -60,7 +62,8 @@ func New(cfg *config.Config) *Guard {
 	}
 }
 
-func (g *Guard) CheckSecurity(command string, readOnly bool) (allowed bool, reason string, err error) {
+// CheckSecurity(command,readOnlyMode) (allowed bool, reason string, err error).
+func (g *Guard) CheckSecurity(command string, readOnly bool) (bool, string, error) {
 	printer.ToolCall(printer.IconGuard, "guard: check command")
 
 	ctx, cancel := context.WithTimeout(context.Background(), guardTimeout)

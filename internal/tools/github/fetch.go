@@ -324,7 +324,8 @@ func (g *GitHubTools) FetchRepoAdvisories(repo string) (string, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("github_repo_advisories: advisories endpoint for %s/%s returned status %d: %s", owner, repoName, resp.StatusCode, string(body))
+		return "", fmt.Errorf("github_repo_advisories: advisories endpoint for %s/%s returned status %d: %s",
+			owner, repoName, resp.StatusCode, string(body))
 	}
 
 	body, err := io.ReadAll(resp.Body)
@@ -631,7 +632,7 @@ func (g *GitHubTools) formatTreeMarkdown(files []struct {
 }
 
 // fetchWithHeaders performs an HTTP request with GitHub API headers.
-func (g *GitHubTools) fetchWithHeaders(ctx context.Context, method string, apiURL string) (*http.Response, error) {
+func (g *GitHubTools) fetchWithHeaders(ctx context.Context, method string, apiURL string) (*http.Response, error) { //nolint:unparam // ok.
 	tr := &http.Transport{
 		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
 		DisableKeepAlives: true,
@@ -938,7 +939,8 @@ func (g *GitHubTools) fetchIssueComments(owner string, repoName string, issueNum
 
 	var comments []string
 	for _, comment := range commentsData {
-		commentStr := fmt.Sprintf("### Comment by @%s\n\n%s\n\n**Created:** %s\n**Updated:** %s\n", comment.User.Login, comment.Body, comment.CreatedAt, comment.UpdatedAt)
+		commentStr := fmt.Sprintf("### Comment by @%s\n\n%s\n\n**Created:** %s\n**Updated:** %s\n",
+			comment.User.Login, comment.Body, comment.CreatedAt, comment.UpdatedAt)
 		comments = append(comments, commentStr)
 	}
 
@@ -989,7 +991,7 @@ func (g *GitHubTools) formatIssueMarkdown(issueData *struct {
 	fmt.Fprintf(&sb, "**URL:** %s\n\n", issueData.HTMLURL)
 
 	if len(issueData.Labels) > 0 {
-		var labelNames []string
+		labelNames := make([]string, 0, len(issueData.Labels))
 		for _, label := range issueData.Labels {
 			labelNames = append(labelNames, label.Name)
 		}
@@ -997,7 +999,7 @@ func (g *GitHubTools) formatIssueMarkdown(issueData *struct {
 	}
 
 	if len(issueData.Assignees) > 0 {
-		var assigneeLogins []string
+		assigneeLogins := make([]string, 0, len(issueData.Assignees))
 		for _, assignee := range issueData.Assignees {
 			assigneeLogins = append(assigneeLogins, assignee.Login)
 		}
@@ -1187,7 +1189,6 @@ func (g *GitHubTools) FetchMilestone(repo string, milestoneNum string) (string, 
 				printer.ToolCall(printer.IconSearch, "github_milestone: fetched issues", "count", len(issues))
 			}
 		}
-
 	}
 
 	return g.formatMilestoneMarkdown(&milestoneData, issues), nil
@@ -1259,7 +1260,7 @@ func (g *GitHubTools) formatMilestoneMarkdown(milestoneData *struct {
 				fmt.Fprintf(&sb, "**Description:**\n%s\n\n", issue.Body)
 			}
 			if len(issue.Labels) > 0 {
-				var labelNames []string
+				labelNames := make([]string, 0, len(issue.Labels))
 				for _, label := range issue.Labels {
 					labelNames = append(labelNames, label.Name)
 				}

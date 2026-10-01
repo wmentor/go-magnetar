@@ -26,11 +26,9 @@ func init() {
 // The GenericTools instance is created lazily on first use so that the
 // agent's working-directory Root (set via plugin.SetRoot) is available.
 type Plugin struct {
-	mu             sync.Mutex
-	state          *plugin.State
-	tools          *generic.GenericTools
-	grepOnce       sync.Once
-	preprocessOnce sync.Once
+	mu    sync.Mutex
+	state *plugin.State
+	tools *generic.GenericTools
 }
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {

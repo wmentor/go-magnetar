@@ -104,7 +104,9 @@ func (w *WebTools) webFetch(url string, isFetch bool) (string, error) {
 	}
 
 	if w.cfg.String("confluence.base_url") != "" && w.cfg.Bool("confluence.enable") {
-		if strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/spaces/") || strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/x/") || strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/p/") {
+		if strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/spaces/") ||
+			strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/x/") ||
+			strings.HasPrefix(url, w.cfg.String("confluence.base_url")+"/p/") {
 			pageID, err := confluence.ExtractPageIDURL(url)
 			if err == nil && pageID != "" {
 				isShortID := strings.Contains(url, "/x/") || strings.Contains(url, "/p/")
@@ -530,8 +532,9 @@ func StaticDefinition() openai.Tool {
 	return openai.Tool{
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
-			Name:        "web_fetch",
-			Description: "Fetch a web page and return clean Markdown content. Supports Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories, issues, and milestones.",
+			Name: "web_fetch",
+			Description: "Fetch a web page and return clean Markdown content. Supports " +
+				"Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories, issues, and milestones.",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{

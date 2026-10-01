@@ -43,8 +43,8 @@ type Codec interface {
 	ReadFile(filename string) (string, error)
 }
 
-func GetCodec(extention string) (Codec, error) {
-	if c, has := codecs[strings.ToLower(extention)]; has {
+func GetCodec(extentionName string) (Codec, error) {
+	if c, has := codecs[strings.ToLower(extentionName)]; has {
 		return c, nil
 	}
 	return nil, ErrCodecNotFound

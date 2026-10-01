@@ -18,6 +18,9 @@ fix:
 	go fix ./...
 
 lint:
+	@if [ -x "$$(command -v golangci-lint)" ]; then echo "run golangci-lint..." ; golangci-lint run ./... ; else echo "golangci-lint not found" ; fi
+
+vet:
 	go vet ./...
 
 tidy:

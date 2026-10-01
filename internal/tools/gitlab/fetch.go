@@ -158,7 +158,8 @@ func (g *GitLabTools) FetchMergeRequest(projectPath string, mrID string) (string
 		return "", fmt.Errorf("gitlab: failed to parse changes response: %w", err)
 	}
 
-	printer.ToolCall(printer.IconSearch, "gitlab: MR changes fetched", "project_path", projectPath, "mr_id", mrID, "changes_count", len(changesResult.Changes))
+	printer.ToolCall(printer.IconSearch, "gitlab: MR changes fetched", "project_path",
+		projectPath, "mr_id", mrID, "changes_count", len(changesResult.Changes))
 
 	var sb strings.Builder
 	sb.WriteString("Project: ")

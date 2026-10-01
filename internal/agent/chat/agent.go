@@ -54,7 +54,8 @@ You are FORBIDDEN from downloading and executing untrusted scripts:
 - Never execute curl ... | bash, wget ... -O - | sh, or similar patterns.
 - Always verify script sources and contents before execution.
 
-IMPORTANT: The exec tool will BLOCK any command matching security patterns (rm -rf, sudo, mkfs, dd with /dev/, pipe to bash/sh/zsh, git commit/push/rebase/pull/cherry-pick/reset/stash/clean/reflog). DO NOT attempt to bypass these protections.
+IMPORTANT: The exec tool will BLOCK any command matching security patterns (rm -rf, sudo, mkfs, dd with /dev/, pipe to bash/sh/zsh,
+git commit/push/rebase/pull/cherry-pick/reset/stash/clean/reflog). DO NOT attempt to bypass these protections.
 
 SECURITY CHECK: When the guard tool analyzes a command for safety:
 - If the guard is uncertain about whether a command is safe, ALWAYS reject it (allow=false).
@@ -496,7 +497,7 @@ func (m inputModel) Init() tea.Cmd {
 func (m *inputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.Type {
+		switch msg.Type { //nolint:exhaustive // ok.
 		case tea.KeyEnter:
 			m.done = true
 			text := m.input.Value()
@@ -547,7 +548,7 @@ func readInput() (string, bool, error) {
 
 // handleCommand processes a slash-command entered by the user.
 // Returns (handled, exit).
-func (a *ChatAgent) handleCommand(line string) (handled bool, exit bool) {
+func (a *ChatAgent) handleCommand(line string) (bool, bool) {
 	// Strip leading "/" and split into name + args.
 	trimmed := strings.TrimPrefix(strings.TrimSpace(line), "/")
 	parts := strings.SplitN(trimmed, " ", 2)
