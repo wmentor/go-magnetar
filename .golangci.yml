@@ -1,0 +1,151 @@
+version: "2"
+run:
+  concurrency: 4
+  issues-exit-code: 1
+  tests: false
+linters:
+  default: none
+  enable:
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - containedctx
+#    - contextcheck
+#    - cyclop
+    - decorder
+    - dogsled
+    - dupl
+    - durationcheck
+#    - err113
+#    - errcheck
+    - errchkjson
+    - errname
+#    - errorlint
+    - exhaustive
+    - forbidigo
+#    - forcetypeassert
+#    - funlen
+#    - gochecknoinits
+#    - gocognit
+#    - goconst
+#    - gocritic
+#    - gocyclo
+    - godot
+    - godox
+    - goheader
+    - gomoddirectives
+    - gomodguard_v2
+    - goprintffuncname
+    - gosec
+    - govet
+    - grouper
+    - importas
+    - ineffassign
+    - interfacebloat
+    - lll
+    - makezero
+    - misspell
+#    - mnd
+    - nakedret
+#    - nestif
+    - nilerr
+    - nilnil
+#    - noctx
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - paralleltest
+    - prealloc
+    - predeclared
+    - promlinter
+    - reassign
+    - revive
+    - sloglint
+    - sqlclosecheck
+    - staticcheck
+#    - tagliatelle
+    - testpackage
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - whitespace
+#    - wrapcheck
+  settings:
+    cyclop:
+      max-complexity: 15
+    forbidigo:
+      forbid:
+        # Built-in bootstrapping functions.
+        - pattern: ^print(ln)?$
+    funlen:
+      lines: 120
+    gosec:
+      excludes:
+        - G115
+        - G306
+        - G402
+    lll:
+      line-length: 150
+    nolintlint:
+      require-explanation: true
+    sloglint:
+      context: scope
+    tagliatelle:
+      case:
+        rules:
+          db: snake
+          json: snake
+          yaml: snake
+        use-field-name: true
+    wrapcheck:
+      ignore-sigs:
+        - errors.New(
+        - errors.Unwrap(
+        - errors.Join(
+        - .Errorf(
+        - serr.New(
+        - serr.Wrap(
+        - serr.WithAttributes(
+    staticcheck:
+      checks:
+        - all
+        - "-QF1012" # Use fmt.Fprintf(...) instead of WriteString(fmt.Sprintf(...))
+        - "-SA1019" # package `xxx` is deprecated
+    wsl_v5:
+      allow-first-in-block: true
+      allow-whole-block: false
+      branch-max-lines: 2
+    revive:
+      rules:
+        - name: var-naming
+          severity: warning
+          disabled: false
+          exclude: [""]
+          arguments:
+            - ["ID"] # AllowList
+            - ["VM"] # DenyList
+            - - skip-initialism-name-checks: true
+                upper-case-const: true
+                skip-package-name-checks: true
+                skip-package-name-collision-with-go-std: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    rules:
+      - linters:
+          - cyclop
+        path: (.+)_test\.go
+    paths:
+      - mocks
+      - testdata
+      - third_party$
+      - builtin$
+      - examples$

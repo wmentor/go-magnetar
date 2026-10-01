@@ -112,58 +112,6 @@ func runeLen(s string) int {
 	return utf8.RuneCountInString(s)
 }
 
-// runeSlice returns s[startRune:endRune] operating on rune indices.
-func runeSlice(s string, startRune, endRune int) string {
-	if startRune >= endRune {
-		return ""
-	}
-	// Find byte offset of startRune.
-	startByte := 0
-	for range startRune {
-		_, size := utf8.DecodeRuneInString(s[startByte:])
-		startByte += size
-	}
-	// Find byte offset of endRune.
-	endByte := startByte
-	for i := startRune; i < endRune; i++ {
-		r, size := utf8.DecodeRuneInString(s[endByte:])
-		if r == utf8.RuneError && size == 0 {
-			break
-		}
-		endByte += size
-	}
-	return s[startByte:endByte]
-}
-
-// findWordBoundaryBefore returns the rune index of the last word boundary at
-// or before position pos within s (measured in runes). A word boundary is a
-// transition between a space/punctuation character and a non-space character.
-// If no boundary is found within a lookback window, pos is returned unchanged
-// so the caller still makes progress.
-func findWordBoundaryBefore(s string, pos int) int {
-	const maxLookback = 80 // runes
-	if pos <= 0 {
-		return 0
-	}
-	runes := []rune(s)
-	if pos >= len(runes) {
-		pos = len(runes)
-	}
-	limit := max(pos-maxLookback, 0)
-	// Walk backwards from pos looking for whitespace.
-	for i := pos - 1; i >= limit; i-- {
-		if unicode.IsSpace(runes[i]) {
-			// Return the position after the whitespace run.
-			j := i
-			for j > limit && unicode.IsSpace(runes[j-1]) {
-				j--
-			}
-			return j
-		}
-	}
-	return pos
-}
-
 // overlapSuffix returns the last overlapRunes runes of s, snapped to a word
 // boundary so that the overlap fragment starts at the beginning of a word.
 // This avoids injecting a half-word at the start of the next chunk, which would

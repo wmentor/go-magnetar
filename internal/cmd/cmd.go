@@ -55,18 +55,18 @@ func Execute() error {
 		return err
 	}
 
-	if root.Globals.Profile != "" {
-		cfg.SetProfile(root.Globals.Profile)
+	if root.Profile != "" {
+		cfg.SetProfile(root.Profile)
 	}
 
 	printer.SetDefault(printer.New(false))
 
-	if root.Globals.File == "" {
+	if root.File == "" {
 		version.PrintVersion(cfg.ProfileParamString("llm.model"))
 		printEnabledModules(cfg)
 	}
 
-	if err := plugin.InitAll(&plugin.State{Config: cfg, ReadOnly: root.Globals.ReadOnly}); err != nil {
+	if err := plugin.InitAll(&plugin.State{Config: cfg, ReadOnly: root.ReadOnly}); err != nil {
 		return err
 	}
 	defer plugin.Stop()
@@ -86,25 +86,25 @@ func Execute() error {
 	// filesystem access (generic file tools, web preprocessor).
 	plugin.SetRoot(rootFS)
 
-	printer.Verbose(cfg.Bool("verbose") && root.Globals.File == "")
+	printer.Verbose(cfg.Bool("verbose") && root.File == "")
 
 	agent, err := chat.New(cfg, rootFS)
 	if err != nil {
 		return err
 	}
 
-	if root.Globals.Session != "" {
-		if err := loadSession(agent, root.Globals.Session); err != nil {
+	if root.Session != "" {
+		if err := loadSession(agent, root.Session); err != nil {
 			return fmt.Errorf("failed to load session: %w", err)
 		}
-		printer.ToolCall(printer.IconDone, "session was loaded from "+root.Globals.Session)
+		printer.ToolCall(printer.IconDone, "session was loaded from "+root.Session)
 		printer.EmptyLine()
 	}
 
-	if root.Globals.File != "" {
-		data, err := os.ReadFile(root.Globals.File)
+	if root.File != "" {
+		data, err := os.ReadFile(root.File)
 		if err != nil {
-			return errors.Wrapf(err, "read file %s error", root.Globals.File)
+			return errors.Wrapf(err, "read file %s error", root.File)
 		}
 
 		txt := string(data)

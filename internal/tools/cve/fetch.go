@@ -33,7 +33,7 @@ func New(cfg *config.Config) *CVETools {
 // ECHO-, EEF-, ELA-, GSD-, HSEC-, JLSEC-, KUBE-, LBSEC-, LSN-, MGASA-, MAL-,
 // MINI-, OESA-, OSEC-, PHSA-, PSF-, PYSEC-, RHSA-/RHBA-/RHEA-, RLSA-/RXSA-,
 // RSEC-, ROOT-, RUSTSEC-, SUSE-SU-/SUSE-RU-/SUSE-FU-/SUSE-OU-/openSUSE-SU-,
-// UBUNTU-, USN-, V8-, VCPKG-, CLSA-
+// UBUNTU-, USN-, V8-, VCPKG-, CLSA-.
 func parseCVEID(id string) (string, error) {
 	id = strings.TrimSpace(id)
 
@@ -219,14 +219,16 @@ func (c *CVETools) Definition() openai.Tool {
 	return openai.Tool{
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
-			Name:        "cve",
-			Description: "Lookup vulnerability information from OSV database using any valid OSV database identifier (CVE-, GO-, GHSA-, OSV-, GSD-, ALPINE-, and many more)",
+			Name: "cve",
+			Description: "Lookup vulnerability information from OSV database using any valid OSV database identifier (CVE-, GO-, " +
+				"GHSA-, OSV-, GSD-, ALPINE-, and many more)",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
 					"id": map[string]any{
-						"type":        "string",
-						"description": "Vulnerability identifier with any valid OSV database prefix (e.g., CVE-, GO-, GHSA-, OSV-, GSD-, ALPINE-, etc.)",
+						"type": "string",
+						"description": "Vulnerability identifier with any valid OSV database prefix (e.g., CVE-, GO-, " +
+							"GHSA-, OSV-, GSD-, ALPINE-, etc.)",
 					},
 				},
 				"required": []string{"id"},
@@ -239,14 +241,16 @@ func StaticDefinition() openai.Tool {
 	return openai.Tool{
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
-			Name:        "cve",
-			Description: "Lookup vulnerability information from OSV database using any valid OSV database identifier (CVE-, GO-, GHSA-, OSV-, GSD-, ALPINE-, and many more)",
+			Name: "cve",
+			Description: "Lookup vulnerability information from OSV database using any valid OSV database identifier (CVE-, " +
+				"GO-, GHSA-, OSV-, GSD-, ALPINE-, and many more)",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
 					"id": map[string]any{
-						"type":        "string",
-						"description": "Vulnerability identifier with any valid OSV database prefix (e.g., CVE-, GO-, GHSA-, OSV-, GSD-, ALPINE-, etc.)",
+						"type": "string",
+						"description": "Vulnerability identifier with any valid OSV database prefix (e.g., CVE-, GO-, GHSA-, OSV-, " +
+							"GSD-, ALPINE-, etc.)",
 					},
 				},
 				"required": []string{"id"},

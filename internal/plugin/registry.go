@@ -20,7 +20,6 @@ type hub struct {
 
 	tools         []LLMTool
 	commands      []ChatCommand
-	cli           []any
 	preprocessors []PreprocessorFunc
 
 	goroutines  []func(ctx context.Context)

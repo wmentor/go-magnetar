@@ -476,8 +476,9 @@ func StaticDefinitionSearch() openai.Tool {
 	return openai.Tool{
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
-			Name:        "jira_task_search",
-			Description: "Search JIRA issues using a JQL query and return an array of issue keys and summaries with pagination support. Use jira_task_get to fetch details for a specific issue.",
+			Name: "jira_task_search",
+			Description: "Search JIRA issues using a JQL query and return an array of issue keys and summaries with " +
+				"pagination support. Use jira_task_get to fetch details for a specific issue.",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{

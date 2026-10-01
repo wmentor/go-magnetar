@@ -8,7 +8,7 @@ import (
 	"github.com/PuerkitoBio/goquery"
 )
 
-// Теги, которые всегда мусор
+// Garbage tags.
 var junkTags = []string{
 	"script", "style", "noscript", "iframe",
 	"nav", "header", "footer", "aside",
@@ -17,7 +17,7 @@ var junkTags = []string{
 	// "form",
 }
 
-// CSS-селекторы типичного мусора (классы и id)
+// Garbage CSS-selectors (classes and IDs).
 var junkSelectors = []string{
 	"[class*='cookie']", "[class*='consent']",
 	"[class*='subscribe']", "[class*='newsletter']",
@@ -46,24 +46,20 @@ func cleanHTML(html string, page string) (string, error) {
 		return "", fmt.Errorf("parse HTML error: %w", err)
 	}
 
-	// 1. Удаляем по тегам
 	for _, tag := range junkTags {
 		doc.Find(tag).Remove()
 	}
 
-	// 2. Удаляем по селекторам (классы/атрибуты)
 	for _, sel := range junkSelectors {
 		doc.Find(sel).Remove()
 	}
 
-	// 3. Удаляем пустые ссылки и якоря
 	doc.Find("a").Each(func(i int, s *goquery.Selection) {
 		if strings.TrimSpace(s.Text()) == "" {
 			s.Remove()
 		}
 	})
 
-	// 4. Сериализуем обратно
 	var buf bytes.Buffer
 	if html, err := doc.Html(); err == nil {
 		buf.WriteString(html)
