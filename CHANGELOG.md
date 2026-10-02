@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## [1.4.0] - 2026-10-02
+
+### 🚀 Features
+
+- Add Confluence page editing support via /confluence.edit command and confluence_page_edit tool
+- Add confluence.readonly config parameter for disabling page editing
+- Add --read-only CLI flag to active read-only mode
+- Add RSS feed support to web_fetch tool
+
+### 🚜 Refactor
+
+- Extract Confluence tools to dedicated package
+
+### ⚙️ Miscellaneous Tasks
+
+- Add golangci-lint configuration and code refactor
+- Added pull request flow
 ## [1.3.0] - 2026-09-26
 
 ### 🚀 Features
