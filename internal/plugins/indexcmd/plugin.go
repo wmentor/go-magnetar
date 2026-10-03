@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/wmentor/go-magnetar/internal/agent/indexer"
+	"github.com/wmentor/go-magnetar/internal/common"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 )
@@ -90,7 +91,7 @@ type Entry struct {
 }
 
 func (p *Plugin) executeTab(ctx context.Context, agent plugin.AgentHandle, args string) error {
-	filename := strings.TrimSpace(args)
+	filename := common.ExpandHome(strings.TrimSpace(args))
 
 	file, err := os.Open(filename)
 	if err != nil {
