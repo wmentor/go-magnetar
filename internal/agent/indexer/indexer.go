@@ -12,6 +12,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
+	"github.com/wmentor/go-magnetar/internal/tools/rag/qdrant"
 	"github.com/wmentor/go-magnetar/internal/tools/web"
 )
 
@@ -24,7 +25,12 @@ type Indexer struct {
 
 // New creates a new Indexer instance.
 func New(cfg *config.Config, root *os.Root, state *plugin.State) (*Indexer, error) {
-	ragTools, err := rag.New(cfg)
+	vecStore, err := qdrant.NewStore(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("init Qdrant error: %w", err)
+	}
+
+	ragTools, err := rag.New(cfg, vecStore)
 	if err != nil {
 		return nil, fmt.Errorf("indexer: failed to initialise RAG tools: %w", err)
 	}
