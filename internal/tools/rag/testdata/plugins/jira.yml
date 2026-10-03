@@ -1,0 +1,6 @@
+version: "1.0"
+profiles:
+  default:
+    jira:
+      base_url: https://jira.example.com
+      api_key: $env:JIRA_API_KEY

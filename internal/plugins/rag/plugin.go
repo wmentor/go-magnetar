@@ -2,9 +2,11 @@ package ragplugin
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
+	"github.com/wmentor/go-magnetar/internal/tools/rag/qdrant"
 )
 
 func init() {
@@ -19,7 +21,12 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		return nil
 	}
 
-	tools, err := rag.New(s.Config)
+	vecStore, err := qdrant.NewStore(s.Config)
+	if err != nil {
+		return fmt.Errorf("init Qdrant error: %w", err)
+	}
+
+	tools, err := rag.New(s.Config, vecStore)
 	if err != nil {
 		return err
 	}
