@@ -23,6 +23,10 @@ type mockStore struct {
 	saveResults   map[string]bool
 }
 
+func (m *mockStore) Name() string {
+	return "mock"
+}
+
 func (m *mockStore) RagSearch(query string) string {
 	if result, ok := m.searchResults[query]; ok {
 		return result

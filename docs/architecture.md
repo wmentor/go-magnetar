@@ -32,8 +32,15 @@ internal/
     cve/plugin.go                — cve LLM tool (init → Register)
   cmd/
     cmd.go                       — root CLI (kong); config load; plugin.InitAll; defer Stop
+  store/
+    store.go                     — Store factory: NewStore(cfg) returns qdrant/chromem
   tools/
-    rag/rag.go                   —     rag_save and rag_search tools — removed rag_save from dispatch
+    rag/rag.go                   — RAG tools: rag_save, rag_search, dispatch
+    rag/chromem/
+      store.go                   — Chromem vector store implementation (built-in)
+      tools.go                   — Chromem utilities: ParseDataDir, Preview, CosineSimilarity
+    rag/qdrant/
+      store.go                   — Qdrant vector store implementation
     web/fetch.go                 — web_fetch tool; HTML fetching and conversion to Markdown
     generic/generic.go           — file_read, file_list, file_write, file_exists, system_grep, tools
   agent/
@@ -65,17 +72,19 @@ main()
 
 ```
 /index path/to/document.md [-m <message>]
-         --> os.ReadFile(filename)
-         --> chunk.Split(content, cfg)
-               --> splitParagraphs   — paragraph and Markdown heading boundaries
-               --> greedy pack       — greedy packing up to MaxSize runes
-               --> forceSplit        — for paragraphs longer than MaxSize
-         --> for each chunk:
-               --> rag.RagSave(chunk, prepend)
-                     --> prepend + "\n" + chunk (if prepend set)
-                     --> contentUUID(chunk) -> UUID v5 (deterministic)
-                     --> embed(chunk)        -> []float32
-                     --> qdrant.Upsert(id, vector, payload{text: chunk})
+          --> os.ReadFile(filename)
+          --> chunk.Split(content, cfg)
+                --> splitParagraphs   — paragraph and Markdown heading boundaries
+                --> greedy pack       — greedy packing up to MaxSize runes
+                --> forceSplit        — for paragraphs longer than MaxSize
+          --> for each chunk:
+                --> rag.RagSave(chunk, prepend)
+                      --> prepend + "\n" + chunk (if prepend set)
+                      --> contentUUID(chunk) -> UUID v5 (deterministic)
+                      --> embed(chunk)        -> []float32
+                      --> store.Upsert(id, vector, payload{text: chunk})
+                            --> chromem: DB.AddDocument()  (built-in)
+                            --> qdrant:  client.Upsert()    (external)
 ```
 
 ### Data flow: URL indexing
@@ -114,9 +123,44 @@ REPL --> user_input
                           --> trim to search.limit
                           --> dedup by cosine similarity
                           --> return joined top-N texts
+                                --> store.Search(queryVector)  (chromem/qdrant)
                     --> web_fetch:  fetch -> HTML cleanup -> Readability extraction -> Markdown
                     --> file_*:     sandboxed filesystem ops
    --> output answer to stdout
+```
+
+## Vector Stores
+
+go-magnetar supports two vector storage backends:
+
+### Chromem (built-in)
+
+Chromem is a dependency-free, in-memory vector store with optional persistent storage. It's the default store for local development and edge deployments.
+
+| Feature | Description |
+|---|---|
+| **Persistence** | Optional (set `rag.chromem.data_dir` for disk persistence; empty = in-memory only) |
+| **Dependencies** | None (built into go-magnetar) |
+| **Use case** | Local development, testing, edge deployments |
+| **Configuration** | `rag.store.type: chromem` (default) |
+
+### Qdrant (external)
+
+Qdrant is a production-grade vector database with advanced filtering, hybrid search, and scalability features.
+
+| Feature | Description |
+|---|---|
+| **Persistence** | Full disk persistence |
+| **Dependencies** | Requires Qdrant server (docker run qdrant/qdrant) |
+| **Use case** | Production, large-scale deployments |
+| **Configuration** | `rag.store.type: qdrant` |
+
+Switch between stores via config:
+
+```yaml
+rag:
+  store:
+    type: chromem  # or qdrant
 ```
 
 ## Chunking (`internal/chunk`)
@@ -257,3 +301,17 @@ Example:
 printer.ToolCall(printer.IconTool, "rag_search", "query", query, "results", len(results))
 printer.ToolCall(printer.IconError, "rag_save failed", "id", id, "err", err)
 ```
+
+### Store Interface
+
+All vector stores implement the `rag.Store` interface:
+
+```go
+type Store interface {
+    Name() string                    // Returns "chromem" or "qdrant"
+    RagSearch(query string) string   // Search and return relevant chunks
+    RagSave(content string, prepend string, part int) bool  // Save chunk
+}
+```
+
+The `rag.New()` factory creates the appropriate store based on `rag.store.type` from config.

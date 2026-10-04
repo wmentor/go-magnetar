@@ -37,6 +37,11 @@ type SearchResult struct {
 	Vector []float32
 }
 
+func (s *Store) Name() string {
+	return "qdrant"
+}
+
+// NewStore creates a new qdrant store instance.
 func NewStore(cfg *config.Config) (*Store, error) {
 	// Build OpenAI embedding client.
 	embedCfg := openai.DefaultConfig(cfg.String("rag.llm.api_key"))

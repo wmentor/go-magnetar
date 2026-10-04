@@ -1,5 +1,7 @@
 rag:
   enable: false  # enable/disable RAG (default: false)
+  store:
+    type: chromem  # qdrant | chromem (default: chromem, built-in)
   chunk:
     size: 2048  # maximum size of a chunk in runes (default: 2048)
     overlap: 256  # number of runes that overlap between adjacent chunks (default: 256)
@@ -9,8 +11,11 @@ rag:
     multi_query: 2  # number of additional query reformulations (default: 2)
     dedup_threshold: 0.95  # cosine similarity for near-duplicate suppression (default: 0.95)
   qdrant:
-    connstr: http://localhost:6333  # Qdrant address (REST port; gRPC 6334 is used automatically)
+    connstr: http://localhost:6334  # Qdrant address (REST port; gRPC 6334 is used automatically)
     collection: documents  # collection name (created automatically if missing)
+  chromem:
+    data_dir: ~/.go-magnetar/store  # persistency directory (default: chromem built-in store)
+    collection: documents  # collection name
   llm:
     base_url: https://api.openai.com/v1  # OpenAI-compatible endpoint URL
     api_key: ""  # API key for embedding model

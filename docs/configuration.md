@@ -48,10 +48,12 @@ The `rag` block controls retrieval-augmented generation settings:
 | Key | Type | Description |
 |---|---|---|
 | `enable` | boolean | Enable/disable RAG functionality (default: `false`) |
+| `store.type` | string | Vector store type: `qdrant` or `chromem` (default: `chromem`, built-in) |
 | `llm` | object | Embedding model configuration (same structure as `llm` block) |
 | `chunk` | object | Document chunking parameters |
 | `search` | object | Search parameters |
 | `qdrant` | object | Qdrant vector database connection |
+| `chromem` | object | Chromem vector store settings (used when `store.type: chromem`) |
 
 #### RAG Chunk Parameters
 
@@ -75,6 +77,15 @@ The `rag` block controls retrieval-augmented generation settings:
 |---|---|---|
 | `connstr` | string | Qdrant connection string (REST port 6333; gRPC 6334 used automatically) |
 | `collection` | string | Collection name (created automatically if missing) |
+
+#### Chromem Configuration
+
+The Chromem vector store is a built-in, dependency-free alternative to Qdrant. It stores vectors in a local directory and supports persistent storage.
+
+| Key | Type | Description |
+|---|---|---|
+| `data_dir` | string | Persistent data directory (default: `~/.go-magnetar/store`) |
+| `collection` | string | Collection name (default: `documents`) |
 
 ### Plugin Configuration
 

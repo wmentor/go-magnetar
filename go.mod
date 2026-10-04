@@ -21,6 +21,7 @@ require (
 	github.com/knadh/koanf/providers/file v1.2.1
 	github.com/knadh/koanf/v2 v2.3.6
 	github.com/melbahja/goph/v2 v2.0.3
+	github.com/philippgille/chromem-go v0.7.0
 	github.com/pkg/errors v0.9.1
 	github.com/qdrant/go-client v1.19.2
 	github.com/razvandimescu/gopdf v0.10.2
