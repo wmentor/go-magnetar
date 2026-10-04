@@ -5,18 +5,39 @@ A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines a 
 ## Requirements
 
 - Go 1.27.0
-- Qdrant (gRPC port `6334`)
 - API key for OpenAI-compatible LLM and embedding model
 
-## Documentation
+**Note:** Qdrant is **no longer required**. The default vector store is **Chromem** (built-in, in-memory with optional persistence). Qdrant is available as an optional external store for production deployments.
 
 - All documentation, comments, and technical writing must be written in English only
 
-Start Qdrant locally:
+### Vector Stores
 
-```bash
-docker run -p 6333:6333 -p 6334:6334 qdrant/qdrant
+go-magnetar supports two vector storage backends for RAG:
+
+#### Chromem (default)
+
+- **Built-in**: No external dependencies required
+- **In-memory by default**: Store exists only during session (when `rag.chromem.data_dir` is empty)
+- **Persistent mode**: Set `rag.chromem.data_dir` to persist vectors to disk
+- **Use case**: Local development, testing, edge deployments
+- **Configuration**: `rag.store.type: chromem` (default)
+
+#### Qdrant (external)
+
+- **External server**: Requires running Qdrant container
+- **Full persistence**: Automatic disk persistence with advanced filtering
+- **Use case**: Production, large-scale deployments
+- **Configuration**: `rag.store.type: qdrant`
+
+Switch between stores via config:
+```yaml
+rag:
+  store:
+    type: chromem  # or qdrant
 ```
+
+See [docs/architecture.md](./docs/architecture.md) for vector store architecture details.
 
 ## Build
 
@@ -294,7 +315,7 @@ See [docs/security.md](./docs/security.md) for complete security information.
 
 ## Indexer (via `/index` command)
 
-The indexer reads `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`, and `.html` files or web pages (by URL), splits content into overlapping chunks respecting paragraph and Markdown heading boundaries, computes embedding vectors and stores them in Qdrant. Each chunk is identified by a deterministic UUID v5 derived from its content — re-indexing the same file does not create duplicates.
+The indexer reads `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`, and `.html` files or web pages (by URL), splits content into overlapping chunks respecting paragraph and Markdown heading boundaries, computes embedding vectors and stores them in Chromem (default) or Qdrant. Each chunk is identified by a deterministic UUID v5 derived from its content — re-indexing the same file does not create duplicates.
 
 See [docs/file_codecs.md](./docs/file_codecs.md) for a complete list of supported file formats and codec implementation details.
 

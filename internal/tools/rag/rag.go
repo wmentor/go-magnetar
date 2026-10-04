@@ -16,6 +16,7 @@ var (
 )
 
 type Store interface {
+	Name() string
 	RagSearch(query string) string
 	RagSave(content string, prepend string, part int) bool
 }

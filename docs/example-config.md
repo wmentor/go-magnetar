@@ -39,6 +39,8 @@ profiles:
 # RAG configuration
 rag:
   enable: false
+  store:
+    type: chromem  # or qdrant
   llm:
     base_url: https://api.openai.com/v1
     api_key: YOUR_EMBEDDING_API_KEY
@@ -52,6 +54,8 @@ rag:
     threshold: 0.40
     multi_query: 2
     dedup_threshold: 0.95
+  chromem:
+    data_dir: ~/.go-magnetar/store  # omit for in-memory mode, set to "" for explicit in-memory
   qdrant:
     connstr: http://localhost:6333
     collection: documents
@@ -190,6 +194,8 @@ profiles:
 ```yaml
 rag:
   enable: true
+  store:
+    type: chromem  # or qdrant
   chunk:
     size: 4096
     overlap: 512
@@ -198,6 +204,8 @@ rag:
     threshold: 0.35
     multi_query: 3
     dedup_threshold: 0.92
+  chromem:
+    data_dir: ~/.go-magnetar/store
 
 github:
   enable: true
@@ -208,4 +216,46 @@ confluence:
   enable: true
   base_url: https://your-domain.atlassian.net
   api_key: $env:CONFLUENCE_TOKEN
+```
+
+### RAG Configuration Examples
+
+#### Chromem with Persistent Storage
+
+Use Chromem (default) with data persisted to disk:
+
+```yaml
+rag:
+  enable: true
+  store:
+    type: chromem
+  chromem:
+    data_dir: ~/.go-magnetar/store
+```
+
+#### Chromem In-Memory Only
+
+For temporary storage (data lost on restart), explicitly set `data_dir` to empty string:
+
+```yaml
+rag:
+  enable: true
+  store:
+    type: chromem
+  chromem:
+    data_dir: ""  # in-memory mode
+```
+
+#### Qdrant External Store
+
+For production deployments with Qdrant:
+
+```yaml
+rag:
+  enable: true
+  store:
+    type: qdrant
+  qdrant:
+    connstr: http://localhost:6333
+    collection: documents
 ```

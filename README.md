@@ -15,7 +15,34 @@ Supported file formats: `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, 
 
 - Go 1.27+ (or download a pre-built binary)
 - API key for any OpenAI-compatible provider (OpenAI, Azure OpenAI, Ollama, etc.)
-- [Qdrant](https://qdrant.tech/) — only if you want to use the RAG knowledge base (`rag.enable: true`)
+
+**Note:** Qdrant is **no longer required**. The default vector store is **Chromem** (built-in, in-memory with optional persistence). Qdrant is available as an optional external store for production deployments.
+
+## Vector Stores
+
+go-magnetar supports two vector storage backends:
+
+### Chromem (default)
+
+- **Built-in**: No external dependencies required
+- **In-memory by default**: Store exists only during session (when `rag.chromem.data_dir` is empty)
+- **Persistent mode**: Set `rag.chromem.data_dir` to persist vectors to disk
+- **Use case**: Local development, testing, edge deployments
+
+### Qdrant (external)
+
+- **External server**: Requires running Qdrant container
+- **Full persistence**: Automatic disk persistence with advanced filtering
+- **Use case**: Production, large-scale deployments
+
+Switch between stores via config:
+```yaml
+rag:
+  store:
+    type: chromem  # or qdrant
+```
+
+See [docs/architecture.md](./docs/architecture.md) for vector store architecture details.
 
 ## Quick start
 
@@ -106,19 +133,34 @@ The agent picks tools automatically based on your question. You don't need to sp
 
 The RAG feature is **optional**. Enable it when you want the agent to answer questions based on your own documents.
 
-### Start Qdrant
-
-```bash
-docker run -p 6333:6333 -p 6334:6334 qdrant/qdrant
-```
-
 ### Enable RAG in config
 
-Edit `~/.go-magnetar/plugins/rag.yml` (created automatically on first run):
+By default, RAG uses Chromem (built-in, in-memory). For persistent storage, set `rag.chromem.data_dir`:
 
 ```yaml
 rag:
   enable: true
+  store:
+    type: chromem  # or qdrant
+  llm:
+    base_url: https://api.openai.com/v1
+    api_key: $env:OPENAI_API_KEY
+    model: text-embedding-3-small
+    vector_size: 1536
+  chromem:
+    data_dir: ~/.go-magnetar/store  # optional: set for persistence
+    collection: documents  # collection name
+```
+
+The main `~/.go-magnetar/config.yml` already includes `plugins/rag.yml` via the `include` directive — no changes to it are needed.
+
+For Qdrant (external store), use:
+
+```yaml
+rag:
+  enable: true
+  store:
+    type: qdrant
   llm:
     base_url: https://api.openai.com/v1
     api_key: $env:OPENAI_API_KEY
@@ -129,7 +171,11 @@ rag:
     collection: documents
 ```
 
-The main `~/.go-magnetar/config.yml` already includes `plugins/rag.yml` via the `include` directive — no changes to it are needed.
+### Start Qdrant (optional, only if using Qdrant store)
+
+```bash
+docker run -p 6333:6333 -p 6334:6334 qdrant/qdrant
+```
 
 ### Index documents
 

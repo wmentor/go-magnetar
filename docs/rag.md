@@ -4,11 +4,64 @@ RAG allows the agent to search a knowledge base for relevant information before 
 
 ## Requirements
 
-- **Qdrant** — vector database for storing embeddings
+- API key for any OpenAI-compatible provider (for LLM, embedding model, and optionally for web content cleaning)
+
+**Note:** Qdrant is **no longer required**. The default vector store is **Chromem** (built-in, in-memory with optional persistence). Qdrant is available as an optional external store for production deployments.
+
+### Vector Stores
+
+go-magnetar supports two vector storage backends:
+
+#### Chromem (default)
+
+- **Built-in**: No external dependencies required
+- **In-memory by default**: Store exists only during session (when `rag.chromem.data_dir` is empty)
+- **Persistent mode**: Set `rag.chromem.data_dir` to persist vectors to disk
+- **Use case**: Local development, testing, edge deployments
+- **Configuration**: `rag.store.type: chromem` (default)
+
+#### Qdrant (external)
+
+- **External server**: Requires running Qdrant container
+- **Full persistence**: Automatic disk persistence with advanced filtering
+- **Use case**: Production, large-scale deployments
+- **Configuration**: `rag.store.type: qdrant`
+
+Switch between stores via config:
+```yaml
+rag:
+  store:
+    type: chromem  # or qdrant
+```
+
+See [docs/architecture.md](./architecture.md) for vector store architecture details.
 
 ## Installation
 
-### Start Qdrant
+### Using Chromem (default)
+
+No installation required. Chromem is built into go-magnetar.
+
+For persistent storage, set `rag.chromem.data_dir` in the config. If omitted or empty (`""`), Chromem runs in in-memory mode (data lost on restart):
+```yaml
+rag:
+  enable: true
+  chromem:
+    data_dir: ~/.go-magnetar/store  # omit for in-memory mode
+```
+
+### In-Memory Mode
+
+For in-memory storage (data lost on restart), explicitly set `data_dir` to an empty string:
+
+```yaml
+rag:
+  enable: true
+  chromem:
+    data_dir: ""  # in-memory mode
+```
+
+### Using Qdrant (optional)
 
 Qdrant can be run locally via Docker:
 
@@ -29,6 +82,8 @@ The RAG plugin configuration file is located at `~/.go-magnetar/plugins/rag.yml`
 ```yaml
 rag:
   enable: true
+  store:
+    type: chromem  # or qdrant
   llm:
     base_url: https://api.openai.com/v1
     api_key: $env:OPENAI_API_KEY
@@ -42,8 +97,10 @@ rag:
     threshold: 0.40
     multi_query: 2
     dedup_threshold: 0.95
+  chromem:
+    data_dir: ~/.go-magnetar/store  # optional: omit for in-memory only
   qdrant:
-    connstr: http://localhost:6333
+    connstr: http://localhost:6333  # required only when using qdrant
     collection: documents
 ```
 
@@ -52,6 +109,7 @@ rag:
 | Key | Type | Description |
 |---|---|---|
 | `rag.enable` | boolean | Enable/disable RAG functionality (default: `false`) |
+| `rag.store.type` | string | Vector store type: `chromem` (built-in) or `qdrant` (external) |
 | `rag.llm.base_url` | string | Embedding model endpoint URL |
 | `rag.llm.api_key` | string | API key for embedding model |
 | `rag.llm.model` | string | Embedding model name (e.g., `text-embedding-3-small`) |
@@ -62,10 +120,12 @@ rag:
 | `rag.search.threshold` | float | Minimum cosine similarity score (default: `0.40`) |
 | `rag.search.multi_query` | integer | Number of additional query reformulations (default: `2`) |
 | `rag.search.dedup_threshold` | float | Near-duplicate suppression threshold (default: `0.95`) |
+| `rag.chromem.data_dir` | string | Chromem data directory for persistent storage (empty = in-memory only) |
+| `rag.chromem.collection` | string | Chromem collection name (default: `documents`) |
 | `rag.qdrant.connstr` | string | Qdrant connection string (REST port 6333; gRPC 6334 used automatically) |
 | `rag.qdrant.collection` | string | Collection name (created automatically if missing) |
 
-### Example: Complete RAG Setup
+### Example: Complete RAG Setup with Chromem (default)
 
 ```yaml
 version: "1.0"
@@ -76,6 +136,49 @@ profile: default
 
 rag:
   enable: true
+  store:
+    type: chromem
+  llm:
+    base_url: https://api.openai.com/v1
+    api_key: $env:OPENAI_API_KEY
+    model: text-embedding-3-small
+    vector_size: 1536
+  chunk:
+    size: 2048
+    overlap: 256
+  search:
+    limit: 10
+    threshold: 0.40
+    multi_query: 2
+    dedup_threshold: 0.95
+  chromem:
+    data_dir: ~/.go-magnetar/store
+
+profiles:
+  default:
+    llm:
+      base_url: https://api.openai.com/v1
+      api_key: $env:OPENAI_API_KEY
+      model: gpt-4o
+      context: 128000
+      temperature: 0.9
+      top_p: 0.95
+      reasoning_effort: high
+```
+
+### Example: RAG Setup with Qdrant
+
+```yaml
+version: "1.0"
+
+language: english
+verbose: true
+profile: default
+
+rag:
+  enable: true
+  store:
+    type: qdrant
   llm:
     base_url: https://api.openai.com/v1
     api_key: $env:OPENAI_API_KEY
@@ -154,16 +257,9 @@ Chunks with embeddings having cosine similarity above `rag.search.dedup_threshol
 - **Chunk size**: Larger chunks (`4096`) may improve relevance but increase embedding costs
 - **Threshold**: Lower `rag.search.threshold` (e.g., `0.35`) returns more results, higher returns fewer but more relevant
 - **Multi-query**: Set `rag.search.multi_query` to `2-3` for better coverage of semantic variations
+- **Chromem persistence**: Set `rag.chromem.data_dir` to persist vectors to disk between sessions
 
 ## Troubleshooting
-
-### Connection to Qdrant Failed
-
-Ensure Qdrant is running and accessible:
-
-```bash
-curl http://localhost:6333
-```
 
 ### Embedding Errors
 
@@ -175,3 +271,11 @@ Check that `rag.llm.api_key` is valid and `rag.llm.model` matches your provider'
 - Check `rag.search.threshold` — may be too high
 - Try lowering `rag.search.threshold` to `0.30`
 - Enable `rag.search.multi_query` to improve coverage
+
+### Qdrant Connection Failed
+
+Ensure Qdrant is running and accessible:
+
+```bash
+curl http://localhost:6333
+```

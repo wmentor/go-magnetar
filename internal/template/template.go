@@ -18,7 +18,15 @@ func EnsureConfigDir(homeDir string) error {
 	// Check if config directory exists
 	if _, err := os.Stat(configDir); err == nil {
 		// Directory exists, sync templates
-		return SyncTemplates(configDir)
+		if err := SyncTemplates(configDir); err != nil {
+			return err
+		}
+		// Ensure store directory exists
+		storeDir := filepath.Join(configDir, "store")
+		if err := os.MkdirAll(storeDir, 0755); err != nil {
+			return err
+		}
+		return nil
 	}
 
 	// Directory doesn't exist, create it
@@ -27,7 +35,13 @@ func EnsureConfigDir(homeDir string) error {
 	}
 
 	// Copy all templates (excluding hidden files/directories)
-	return copyDir(configDir, "templates")
+	if err := copyDir(configDir, "templates"); err != nil {
+		return err
+	}
+
+	// Ensure store directory exists
+	storeDir := filepath.Join(configDir, "store")
+	return os.MkdirAll(storeDir, 0755)
 }
 
 // SyncTemplates copies new template files from embed.FS to config directory.
