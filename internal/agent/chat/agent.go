@@ -541,7 +541,7 @@ func readInput() (string, bool, error) {
 	if err != nil {
 		return "", false, err
 	}
-	final := result.(*inputModel)
+	final := result.(*inputModel) //nolint:forcetypeassert // valid case.
 	fmt.Fprintln(os.Stdout)
 	return strings.TrimSpace(final.input.Value()), final.quit, nil
 }

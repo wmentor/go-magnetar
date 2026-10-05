@@ -31,6 +31,18 @@ Install mockery:
 go install github.com/vektra/mockery/v3@v3.7.4
 ```
 
+### golangci-lint
+
+golangci-lint is used for linting Go code. It is invoked via `make lint`.
+
+Install golangci-lint v2.13.2:
+
+```bash
+go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
+```
+
+Or download from [GitHub Releases](https://github.com/golangci/golangci-lint/releases).
+
 ### GoReleaser
 
 GoReleaser is used to build and publish releases in GitHub Flow. It is configured via `.goreleaser.yaml` and used in CI/CD pipelines.

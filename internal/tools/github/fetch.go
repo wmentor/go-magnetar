@@ -116,7 +116,7 @@ func (g *GitHubTools) FetchRepository(repo string) (string, error) {
 
 func (g *GitHubTools) formatRepoMarkdown(repoData any, readme string) string {
 	// Type assertion for repoData
-	rd := repoData.(struct {
+	rd := repoData.(struct { //nolint:forcetypeassert // possible later.
 		FullName      string `json:"full_name"`
 		DefaultBranch string `json:"default_branch"`
 		License       *struct {
