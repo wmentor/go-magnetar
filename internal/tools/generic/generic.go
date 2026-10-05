@@ -356,7 +356,7 @@ func askUserForCommand(command, reason string) bool {
 	for {
 		fmt.Printf("Do you want to execute it anyway? (y/N): ")
 		answer = ""
-		fmt.Scanln(&answer)
+		_, _ = fmt.Scanln(&answer)
 		answer = strings.ToLower(strings.TrimSpace(answer))
 		if answer == "y" || answer == "n" {
 			break

@@ -18,13 +18,13 @@ linters:
     - dupl
     - durationcheck
 #    - err113
-#    - errcheck
+    - errcheck
     - errchkjson
     - errname
 #    - errorlint
     - exhaustive
     - forbidigo
-#    - forcetypeassert
+    - forcetypeassert
 #    - funlen
 #    - gochecknoinits
 #    - gocognit

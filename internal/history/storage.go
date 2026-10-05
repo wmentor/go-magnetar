@@ -60,7 +60,7 @@ func (s *Storage) Add(record string) {
 		s.records = s.records[len(s.records)-s.limit:]
 	}
 	s.currentIdx = len(s.records)
-	s.Save()
+	_ = s.Save()
 }
 
 func (s *Storage) Prev() string {

@@ -133,7 +133,7 @@ func (p *Printer) Ask(question string) string {
 		fmt.Printf(" %s ", IconIam)
 
 		var answer string
-		fmt.Scanln(&answer)
+		_, _ = fmt.Scanln(&answer)
 		answer = strings.TrimSpace(answer)
 		if answer == "" {
 			continue

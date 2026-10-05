@@ -56,7 +56,7 @@ func Execute() error {
 	}
 
 	if root.Profile != "" {
-		cfg.SetProfile(root.Profile)
+		_ = cfg.SetProfile(root.Profile)
 	}
 
 	printer.SetDefault(printer.New(false))
