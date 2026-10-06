@@ -120,8 +120,7 @@ Beyond answering questions, the agent has access to tools it can call automatica
 | `exec` | Run shell commands (with a built-in safety guard) |
 | `system_grep` | Search file contents with grep |
 | `web_fetch` | Fetch a URL and return its content as Markdown (transparently handles Confluence, JIRA, GitHub, GitLab, RSS feeds when corresponding plugins are enabled). See [docs/tool_web_fetch.md](./docs/tool_web_fetch.md) for complete documentation |
-| `web_search` | Search the web and return results |
-| `rag_search` | Search your indexed knowledge base (when RAG is enabled) |
+| `search` | Execute web and knowledge base search in parallel and return merged results |
 | `ssh` | Execute commands on a remote server via SSH (when enabled) |
 | `cve` | Look up vulnerability info from the OSV database |
 | `github_*` | Read GitHub repos, files, issues, milestones |

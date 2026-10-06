@@ -13,8 +13,9 @@ internal/
     registry.go                  — global registry; Register, InitAll, Stop,
                                     LLMTools, ChatCommands, SetRoot, Reset
   plugins/
-    rag/plugin.go                — rag_search LLM tool (init → Register)
+    rag/plugin.go                — rag_save LLM tool (init → Register)
     web/plugin.go                — web_fetch LLM tool (init → Register)
+    search/plugin.go             — search LLM tool (init → Register)
     generic/plugin.go            — file_read/list/write/exists/system_grep/LLM tools (init → Register)
       indexcmd/plugin.go           — /index chat command plugin
     chatcmd/
@@ -35,7 +36,8 @@ internal/
   store/
     store.go                     — Store factory: NewStore(cfg) returns qdrant/chromem
   tools/
-    rag/rag.go                   — RAG tools: rag_save, rag_search, dispatch
+    rag/rag.go                   — RAG tools: rag_save, rag_search, dispatch (rag_search not exposed to LLM)
+    rag/chromem/
     rag/chromem/
       store.go                   — Chromem vector store implementation (built-in)
       tools.go                   — Chromem utilities: ParseDataDir, Preview, CosineSimilarity
@@ -114,17 +116,20 @@ REPL --> user_input
    --> trimMessages(history) — trimming to fit context window
     --> build toolMap from plugin.LLMTools()
    --> Ask() — see [chat_agent_ask.md](./chat_agent_ask.md) for complete algorithm
-        --> LLM (system prompt + history + user_input + tools)
-              --> tool_call dispatched via toolMap[name].Execute(ctx, args)
-                    --> rag_search:
-                          --> expandQuery (LLM) -> N extra phrasings
-                          --> parallel: embed+query for each phrasing
-                          --> merge by chunk ID, keep best score
-                          --> trim to search.limit
-                          --> dedup by cosine similarity
-                          --> return joined top-N texts
-                                --> store.Search(queryVector)  (chromem/qdrant)
-                    --> web_fetch:  fetch -> HTML cleanup -> Readability extraction -> Markdown
+         --> LLM (system prompt + history + user_input + tools)
+               --> tool_call dispatched via toolMap[name].Execute(ctx, args)
+                     --> search:
+                           --> web_search (parallel):
+                                  --> Web Search
+                           --> rag_search (parallel):
+                                 --> expandQuery (LLM) -> N extra phrasings
+                                 --> parallel: embed+query for each phrasing
+                                 --> merge by chunk ID, keep best score
+                                 --> trim to search.limit
+                                 --> dedup by cosine similarity
+                                 --> return joined top-N texts
+                                 --> store.Search(queryVector)  (chromem/qdrant)
+                     --> web_fetch:  fetch -> HTML cleanup -> Readability extraction -> Markdown
                     --> file_*:     sandboxed filesystem ops
    --> output answer to stdout
 ```
@@ -298,7 +303,7 @@ For logging within tools, use `printer.ToolCall()` with the appropriate icon:
 
 Example:
 ```go
-printer.ToolCall(printer.IconTool, "rag_search", "query", query, "results", len(results))
+printer.ToolCall(printer.IconTool, "search", "query", query, "results", "web+rag")
 printer.ToolCall(printer.IconError, "rag_save failed", "id", id, "err", err)
 ```
 

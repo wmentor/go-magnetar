@@ -297,13 +297,11 @@ This mode reads input from the specified file, sends it to the agent, prints the
 
 ### Search strategy
 
-The agent **always** first calls `rag_search`, even if it believes it already knows the answer. If `rag_search` returns relevant results, the answer is formed exclusively based on those results, `web_fetch` is not called. `web_fetch` is used only as a fallback: when `rag_search` returns no relevant results and the user needs external or up-to-date information. If neither tool provides a result, the agent explicitly states this.
-
-`rag_search` internally runs multiple queries in parallel when `rag.search.multi_query > 0`: the original query plus N LLM-generated reformulations. Results are merged by keeping the best score per unique chunk, trimmed to `rag.search.limit`, and then near-duplicates are suppressed based on `rag.search.dedup_threshold`.
+The agent calls the unified `search` tool, which executes `web_search` and `rag_search` in parallel and merges the results. When the `search` tool returns relevant results, the answer is formed exclusively based on those results. If the `search` tool provides no relevant results, the agent explicitly states this.
 
 ### Search tool call limit
 
-To prevent infinite loops, each user request is limited to a maximum number of search-related tool calls (`rag_search` + `web_fetch`). By default, the limit is 10 calls per request. When the limit is exceeded, an error message is sent to the LLM and no more search tools are invoked for that request.
+To prevent infinite loops, each user request is limited to a maximum number of search-related tool calls. The unified `search` tool counts as 1 search call (not 2 separate calls). By default, the limit is 10 calls per request. When the limit is exceeded, an error message is sent to the LLM and no more search tools are invoked for that request.
 
 ### Chat agent tools
 

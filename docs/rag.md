@@ -233,19 +233,21 @@ Indexed 8 chunks from https://example.com/article
 
 ### Searching
 
-The agent automatically uses RAG search (`rag_search` tool) when answering questions. If relevant information exists in the knowledge base, it will be used to generate the answer.
+The agent automatically uses the unified `search` tool when answering questions. If relevant information exists in the knowledge base, it will be used to generate the answer.
 
 ## Search Strategy
 
-The agent follows this strategy:
+The agent calls the unified `search` tool, which executes both `web_search` and `rag_search` in parallel and merges the results:
 
-1. **Always first**: Calls `rag_search` to check the knowledge base
-2. **Fallback**: If no relevant results, uses `web_fetch` or `web_search` for external information
-3. **Explicit failure**: If neither source has an answer, states this clearly
+1. **Unified search**: Single `search` tool calls both web and RAG search in parallel
+2. **Fallback**: If `search` returns no relevant results, the agent explicitly states this
+3. **No separate calls**: The agent does not call `web_fetch` or `web_search` directly
 
-### Multi-Query Search
+### Multi-Query Search (RAG only)
 
-When `rag.search.multi_query > 0`, the agent generates alternative phrasings of the query via the LLM and searches with all variants. Results are merged by keeping the best score per unique chunk.
+When `rag.search.multi_query > 0`, the agent generates alternative phrasings of the query via the LLM and searches with all variants in the knowledge base. Results are merged by keeping the best score per unique chunk.
+
+**Note:** Multi-query is applied only to RAG search, not web search.
 
 ### Near-Duplicate Suppression
 
