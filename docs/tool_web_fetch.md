@@ -103,9 +103,11 @@ Converts HTML to Markdown:
 
 `web_fetch` is a **search tool** and follows the agent's search strategy:
 
-1. **Primary search**: `rag_search` is called first
-2. **Fallback**: `web_fetch` is only used when `rag_search` returns no relevant results
-3. **Search limit**: Maximum 20 search tool calls per user request (`rag_search` + `web_fetch` + `web_search`)
+1. **Unified search**: `search` tool calls both web_search and rag_search in parallel
+2. **Fallback**: If `search` returns no relevant results, `web_fetch` may be used for external information
+3. **Search limit**: Maximum 20 search tool calls per user request (`search` + `web_fetch`)
+
+**Note:** When `search` is called, it counts as 1 search call (not 2 separate calls).
 
 ## Examples
 

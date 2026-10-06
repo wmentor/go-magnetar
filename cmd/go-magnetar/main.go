@@ -28,6 +28,7 @@ import (
 	_ "github.com/wmentor/go-magnetar/internal/plugins/indexcmd"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/jira"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/rag"
+	_ "github.com/wmentor/go-magnetar/internal/plugins/search"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/web"
 )
 

@@ -68,13 +68,13 @@ Send request to OpenAI with:
        - Increment `allInterationRealToolCall` IF search limit not reached (lines 340-342)
 
 2. Execute tools in parallel (lines 345-381):
-   - **Search tools** (rag_search, web_fetch, jira_task_search):
-     - Check if `toolCallCount >= maxSearchToolCalls` (20) (lines 358-359)
-     - **Limit reached**: Return error, do NOT execute
-     - **Limit not reached**: 
-       - Increment `toolCallCount` (line 362)
-       - Execute tool (line 363)
-       - Return result or error
+    - **Search tools** (search, web_fetch, jira_task_search):
+      - Check if `toolCallCount >= maxSearchToolCalls` (20) (lines 358-359)
+      - **Limit reached**: Return error, do NOT execute
+      - **Limit not reached**: 
+        - Increment `toolCallCount` (line 362)
+        - Execute tool (line 363)
+        - Return result or error
    
    - **Lookup tools** (github_repo, github_file, jira_task_get, cve, gitlab_fetch_mr):
      - Execute tool without search limit check (line 371)
@@ -130,7 +130,7 @@ if atomic.LoadInt64(toolCallCount) >= maxSearchToolCalls {
 }
 ```
 
-- Tracks search tool calls (`rag_search`, `web_fetch`, `jira_task_search`)
+- Tracks search tool calls (`search`, `web_fetch`, `jira_task_search`)
 - Returns error for additional calls (no execution)
 - `toolCallCount` is reset for each new user request (local variable in `Ask`)
 
@@ -159,7 +159,7 @@ Breaks after 50 iterations regardless of other conditions.
 ## Tool Categories
 
 ### Search Tools (IsSearchTool: true)
-- `rag_search`: Search the knowledge base
+- `search`: Unified search tool (calls web_search and rag_search in parallel)
 - `web_fetch`: Fetch web pages (including Confluence, JIRA, GitHub)
 - `jira_task_search`: Search JIRA issues by JQL
 
