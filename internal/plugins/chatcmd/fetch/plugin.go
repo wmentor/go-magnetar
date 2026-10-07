@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/wmentor/go-magnetar/internal/common"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/tools/web"
 )
@@ -54,7 +55,7 @@ func (p *Plugin) execute(_ context.Context, a plugin.AgentHandle, args string) e
 	url := parts[0]
 	var filename string
 	if len(parts) >= 2 {
-		filename = filepath.Clean(parts[1])
+		filename = outputPath(parts[1])
 	}
 
 	content, err := p.tools.WebFetch(url)
@@ -90,6 +91,11 @@ func (p *Plugin) execute(_ context.Context, a plugin.AgentHandle, args string) e
 	}
 
 	return nil
+}
+
+// outputPath cleans the file argument of /fetch and expands a leading ~ to the home directory.
+func outputPath(arg string) string {
+	return common.ExpandHome(filepath.Clean(arg))
 }
 
 func (p *Plugin) checkLess() bool {
