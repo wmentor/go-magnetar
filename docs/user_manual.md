@@ -163,6 +163,18 @@ Use **↑/↓** arrows to navigate through previously entered commands. History 
 
 See [docs/agent_tools.md](./agent_tools.md) for a complete list of available tools, search strategy, and search tool call limits.
 
+## Data Residency
+
+go-magnetar offers **100% local processing** options:
+
+- **Chromem** (built-in vector store) — no external dependencies
+- **Local LLMs** (Ollama, lm-studio, etc.) — run on your machine
+- **Zero data exfiltration** — everything stays on your computer
+
+When configured with Chromem + local LLM, **your documents, embeddings, and conversations never leave your machine**.
+
+See [docs/data_residency.md](./data_residency.md) for complete details.
+
 ## Security restrictions
 
 See [docs/security.md](./security.md) for complete security information.
