@@ -1,4 +1,6 @@
-# Security restrictions
+# Security
+
+See also: [docs/data_residency.md](./data_residency.md) for information about local data processing and zero-data-exfiltration configurations.
 
 ## Command safety guard
 
@@ -39,3 +41,7 @@ Note: If the Confluence plugin is enabled without the `readonly` flag, the API k
 ## Root user prevention
 
 The application **cannot be run as root user**. If the current user is `root` (username or UID 0), the application prints an error message and exits immediately to prevent accidental system-wide modifications.
+
+## Data Residency
+
+See [docs/data_residency.md](./data_residency.md) for complete information about local data processing, Chromem architecture, and privacy guarantees.

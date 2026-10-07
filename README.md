@@ -222,9 +222,21 @@ Save the current conversation to a file and restore it later:
 go-magnetar --session /tmp/my-session.json
 ```
 
+## Data Residency
+
+go-magnetar offers **100% local processing** options:
+
+- **Chromem** (built-in vector store) — no external dependencies
+- **Local LLMs** (Ollama, lm-studio, etc.) — run on your machine
+- **Zero data exfiltration** — everything stays on your computer
+
+When configured with Chromem + local LLM, **your documents, embeddings, and conversations never leave your machine**.
+
+See [docs/data_residency.md](./docs/data_residency.md) for complete details.
+
 ## Security
 
-The agent can execute shell commands via the `exec` tool. To stay safe:
+See [docs/security.md](./docs/security.md) for complete security information.
 
 - **Safety guard** — dangerous commands (`rm -rf /`, `sudo`, `git push`, package managers, etc.) are blocked automatically. Enable with `guard.enable: true` in config.
 - **Read-only mode** — toggle with `/readonly` to block all file writes and shell modifications for the session.
@@ -266,6 +278,7 @@ go-magnetar --read-only
 - [File format support](./docs/file_codecs.md)
 - [Text preprocessor](./docs/preprocessor.md)
 - [Security](./docs/security.md)
+- [Data Residency](./docs/data_residency.md)
 - [User manual](./docs/user_manual.md)
 
 ## License
