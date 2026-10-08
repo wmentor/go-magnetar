@@ -398,7 +398,7 @@ func (g *GenericTools) SSHExec(command, stdin, addr, userParam, dirParam string)
 		return "error: the ssh tool is forbidden in read-only mode"
 	}
 
-	if g.cfg.Bool("ssh.enable") {
+	if !g.cfg.Bool("ssh.enable") {
 		printer.Print(printer.IconBlocked, "ssh: disabled")
 		return "error: ssh disabled"
 	}
