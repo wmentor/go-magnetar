@@ -237,6 +237,9 @@ func (c *ConfluenceTools) EditPage(pageID string, markdownContent string) (strin
 	}
 	htmlContent := strings.TrimSpace(buf.String())
 
+	htmlContent = strings.ReplaceAll(htmlContent, "<br>", "<br/>")
+	htmlContent = strings.ReplaceAll(htmlContent, "</br>", "")
+
 	printer.ToolCall(printer.IconSave, "confluence_page_edit: converted markdown to HTML", "page_id", pageID)
 
 	// Prepare update request
