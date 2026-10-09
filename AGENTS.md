@@ -394,3 +394,25 @@ See [docs/dependencies.md](./dependencies.md) for a complete list of dependencie
 ## Security restrictions
 
 See [docs/security.md](./docs/security.md) for complete security information.
+
+## Tools
+
+Use `go doc` to explore packages and symbols:
+
+- `go doc <pkg>` -- list public structs, functions, and methods of a package.
+- `go doc <pkg>.<Sym>` -- show documentation for a specific symbol.
+- `go doc -src <pkg>.<Sym>` -- show full source code of a symbol.
+- `go doc -u <pkg>` -- include unexported symbols.
+- `go doc -all <pkg>` -- show full documentation for all symbols in a package.
+
+Prefer `gopls` over `grep` for finding usages and references:
+
+- `gopls references <file>:<line>:<col>` -- find all callers/references of a symbol.
+- `gopls definition <file>:<line>:<col>` -- jump to a symbol's definition.
+- `gopls implementation <file>:<line>:<col>` -- find implementations of an interface.
+- `gopls callers <file>:<line>:<col>` -- find callers of a function.
+- `gopls call_hierarchy <file>:<line>:<col>` -- display full call hierarchy.
+- `gopls workspace_symbol <query>` -- search symbols across the workspace.
+- `gopls signature <file>:<line>:<col>` -- show a function's signature.
+- `gopls symbols <file>` -- list symbols in a file.
+```

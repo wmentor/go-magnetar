@@ -366,7 +366,9 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 						if t.IsSearchTool {
 							if atomic.LoadInt64(toolCallCount) >= maxSearchToolCalls {
 								result = "error: reached maximum number of search tool calls, no further searches allowed"
-								printer.Warn("llm requre tool call %s after reached maximum number of search tool calls", toolKey.Name, toolKey.Args)
+								txt := fmt.Sprintf("LLM requested tool call %s but maximum search tool calls (%d) has been reached",
+									toolKey.Name, maxSearchToolCalls)
+								printer.Warn(txt, toolKey.Name, toolKey.Args)
 							} else {
 								atomic.AddInt64(toolCallCount, 1)
 								r, err := t.Execute(context.Background(), args)

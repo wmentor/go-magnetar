@@ -16,6 +16,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	version "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/version"
 	"github.com/wmentor/go-magnetar/internal/printer"
+	"github.com/wmentor/go-magnetar/internal/skill"
 	"github.com/wmentor/go-magnetar/internal/template"
 )
 
@@ -66,15 +67,20 @@ func Execute() error {
 		printEnabledModules(cfg)
 	}
 
-	if err := plugin.InitAll(&plugin.State{Config: cfg, ReadOnly: root.ReadOnly}); err != nil {
-		return err
-	}
-	defer plugin.Stop()
-
 	workDir, err := os.Getwd()
 	if err != nil {
 		return fmt.Errorf("get work dir error: %w", err)
 	}
+
+	skillStore := skill.NewStore(
+		filepath.Join(homeDir, ".go-magnetar", "skills"),
+		filepath.Join(workDir, ".go-magnetar", "skills"),
+	)
+
+	if err := plugin.InitAll(&plugin.State{Config: cfg, ReadOnly: root.ReadOnly, SkillStore: skillStore}); err != nil {
+		return err
+	}
+	defer plugin.Stop()
 
 	rootFS, err := os.OpenRoot(workDir)
 	if err != nil {
