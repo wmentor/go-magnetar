@@ -159,6 +159,10 @@ func printEnabledModules(cfg *config.Config) {
 		printer.Print(printer.IconModule, "github plugin is enabled")
 		has = true
 	}
+	if cfg.Bool("guard.enable") {
+		printer.Print(printer.IconModule, "guard plugin is enabled")
+		has = true
+	}
 	if cfg.String("jira.base_url") != "" && cfg.Bool("jira.enable") {
 		printer.Print(printer.IconModule, "jira plugin is enabled")
 		has = true
@@ -169,10 +173,6 @@ func printEnabledModules(cfg *config.Config) {
 	}
 	if cfg.Bool("ssh.enable") {
 		printer.Print(printer.IconModule, "ssh plugin is enabled")
-		has = true
-	}
-	if cfg.Bool("guard.enable") {
-		printer.Print(printer.IconModule, "guard plugin is enabled")
 		has = true
 	}
 	if has {
