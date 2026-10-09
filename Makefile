@@ -30,10 +30,13 @@ generate:
 	#@if [ -x "$$(command -v mockery)" ]; then echo "run mockery..." ; mockery ; else echo "mockery not found" ; fi
 
 test:
-	go clean -testcache
-	go test -race ./... -cover
+	@echo "clean cache"
+	@go clean -testcache
+	@echo "run tests"
+	@go test -race ./... -cover -coverprofile=coverage.out
+	@CURRENT_COVERAGE=$$(go tool cover -func=coverage.out | grep total | awk '{print $$3}' | sed 's/%//'); echo "Code coverage: $$CURRENT_COVERAGE%"
+	@rm -f coverage.out
 
 install: build
 	mkdir -p ${HOME}/.local/bin
 	mv bin/go-magnetar ${HOME}/.local/bin/
-
