@@ -14,7 +14,7 @@ Supported file formats for indexing: `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.p
 
 ## Requirements
 
-- Go 1.27.0
+- Go 1.27.2
 - API key for any OpenAI-compatible provider (for LLM, embedding model, and optionally for web content cleaning)
 
 **Note:** Qdrant is **no longer required**. The default vector store is **Chromem** (built-in, in-memory with optional persistence). Qdrant is available as an optional external store for production deployments.

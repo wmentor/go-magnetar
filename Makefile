@@ -27,7 +27,7 @@ tidy:
 	go mod tidy
 
 generate:
-	@if [ -x "$$(command -v mockery)" ]; then echo "run mockery..." ; mockery ; else echo "mockery not found" ; fi
+	#@if [ -x "$$(command -v mockery)" ]; then echo "run mockery..." ; mockery ; else echo "mockery not found" ; fi
 
 test:
 	go clean -testcache
