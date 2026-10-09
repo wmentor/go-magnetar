@@ -13,7 +13,7 @@ Supported file formats: `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, 
 
 ## Requirements
 
-- Go 1.27+ (or download a pre-built binary)
+- Go 1.27.2 (or download a pre-built binary)
 - API key for any OpenAI-compatible provider (OpenAI, Azure OpenAI, Ollama, etc.)
 
 **Note:** Qdrant is **no longer required**. The default vector store is **Chromem** (built-in, in-memory with optional persistence). Qdrant is available as an optional external store for production deployments.

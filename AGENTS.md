@@ -4,7 +4,7 @@ A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines a 
 
 ## Requirements
 
-- Go 1.27.0
+- Go 1.27.2
 - API key for OpenAI-compatible LLM and embedding model
 
 **Note:** Qdrant is **no longer required**. The default vector store is **Chromem** (built-in, in-memory with optional persistence). Qdrant is available as an optional external store for production deployments.
