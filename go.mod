@@ -1,6 +1,6 @@
 module github.com/wmentor/go-magnetar
 
-go 1.27.0
+go 1.27.2
 
 require (
 	codeberg.org/readeck/go-readability/v2 v2.1.2
@@ -29,7 +29,7 @@ require (
 	github.com/wmentor/html v1.0.5
 	github.com/xuri/excelize/v2 v2.11.0
 	github.com/yuin/goldmark v1.8.6
-	golang.org/x/net v0.59.0
+	golang.org/x/net v0.60.0
 	golang.org/x/term v0.46.0
 )
 

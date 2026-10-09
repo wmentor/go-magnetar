@@ -9,8 +9,8 @@ permissions:
   contents: read
 
 env:
-  GO_VERSION: '1.27.0'
-  GOLANGCI_LINT_VERSION: 'v2.13.2'
+  GO_VERSION: '1.27.2'
+  GOLANGCI_LINT_VERSION: 'v2.14.0'
 
 jobs:
   build:
