@@ -6,6 +6,7 @@ A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines a 
 
 - Go 1.27.2
 - API key for OpenAI-compatible LLM and embedding model
+- Development tools: run `make setup-tools` to install gotestsum, golangci-lint, govulncheck, mockery, and goreleaser (see [docs/makefile.md](./docs/makefile.md) and [docs/dependencies.md](./docs/dependencies.md))
 
 **Note:** Qdrant is **no longer required**. The default vector store is **Chromem** (built-in, in-memory with optional persistence). Qdrant is available as an optional external store for production deployments.
 
@@ -42,9 +43,10 @@ See [docs/architecture.md](./docs/architecture.md) for vector store architecture
 ## Build
 
 ```bash
+make setup-tools  # install gotestsum, golangci-lint, govulncheck, mockery, goreleaser
 make build        # binary -> bin/go-magnetar
 make tidy         # synchronize go.mod / go.sum
-make lint         # go vet ./...
+make lint         # golangci-lint (falls back if not installed)
 make clean        # remove bin/
 ```
 

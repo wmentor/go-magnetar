@@ -21,6 +21,30 @@
 
 ## External Tools
 
+Prefer installing all of these at once with:
+
+```bash
+make setup-tools
+```
+
+That target runs `go install` for gotestsum, golangci-lint v2.14.0 (matching CI), govulncheck, mockery, and goreleaser into `$(go env GOPATH)/bin`. Manual installs below remain available if you only need one tool.
+
+### gotestsum
+
+gotestsum provides clearer test output. When present on `PATH`, `make test` uses it instead of plain `go test`.
+
+```bash
+go install gotest.tools/gotestsum@latest
+```
+
+### govulncheck
+
+govulncheck scans for known Go vulnerabilities. CI runs it on every PR.
+
+```bash
+go install golang.org/x/vuln/cmd/govulncheck@latest
+```
+
 ### Mockery
 
 Mockery is used to generate mock objects for testing. It is invoked via `make generate` and requires `mockery` to be installed in your `$PATH`.
@@ -35,10 +59,10 @@ go install github.com/vektra/mockery/v3@v3.7.4
 
 golangci-lint is used for linting Go code. It is invoked via `make lint`.
 
-Install golangci-lint v2.13.2:
+Install golangci-lint v2.14.0 (matches CI `GOLANGCI_LINT_VERSION`):
 
 ```bash
-go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.13.2
+go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
 ```
 
 Or download from [GitHub Releases](https://github.com/golangci/golangci-lint/releases).
