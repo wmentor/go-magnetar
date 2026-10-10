@@ -75,7 +75,7 @@ func TestCopyCommand(t *testing.T) {
 			oldOut := out
 			defer func() { out = oldOut }()
 
-			err := cmd.Execute(context.Background(), mockAgent, "")
+			_, err := cmd.Execute(context.Background(), mockAgent, "")
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Execute() error = %v, wantErr %v", err, tt.wantErr)
 			}

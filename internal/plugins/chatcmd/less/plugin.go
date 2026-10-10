@@ -26,12 +26,12 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 		Name:    "less",
 		Help:    "View the last assistant answer using less.",
 		Aliases: []string{"l"},
-		Execute: func(_ context.Context, a plugin.AgentHandle, args string) error {
+		Execute: func(_ context.Context, a plugin.AgentHandle, args string) (*plugin.ChatCommandResponse, error) {
 			msgs := a.Messages()
 
 			if len(msgs) < 2 {
 				fmt.Fprintln(os.Stdout, "Nothing to view: no conversation history")
-				return nil
+				return plugin.NopChatCommandResponse, nil
 			}
 
 			lastMsg := msgs[len(msgs)-1]
@@ -42,7 +42,7 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 			content := lastMsg.Content
 			if content == "" {
 				fmt.Fprintln(os.Stdout, "Nothing to view: last assistant message is empty")
-				return nil
+				return plugin.NopChatCommandResponse, nil
 			}
 
 			stdin := bytes.NewBuffer(nil)
@@ -55,10 +55,10 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 
 			if err := cmd.Run(); err != nil {
 				fmt.Fprintf(os.Stdout, "Error running less: %v\n", err)
-				return nil
+				return plugin.NopChatCommandResponse, nil
 			}
 
-			return nil
+			return plugin.NopChatCommandResponse, nil
 		},
 	})
 	return nil

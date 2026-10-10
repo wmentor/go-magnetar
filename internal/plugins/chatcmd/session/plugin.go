@@ -28,10 +28,10 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 		Name:    "session.save",
 		Aliases: []string{},
 		Help:    "Save current conversation session to a file.",
-		Execute: func(_ context.Context, a plugin.AgentHandle, args string) error {
+		Execute: func(_ context.Context, a plugin.AgentHandle, args string) (*plugin.ChatCommandResponse, error) {
 			if args == "" {
 				fmt.Fprintln(out, "Usage: /session.save <filename>")
-				return nil
+				return plugin.NopChatCommandResponse, nil
 			}
 
 			filename := filepath.Clean(common.ExpandHome(args))
@@ -40,16 +40,16 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 			data, err := json.MarshalIndent(msgs, "", "  ")
 			if err != nil {
 				fmt.Fprintf(out, "Error marshaling messages: %v\n", err)
-				return nil
+				return plugin.NopChatCommandResponse, nil
 			}
 
 			if err := os.WriteFile(filename, data, 0644); err != nil {
 				fmt.Fprintf(out, "Error saving file: %v\n", err)
-				return nil
+				return plugin.NopChatCommandResponse, nil
 			}
 
 			fmt.Fprintf(out, "Session saved to %s\n", filename)
-			return nil
+			return plugin.NopChatCommandResponse, nil
 		},
 	})
 	return nil

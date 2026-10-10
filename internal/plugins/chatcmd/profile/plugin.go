@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/wmentor/go-magnetar/internal/config"
@@ -23,20 +24,20 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name: "profile",
 		Help: "Show current profile or switch to a different profile.",
-		Execute: func(ctx context.Context, a plugin.AgentHandle, args string) error {
+		Execute: func(ctx context.Context, a plugin.AgentHandle, args string) (*plugin.ChatCommandResponse, error) {
 			if args == "" {
 				printCurrentProfile(a.Config(), a.Messages())
-				return nil
+				return plugin.NopChatCommandResponse, nil
 			}
 
 			if err := a.Config().SetProfile(args); err != nil {
-				return err
+				return nil, errors.Wrap(err, "set profile")
 			}
 
 			a.Reconfigure()
 
 			fmt.Printf("Switched to profile: %s\n", args)
-			return nil
+			return plugin.NopChatCommandResponse, nil
 		},
 	})
 	return nil

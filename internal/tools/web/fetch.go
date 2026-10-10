@@ -134,7 +134,7 @@ func (w *WebTools) webFetch(url string, isFetch bool) (string, error) {
 		}
 	}
 
-	if w.cfg.String("github.base_url") != "" && w.cfg.Bool("github.enable") {
+	if w.cfg.String("github.base_url") != "" && w.cfg.Bool("github.enable") { //nolint:nestif // TODO.
 		if strings.Contains(url, "github.com/") {
 			if strings.Contains(url, "/blob/") {
 				owner, repo, branch, file, err := extractGitHubFileURL(url)
@@ -485,26 +485,6 @@ func extractGitHubMilestoneURL(url string) (string, string, string, error) {
 func extractGitHubAdvisoryURL(url string) (string, error) {
 	if strings.Contains(url, "/advisories/") {
 		parts := strings.Split(url, "/advisories/")
-		if len(parts) > 1 {
-			idPart := parts[1]
-			if idx := strings.Index(idPart, "/"); idx != -1 {
-				idPart = idPart[:idx]
-			}
-			if idx := strings.Index(idPart, "?"); idx != -1 {
-				idPart = idPart[:idx]
-			}
-			if idx := strings.Index(idPart, "#"); idx != -1 {
-				idPart = idPart[:idx]
-			}
-			if idPart == "" {
-				return "", fmt.Errorf("advisory ID is empty")
-			}
-			return idPart, nil
-		}
-	}
-
-	if strings.Contains(url, "/security/advisories/") {
-		parts := strings.Split(url, "/security/advisories/")
 		if len(parts) > 1 {
 			idPart := parts[1]
 			if idx := strings.Index(idPart, "/"); idx != -1 {

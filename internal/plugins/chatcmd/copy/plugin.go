@@ -27,12 +27,12 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 		Name:    "copy",
 		Aliases: []string{"c"},
 		Help:    "Copy the last assistant answer to clipboard.",
-		Execute: func(_ context.Context, a plugin.AgentHandle, _ string) error {
+		Execute: func(_ context.Context, a plugin.AgentHandle, _ string) (*plugin.ChatCommandResponse, error) {
 			msgs := a.Messages()
 
 			if len(msgs) < 2 {
 				fmt.Fprintln(out, "Nothing to copy: no conversation history")
-				return nil
+				return plugin.NopChatCommandResponse, nil
 			}
 
 			lastMsg := msgs[len(msgs)-1]
@@ -43,16 +43,16 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 			content := lastMsg.Content
 			if content == "" {
 				fmt.Fprintln(out, "Nothing to copy: last assistant message is empty")
-				return nil
+				return plugin.NopChatCommandResponse, nil
 			}
 
 			if err := clipboard.WriteAll(content); err != nil {
 				fmt.Fprintf(out, "Error copying to clipboard: %v\n", err)
-				return nil
+				return plugin.NopChatCommandResponse, nil
 			}
 
 			fmt.Fprintln(out, "Answer copied to clipboard")
-			return nil
+			return plugin.NopChatCommandResponse, nil
 		},
 	})
 	return nil

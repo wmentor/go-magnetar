@@ -11,9 +11,12 @@ import (
 	"github.com/wmentor/go-magnetar/internal/printer"
 )
 
-// ErrExit is a sentinel error that a ChatCommand.Execute function may return
-// to signal the REPL loop to terminate the session.
-var ErrExit = errors.New("exit")
+var (
+	// ErrNoCommand indicates that there was no command in the line.
+	ErrNoCommand = errors.New("no command")
+
+	NopChatCommandResponse = &ChatCommandResponse{}
+)
 
 // Plugin is the only interface a plugin package must implement.
 type Plugin interface {
@@ -85,7 +88,12 @@ type ChatCommand struct {
 	Help string
 	// Execute is called when the command is matched.
 	// args contains any text following the command name (trimmed).
-	Execute func(ctx context.Context, agent AgentHandle, args string) error
+	Execute func(ctx context.Context, agent AgentHandle, args string) (*ChatCommandResponse, error)
+}
+
+type ChatCommandResponse struct {
+	Content string // If not an empty string, it will be passed to the LLM.
+	Exit    bool   // Exit flag.
 }
 
 // AgentHandle is passed to ChatCommand.Execute.

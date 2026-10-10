@@ -321,7 +321,7 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 			printer.Error("chat: LLM response was truncated (finish_reason=length); the answer may be incomplete")
 		}
 
-		if choice.FinishReason == openai.FinishReasonToolCalls {
+		if choice.FinishReason == openai.FinishReasonToolCalls { //nolint:nestif // later.
 			type toolResult struct {
 				toolCall openai.ToolCall
 				result   string
@@ -548,8 +548,8 @@ func readInput() (string, bool, error) {
 }
 
 // handleCommand processes a slash-command entered by the user.
-// Returns (handled, exit).
-func (a *ChatAgent) handleCommand(line string) (bool, bool) {
+// Returns (*plugin.ChatCommandResponse, error).
+func (a *ChatAgent) handleCommand(line string, knownCommands []plugin.ChatCommand) (*plugin.ChatCommandResponse, error) {
 	// Strip leading "/" and split into name + args.
 	trimmed := strings.TrimPrefix(strings.TrimSpace(line), "/")
 	parts := strings.SplitN(trimmed, " ", 2)
@@ -561,19 +561,17 @@ func (a *ChatAgent) handleCommand(line string) (bool, bool) {
 
 	handle := &agentHandle{a: a}
 
-	for _, cmd := range plugin.ChatCommands() {
+	for _, cmd := range knownCommands {
 		if matchCommand(name, cmd) {
-			err := cmd.Execute(context.Background(), handle, args)
+			resp, err := cmd.Execute(context.Background(), handle, args)
 			if err != nil {
-				if errors.Is(err, plugin.ErrExit) {
-					return true, true
-				}
 				printer.Error("chat: command error", "cmd", cmd.Name, "err", err)
+				return nil, err
 			}
-			return true, false
+			return resp, nil
 		}
 	}
-	return false, false
+	return nil, plugin.ErrNoCommand
 }
 
 // matchCommand reports whether name matches cmd.Name or any of its aliases
@@ -619,10 +617,22 @@ func (a *ChatAgent) Run() error {
 			}
 		}
 
-		if handled, exit := a.handleCommand(line); handled {
-			if exit {
-				break
+		cmdResponse, err := a.handleCommand(line, plugin.ChatCommands())
+		if err == nil {
+			if cmdResponse != nil {
+				if cmdResponse.Exit {
+					break
+				}
+				if cmdResponse.Content == "" {
+					continue
+				}
+				line = cmdResponse.Content
 			}
+		} else if !errors.Is(err, plugin.ErrNoCommand) {
+			continue
+		}
+
+		if strings.TrimSpace(line) == "" {
 			continue
 		}
 

@@ -22,7 +22,7 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name: "stat",
 		Help: "Print context statistics (messages, tokens, bytes, models).",
-		Execute: func(_ context.Context, a plugin.AgentHandle, _ string) error {
+		Execute: func(_ context.Context, a plugin.AgentHandle, _ string) (*plugin.ChatCommandResponse, error) {
 			msgs := a.Messages()
 			cfg := a.Config()
 
@@ -47,7 +47,7 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 				cfg.String("rag.llm.model"),
 				cfg.Int("rag.llm.vector_size"),
 			)
-			return nil
+			return plugin.NopChatCommandResponse, nil
 		},
 	})
 	return nil

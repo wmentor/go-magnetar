@@ -56,9 +56,9 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	return nil
 }
 
-func (p *Plugin) execute(ctx context.Context, agent plugin.AgentHandle, args string) error {
+func (p *Plugin) execute(ctx context.Context, agent plugin.AgentHandle, args string) (*plugin.ChatCommandResponse, error) {
 	if args == "" {
-		return fmt.Errorf("usage: /index <path|url> [-m <message>]")
+		return nil, fmt.Errorf("usage: /index <path|url> [-m <message>]")
 	}
 
 	message := ""
@@ -74,15 +74,15 @@ func (p *Plugin) execute(ctx context.Context, agent plugin.AgentHandle, args str
 
 	if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") {
 		if err := p.idx.IndexURL(target, message); err != nil {
-			return fmt.Errorf("index URL failed: %w", err)
+			return nil, fmt.Errorf("index URL failed: %w", err)
 		}
-		return nil
+		return plugin.NopChatCommandResponse, nil
 	}
 
 	if err := p.idx.IndexFile(target, message); err != nil {
-		return fmt.Errorf("index file failed: %w", err)
+		return nil, fmt.Errorf("index file failed: %w", err)
 	}
-	return nil
+	return plugin.NopChatCommandResponse, nil
 }
 
 type Entry struct {
@@ -90,12 +90,12 @@ type Entry struct {
 	Message string `json:"message"`
 }
 
-func (p *Plugin) executeTab(ctx context.Context, agent plugin.AgentHandle, args string) error {
+func (p *Plugin) executeTab(ctx context.Context, agent plugin.AgentHandle, args string) (*plugin.ChatCommandResponse, error) {
 	filename := common.ExpandHome(strings.TrimSpace(args))
 
 	file, err := os.Open(filename)
 	if err != nil {
-		return fmt.Errorf("open file error: %w", err)
+		return nil, fmt.Errorf("open file error: %w", err)
 	}
 	defer file.Close()
 
@@ -138,8 +138,8 @@ func (p *Plugin) executeTab(ctx context.Context, agent plugin.AgentHandle, args 
 	}
 
 	if err := scanner.Err(); err != nil {
-		return fmt.Errorf("scan error: %w", err)
+		return nil, fmt.Errorf("scan error: %w", err)
 	}
 
-	return nil
+	return plugin.NopChatCommandResponse, nil
 }
