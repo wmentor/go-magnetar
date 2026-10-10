@@ -1,5 +1,11 @@
 .PHONY: all build clean install run-agent lint tidy fix format
 
+ifeq ($(shell command -v gotestsum 2> /dev/null),)
+    TEST_RUNNER := go test
+else
+    TEST_RUNNER := gotestsum --
+endif
+
 all: clean fix format generate tidy test lint build install
 
 build:
@@ -33,7 +39,7 @@ test:
 	@echo "clean cache"
 	@go clean -testcache
 	@echo "run tests"
-	@go test -race ./... -cover -coverprofile=coverage.out
+	@$(TEST_RUNNER) -race -cover -coverprofile=coverage.out ./...
 	@CURRENT_COVERAGE=$$(go tool cover -func=coverage.out | grep total | awk '{print $$3}' | sed 's/%//'); echo "Code coverage: $$CURRENT_COVERAGE%"
 	@rm -f coverage.out
 
