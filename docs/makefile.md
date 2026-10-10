@@ -20,7 +20,7 @@ Remove the bin/ directory and all built binaries.
 
 ### make run
 
-Build and run the application with the configuration file configs/config.yaml.
+Build and run the application.
 
 ### make format
 
