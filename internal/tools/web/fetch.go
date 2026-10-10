@@ -427,6 +427,26 @@ func extractGitHubRepoURL(url string) (string, string, error) {
 	return owner, repo, nil
 }
 
+var (
+	errNotGitHubURL          = errors.New("not a GitHub URL")
+	errNotGitHubTreeURL      = errors.New("not a GitHub tree/commits URL")
+	errNotGitHubBlobURL      = errors.New("not a GitHub blob URL")
+	errNotGitHubIssueURL     = errors.New("not a GitHub issue URL")
+	errNotGitHubMilestoneURL = errors.New("not a GitHub milestone URL")
+)
+
+// Patterns for the path of a github.com URL (see githubURLPath).
+var (
+	// Matches /{owner}/{repo}/(tree|commits)/{branch}[/path].
+	githubTreePathRe = regexp.MustCompile(`^/([^/]+)/([^/]+)/(tree|commits)/([^/]+)(?:/(.+))?$`)
+	// Matches /{owner}/{repo}/blob/{branch}/{file}.
+	githubBlobPathRe = regexp.MustCompile(`^/([^/]+)/([^/]+)/blob/([^/]+)/(.+)$`)
+	// Matches /{owner}/{repo}/issues/{number}.
+	githubIssuePathRe = regexp.MustCompile(`^/([^/]+)/([^/]+)/issues/(\d+)$`)
+	// Matches /{owner}/{repo}/milestone/{number}.
+	githubMilestonePathRe = regexp.MustCompile(`^/([^/]+)/([^/]+)/milestone/(\d+)$`)
+)
+
 // githubURLPath returns the escaped path of a github.com URL without the query string,
 // fragment and trailing slash. It returns an error for any other host.
 func githubURLPath(rawURL string) (string, error) {
@@ -442,41 +462,38 @@ func githubURLPath(rawURL string) (string, error) {
 	switch strings.ToLower(u.Hostname()) {
 	case "github.com", "www.github.com":
 	default:
-		return "", fmt.Errorf("not a GitHub URL")
+		return "", errNotGitHubURL
 	}
 
 	return strings.TrimRight(u.EscapedPath(), "/"), nil
 }
 
 // extractGitHubTreeURL extracts owner, repo, branch, and path from GitHub tree URL.
+// Pattern: https://github.com/owner/repo/tree/branch/path or https://github.com/owner/repo/commits/branch
 func extractGitHubTreeURL(rawURL string) (string, string, string, string, error) {
-	// Pattern: https://github.com/owner/repo/tree/branch/path or https://github.com/owner/repo/commits/branch
-	// Match: /{owner}/{repo}/(tree|commits)/{branch}[/path]
 	path, err := githubURLPath(rawURL)
 	if err != nil {
 		return "", "", "", "", err
 	}
 
-	re := regexp.MustCompile(`^/([^/]+)/([^/]+)/(tree|commits)/([^/]+)(?:/(.+))?$`)
-	matches := re.FindStringSubmatch(path)
+	matches := githubTreePathRe.FindStringSubmatch(path)
 	if matches != nil {
 		// matches[5] (the path) is empty when the URL has no path after the branch.
 		return matches[1], matches[2], matches[4], matches[5], nil
 	}
 
-	return "", "", "", "", fmt.Errorf("not a GitHub tree/commits URL")
+	return "", "", "", "", errNotGitHubTreeURL
 }
 
 // extractGitHubFileURL extracts owner, repo, branch, and file path from GitHub blob URL.
+// Pattern: https://github.com/owner/repo/blob/branch/path/to/file
 func extractGitHubFileURL(rawURL string) (string, string, string, string, error) {
-	// Pattern: https://github.com/owner/repo/blob/branch/path/to/file
 	path, err := githubURLPath(rawURL)
 	if err != nil {
 		return "", "", "", "", err
 	}
 
-	re := regexp.MustCompile(`^/([^/]+)/([^/]+)/blob/([^/]+)/(.+)$`)
-	matches := re.FindStringSubmatch(path)
+	matches := githubBlobPathRe.FindStringSubmatch(path)
 	if matches != nil {
 		owner := matches[1]
 		repo := matches[2]
@@ -485,7 +502,7 @@ func extractGitHubFileURL(rawURL string) (string, string, string, string, error)
 		return owner, repo, branch, file, nil
 	}
 
-	return "", "", "", "", fmt.Errorf("not a GitHub blob URL")
+	return "", "", "", "", errNotGitHubBlobURL
 }
 
 func extractGitHubIssueURL(rawURL string) (string, string, string, error) {
@@ -494,12 +511,11 @@ func extractGitHubIssueURL(rawURL string) (string, string, string, error) {
 		return "", "", "", err
 	}
 
-	re := regexp.MustCompile(`^/([^/]+)/([^/]+)/issues/(\d+)$`)
-	matches := re.FindStringSubmatch(path)
+	matches := githubIssuePathRe.FindStringSubmatch(path)
 	if matches != nil {
 		return matches[1], matches[2], matches[3], nil
 	}
-	return "", "", "", fmt.Errorf("not a GitHub issue URL")
+	return "", "", "", errNotGitHubIssueURL
 }
 
 func extractGitHubMilestoneURL(rawURL string) (string, string, string, error) {
@@ -508,12 +524,11 @@ func extractGitHubMilestoneURL(rawURL string) (string, string, string, error) {
 		return "", "", "", err
 	}
 
-	re := regexp.MustCompile(`^/([^/]+)/([^/]+)/milestone/(\d+)$`)
-	matches := re.FindStringSubmatch(path)
+	matches := githubMilestonePathRe.FindStringSubmatch(path)
 	if matches != nil {
 		return matches[1], matches[2], matches[3], nil
 	}
-	return "", "", "", fmt.Errorf("not a GitHub milestone URL")
+	return "", "", "", errNotGitHubMilestoneURL
 }
 
 func extractGitHubAdvisoryURL(url string) (string, error) {
