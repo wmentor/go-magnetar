@@ -427,32 +427,56 @@ func extractGitHubRepoURL(url string) (string, string, error) {
 	return owner, repo, nil
 }
 
-// extractGitHubTreeURL extracts owner, repo, branch, and path from GitHub tree URL.
-func extractGitHubTreeURL(url string) (string, string, string, string, error) {
-	// Pattern: https://github.com/owner/repo/tree/branch/path or https://github.com/owner/repo/commits/branch
-	// Match: github.com/{owner}/{repo}/(tree|commits)/{branch}[/path]
+// githubURLPath returns the escaped path of a github.com URL without the query string,
+// fragment and trailing slash. It returns an error for any other host.
+func githubURLPath(rawURL string) (string, error) {
+	if !strings.Contains(rawURL, "://") {
+		rawURL = "https://" + rawURL
+	}
 
-	re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/(tree|commits)/([^/]+)(?:/(.+))?`)
-	matches := re.FindStringSubmatch(url)
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", fmt.Errorf("invalid URL: %w", err)
+	}
+
+	switch strings.ToLower(u.Hostname()) {
+	case "github.com", "www.github.com":
+	default:
+		return "", fmt.Errorf("not a GitHub URL")
+	}
+
+	return strings.TrimRight(u.EscapedPath(), "/"), nil
+}
+
+// extractGitHubTreeURL extracts owner, repo, branch, and path from GitHub tree URL.
+func extractGitHubTreeURL(rawURL string) (string, string, string, string, error) {
+	// Pattern: https://github.com/owner/repo/tree/branch/path or https://github.com/owner/repo/commits/branch
+	// Match: /{owner}/{repo}/(tree|commits)/{branch}[/path]
+	path, err := githubURLPath(rawURL)
+	if err != nil {
+		return "", "", "", "", err
+	}
+
+	re := regexp.MustCompile(`^/([^/]+)/([^/]+)/(tree|commits)/([^/]+)(?:/(.+))?$`)
+	matches := re.FindStringSubmatch(path)
 	if matches != nil {
-		owner := matches[1]
-		repo := matches[2]
-		branch := matches[4]
-		path := ""
-		if len(matches) > 5 && matches[5] != "" {
-			path = matches[5]
-		}
-		return owner, repo, branch, path, nil
+		// matches[5] (the path) is empty when the URL has no path after the branch.
+		return matches[1], matches[2], matches[4], matches[5], nil
 	}
 
 	return "", "", "", "", fmt.Errorf("not a GitHub tree/commits URL")
 }
 
 // extractGitHubFileURL extracts owner, repo, branch, and file path from GitHub blob URL.
-func extractGitHubFileURL(url string) (string, string, string, string, error) {
+func extractGitHubFileURL(rawURL string) (string, string, string, string, error) {
 	// Pattern: https://github.com/owner/repo/blob/branch/path/to/file
-	re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/blob/([^/]+)/(.+)`)
-	matches := re.FindStringSubmatch(url)
+	path, err := githubURLPath(rawURL)
+	if err != nil {
+		return "", "", "", "", err
+	}
+
+	re := regexp.MustCompile(`^/([^/]+)/([^/]+)/blob/([^/]+)/(.+)$`)
+	matches := re.FindStringSubmatch(path)
 	if matches != nil {
 		owner := matches[1]
 		repo := matches[2]
@@ -464,18 +488,28 @@ func extractGitHubFileURL(url string) (string, string, string, string, error) {
 	return "", "", "", "", fmt.Errorf("not a GitHub blob URL")
 }
 
-func extractGitHubIssueURL(url string) (string, string, string, error) {
-	re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/issues/(\d+)`)
-	matches := re.FindStringSubmatch(url)
+func extractGitHubIssueURL(rawURL string) (string, string, string, error) {
+	path, err := githubURLPath(rawURL)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	re := regexp.MustCompile(`^/([^/]+)/([^/]+)/issues/(\d+)$`)
+	matches := re.FindStringSubmatch(path)
 	if matches != nil {
 		return matches[1], matches[2], matches[3], nil
 	}
 	return "", "", "", fmt.Errorf("not a GitHub issue URL")
 }
 
-func extractGitHubMilestoneURL(url string) (string, string, string, error) {
-	re := regexp.MustCompile(`github\.com/([^/]+)/([^/]+)/milestone/(\d+)`)
-	matches := re.FindStringSubmatch(url)
+func extractGitHubMilestoneURL(rawURL string) (string, string, string, error) {
+	path, err := githubURLPath(rawURL)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	re := regexp.MustCompile(`^/([^/]+)/([^/]+)/milestone/(\d+)$`)
+	matches := re.FindStringSubmatch(path)
 	if matches != nil {
 		return matches[1], matches[2], matches[3], nil
 	}

@@ -49,7 +49,7 @@ func TestExtractGitHubTreeURL(t *testing.T) {
 			wantOwner:  "golang",
 			wantRepo:   "go",
 			wantBranch: "master",
-			wantPath:   "src?foo=bar",
+			wantPath:   "src",
 			wantErr:    false,
 		},
 		{
@@ -57,7 +57,7 @@ func TestExtractGitHubTreeURL(t *testing.T) {
 			input:      "https://github.com/golang/go/tree/master?foo=bar",
 			wantOwner:  "golang",
 			wantRepo:   "go",
-			wantBranch: "master?foo=bar",
+			wantBranch: "master",
 			wantPath:   "",
 			wantErr:    false,
 		},
@@ -90,8 +90,29 @@ func TestExtractGitHubTreeURL(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:       "tree URL with fragment",
+			input:      "https://github.com/golang/go/tree/master/src#readme",
+			wantOwner:  "golang",
+			wantRepo:   "go",
+			wantBranch: "master",
+			wantPath:   "src",
+		},
+		{
+			name:       "tree URL on www.github.com",
+			input:      "https://www.github.com/golang/go/tree/master/src",
+			wantOwner:  "golang",
+			wantRepo:   "go",
+			wantBranch: "master",
+			wantPath:   "src",
+		},
+		{
 			name:    "not a GitHub URL",
 			input:   "https://gitlab.com/golang/go/tree/master",
+			wantErr: true,
+		},
+		{
+			name:    "non-GitHub host containing github.com",
+			input:   "https://notgithub.com/golang/go/tree/master",
 			wantErr: true,
 		},
 		{
@@ -156,7 +177,7 @@ func TestExtractGitHubFileURL(t *testing.T) {
 			wantOwner:  "golang",
 			wantRepo:   "go",
 			wantBranch: "master",
-			wantFile:   "README.md/",
+			wantFile:   "README.md",
 			wantErr:    false,
 		},
 		{
@@ -165,7 +186,7 @@ func TestExtractGitHubFileURL(t *testing.T) {
 			wantOwner:  "golang",
 			wantRepo:   "go",
 			wantBranch: "master",
-			wantFile:   "README.md?raw=1",
+			wantFile:   "README.md",
 			wantErr:    false,
 		},
 		{
@@ -174,7 +195,7 @@ func TestExtractGitHubFileURL(t *testing.T) {
 			wantOwner:  "golang",
 			wantRepo:   "go",
 			wantBranch: "master",
-			wantFile:   "README.md#L10",
+			wantFile:   "README.md",
 			wantErr:    false,
 		},
 		{
@@ -188,8 +209,21 @@ func TestExtractGitHubFileURL(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:       "blob URL with line range fragment",
+			input:      "https://github.com/golang/go/blob/master/src/cmd/go/main.go#L10-L20",
+			wantOwner:  "golang",
+			wantRepo:   "go",
+			wantBranch: "master",
+			wantFile:   "src/cmd/go/main.go",
+		},
+		{
 			name:    "not a GitHub URL",
 			input:   "https://gitlab.com/golang/go/blob/master/README.md",
+			wantErr: true,
+		},
+		{
+			name:    "non-GitHub host containing github.com",
+			input:   "https://notgithub.com/golang/go/blob/master/README.md",
 			wantErr: true,
 		},
 		{
@@ -272,8 +306,25 @@ func TestExtractGitHubIssueURL(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:      "issue URL without scheme",
+			input:     "github.com/golang/go/issues/1234",
+			wantOwner: "golang",
+			wantRepo:  "go",
+			wantNum:   "1234",
+		},
+		{
+			name:    "issue number followed by other characters",
+			input:   "https://github.com/golang/go/issues/1234abc",
+			wantErr: true,
+		},
+		{
 			name:    "not a GitHub URL",
 			input:   "https://gitlab.com/golang/go/issues/1234",
+			wantErr: true,
+		},
+		{
+			name:    "non-GitHub host containing github.com",
+			input:   "https://notgithub.com/golang/go/issues/1234",
 			wantErr: true,
 		},
 		{
@@ -361,8 +412,18 @@ func TestExtractGitHubMilestoneURL(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:    "milestone number followed by other characters",
+			input:   "https://github.com/golang/go/milestone/3abc",
+			wantErr: true,
+		},
+		{
 			name:    "not a GitHub URL",
 			input:   "https://gitlab.com/golang/go/milestone/3",
+			wantErr: true,
+		},
+		{
+			name:    "non-GitHub host containing github.com",
+			input:   "https://notgithub.com/golang/go/milestone/3",
 			wantErr: true,
 		},
 		{
