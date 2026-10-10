@@ -14,8 +14,8 @@ build:
 clean:
 	rm -rf bin/
 
-run-agent: build
-	./bin/go-magnetar agent -c configs/config.yaml
+run: build
+	./bin/go-magnetar
 
 format:
 	go fmt ./...
