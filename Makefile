@@ -1,4 +1,4 @@
-.PHONY: all build clean install run-agent lint tidy fix format
+.PHONY: all build clean install run-agent lint tidy fix format setup-tools
 
 ifeq ($(shell command -v gotestsum 2> /dev/null),)
     TEST_RUNNER := go test
@@ -46,3 +46,12 @@ test:
 install: build
 	mkdir -p ${HOME}/.local/bin
 	mv bin/go-magnetar ${HOME}/.local/bin/
+
+setup-tools:
+	@echo "Installing development tools..."
+	@go install gotest.tools/gotestsum@latest
+	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
+	@go install golang.org/x/vuln/cmd/govulncheck@latest
+	@go install github.com/vektra/mockery/v3@v3.7.4
+	@go install github.com/goreleaser/goreleaser/v2@latest
+	@echo "Done. Tools installed to $$(go env GOPATH)/bin (ensure it is on your PATH)."
