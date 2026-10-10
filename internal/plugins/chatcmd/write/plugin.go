@@ -22,10 +22,10 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 		Name:    "write",
 		Help:    "Save the last assistant answer to a file.",
 		Aliases: []string{"w"},
-		Execute: func(_ context.Context, a plugin.AgentHandle, args string) error {
+		Execute: func(_ context.Context, a plugin.AgentHandle, args string) (*plugin.ChatCommandResponse, error) {
 			if args == "" {
 				fmt.Fprintln(os.Stdout, "Usage: /write <filename>")
-				return nil
+				return plugin.NopChatCommandResponse, nil
 			}
 
 			filename := filepath.Clean(common.ExpandHome(args))
@@ -33,7 +33,7 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 
 			if len(msgs) < 2 {
 				fmt.Fprintln(os.Stdout, "Nothing to save: no conversation history")
-				return nil
+				return plugin.NopChatCommandResponse, nil
 			}
 
 			lastMsg := msgs[len(msgs)-1]
@@ -44,16 +44,16 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 			content := lastMsg.Content
 			if content == "" {
 				fmt.Fprintln(os.Stdout, "Nothing to save: last assistant message is empty")
-				return nil
+				return plugin.NopChatCommandResponse, nil
 			}
 
 			if err := os.WriteFile(filename, []byte(content), 0644); err != nil {
 				fmt.Fprintf(os.Stdout, "Error saving file: %v\n", err)
-				return nil
+				return plugin.NopChatCommandResponse, nil
 			}
 
 			fmt.Fprintf(os.Stdout, "Answer saved to %s\n", filename)
-			return nil
+			return plugin.NopChatCommandResponse, nil
 		},
 	})
 	return nil

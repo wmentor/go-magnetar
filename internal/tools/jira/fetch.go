@@ -136,7 +136,7 @@ func (j *JiraTools) FetchIssue(issueKey string) (string, error) {
 		} `json:"fields"`
 	}
 
-	if result.Fields.Type.Name == "Epic" {
+	if result.Fields.Type.Name == "Epic" { //nolint:nestif // later.
 		childURL := fmt.Sprintf("%s/rest/api/2/search", j.cfg.String("jira.base_url"))
 		childQuery := fmt.Sprintf(`"Epic Link" = %s`, issueKey)
 		requestBody := struct {

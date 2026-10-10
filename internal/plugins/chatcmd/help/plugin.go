@@ -22,9 +22,9 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 		Name:    "help",
 		Aliases: []string{"h"},
 		Help:    "Show this help message.",
-		Execute: func(_ context.Context, _ plugin.AgentHandle, _ string) error {
+		Execute: func(_ context.Context, _ plugin.AgentHandle, _ string) (*plugin.ChatCommandResponse, error) {
 			printHelp()
-			return nil
+			return plugin.NopChatCommandResponse, nil
 		},
 	})
 	return nil
@@ -41,15 +41,15 @@ func printHelp() {
 	var sb strings.Builder
 	sb.WriteString("Available chat commands:\n")
 	for _, c := range cmds {
-		line := fmt.Sprintf("    /%-12s %s", c.Name, c.Help)
+		fmt.Fprintf(&sb, "    /%-12s %s", c.Name, c.Help)
 		if len(c.Aliases) > 0 {
 			aliases := make([]string, len(c.Aliases))
 			for i, a := range c.Aliases {
 				aliases[i] = "/" + a
 			}
-			line += fmt.Sprintf(" (aliases: %s)", strings.Join(aliases, ", "))
+			fmt.Fprintf(&sb, " (aliases: %s)", strings.Join(aliases, ", "))
 		}
-		sb.WriteString(line + "\n")
+		fmt.Fprintln(&sb, "")
 	}
 	sb.WriteString("\nKeyboard shortcuts:\n")
 	sb.WriteString("    ↑/↓          navigate command history\n")

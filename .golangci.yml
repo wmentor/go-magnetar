@@ -26,7 +26,6 @@ linters:
     - forbidigo
     - forcetypeassert
 #    - funlen
-#    - gochecknoinits
 #    - gocognit
 #    - goconst
 #    - gocritic
@@ -46,9 +45,8 @@ linters:
     - lll
     - makezero
     - misspell
-#    - mnd
     - nakedret
-#    - nestif
+    - nestif
     - nilerr
     - nilnil
 #    - noctx
@@ -75,6 +73,8 @@ linters:
     - whitespace
 #    - wrapcheck
   settings:
+    nestif:
+      min-complexity: 10
     cyclop:
       max-complexity: 15
     forbidigo:

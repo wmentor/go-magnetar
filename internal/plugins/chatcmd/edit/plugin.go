@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 
+	"github.com/pkg/errors"
+
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/tools/confluence"
 )
@@ -33,17 +35,17 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	return nil
 }
 
-func (p *Plugin) execute(_ context.Context, _ plugin.AgentHandle, args string) error {
+func (p *Plugin) execute(_ context.Context, _ plugin.AgentHandle, args string) (*plugin.ChatCommandResponse, error) {
 	if args == "" {
 		fmt.Fprintln(os.Stdout, "Usage: /confluence.edit <url> <markdown_file>")
-		return nil
+		return plugin.NopChatCommandResponse, nil
 	}
 
 	// Split args into URL and markdown file
 	parts := strings.Fields(args)
 	if len(parts) < 2 {
 		fmt.Fprintln(os.Stdout, "Usage: /confluence.edit <url> <markdown_file>")
-		return nil
+		return plugin.NopChatCommandResponse, nil
 	}
 
 	url := parts[0]
@@ -53,14 +55,14 @@ func (p *Plugin) execute(_ context.Context, _ plugin.AgentHandle, args string) e
 	pageID, err := confluence.ExtractPageIDURL(url)
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "Error extracting page ID from URL: %v\n", err)
-		return nil
+		return plugin.NopChatCommandResponse, nil
 	}
 
 	if strings.Contains(url, "/x/") || strings.Contains(url, "/p/") {
 		pageID, err = confluence.ResolveShortPageID(pageID)
 		if err != nil {
 			fmt.Fprintf(os.Stdout, "Error resolve page ID from short URL: %v\n", err)
-			return nil
+			return plugin.NopChatCommandResponse, nil
 		}
 	}
 
@@ -68,12 +70,12 @@ func (p *Plugin) execute(_ context.Context, _ plugin.AgentHandle, args string) e
 	markdownContent, err := os.ReadFile(markdownFile)
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "Error reading markdown file %s: %v\n", markdownFile, err)
-		return nil
+		return plugin.NopChatCommandResponse, nil
 	}
 
 	if _, err = p.tools.EditPage(pageID, string(markdownContent)); err != nil {
-		return err
+		return nil, errors.Wrap(err, "edit page")
 	}
 
-	return nil
+	return plugin.NopChatCommandResponse, nil
 }

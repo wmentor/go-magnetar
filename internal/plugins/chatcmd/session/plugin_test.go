@@ -83,7 +83,7 @@ func TestSaveSessionCommand(t *testing.T) {
 			}
 
 			agent := &mockAgent{messages: tt.messages}
-			err := cmd.Execute(context.Background(), agent, tt.args)
+			_, err := cmd.Execute(context.Background(), agent, tt.args)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Execute() error = %v, wantErr %v", err, tt.wantErr)
 			}

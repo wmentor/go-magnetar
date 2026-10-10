@@ -19,10 +19,10 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name: "new",
 		Help: "Start a new session and clear conversation history.",
-		Execute: func(_ context.Context, a plugin.AgentHandle, _ string) error {
+		Execute: func(_ context.Context, a plugin.AgentHandle, _ string) (*plugin.ChatCommandResponse, error) {
 			a.Reset()
 			fmt.Fprintln(os.Stdout, "New session started. Context cleared.")
-			return nil
+			return plugin.NopChatCommandResponse, nil
 		},
 	})
 	return nil

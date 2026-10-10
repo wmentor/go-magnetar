@@ -27,7 +27,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	return nil
 }
 
-func (p *Plugin) execute(_ context.Context, _ plugin.AgentHandle, args string) error {
+func (p *Plugin) execute(_ context.Context, _ plugin.AgentHandle, args string) (*plugin.ChatCommandResponse, error) {
 	switch args {
 	case "on":
 		p.state.ReadOnly = true
@@ -41,7 +41,7 @@ func (p *Plugin) execute(_ context.Context, _ plugin.AgentHandle, args string) e
 		} else {
 			fmt.Fprintln(os.Stdout, "Read-only mode is currently OFF.")
 		}
-		return nil
+		return plugin.NopChatCommandResponse, nil
 	}
-	return nil
+	return plugin.NopChatCommandResponse, nil
 }

@@ -40,16 +40,16 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	return nil
 }
 
-func (p *Plugin) execute(_ context.Context, a plugin.AgentHandle, args string) error {
+func (p *Plugin) execute(_ context.Context, a plugin.AgentHandle, args string) (*plugin.ChatCommandResponse, error) {
 	if args == "" {
 		fmt.Fprintln(os.Stdout, "Usage: /fetch <url> [file]")
-		return nil
+		return plugin.NopChatCommandResponse, nil
 	}
 
 	parts := strings.Fields(args)
 	if len(parts) == 0 {
 		fmt.Fprintln(os.Stdout, "Usage: /fetch <url> [file]")
-		return nil
+		return plugin.NopChatCommandResponse, nil
 	}
 
 	url := parts[0]
@@ -61,16 +61,16 @@ func (p *Plugin) execute(_ context.Context, a plugin.AgentHandle, args string) e
 	content, err := p.tools.WebFetch(url)
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "Error fetching URL: %v\n", err)
-		return nil
+		return plugin.NopChatCommandResponse, nil
 	}
 
 	if filename != "" {
 		if err := os.WriteFile(filename, []byte(content), 0644); err != nil {
 			fmt.Fprintf(os.Stdout, "Error saving file: %v\n", err)
-			return nil
+			return plugin.NopChatCommandResponse, nil
 		}
 		fmt.Fprintf(os.Stdout, "Content saved to %s\n", filename)
-		return nil
+		return plugin.NopChatCommandResponse, nil
 	}
 
 	if p.checkLess() {
@@ -90,7 +90,7 @@ func (p *Plugin) execute(_ context.Context, a plugin.AgentHandle, args string) e
 		fmt.Fprintln(os.Stdout, content)
 	}
 
-	return nil
+	return plugin.NopChatCommandResponse, nil
 }
 
 // outputPath cleans the file argument of /fetch and expands a leading ~ to the home directory.

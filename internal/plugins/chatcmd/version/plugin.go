@@ -43,9 +43,9 @@ func (p *Plugin) Init(st *plugin.State, hub plugin.Hub) error {
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name: "version",
 		Help: "Show the current program version.",
-		Execute: func(_ context.Context, a plugin.AgentHandle, args string) error {
+		Execute: func(_ context.Context, a plugin.AgentHandle, args string) (*plugin.ChatCommandResponse, error) {
 			PrintVersion(st.Config.ProfileParamString("llm.model"))
-			return nil
+			return plugin.NopChatCommandResponse, nil
 		},
 	})
 	return nil
