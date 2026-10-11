@@ -1,5 +1,33 @@
 # CHANGELOG
 
+## [1.5.0] - 2026-10-11
+
+### 🚀 Features
+
+- Chat command /idxtab now supports configuration filenames starting with tilde
+- Add Chromem vector store as default for RAG
+- Add unified search tool that combines WEB and RAG search
+- Implementation skills storage, loading skill logic and /skill chat command
+
+### 🐛 Bug Fixes
+
+- Expand ~ in /fetch output filename
+- *(confluence_page_edit)* Correct HTML body generation
+- Invert ssh.enable check in SSHExec
+- Show ssh and guard in enabled plugins on startup
+
+### 📚 Documentation
+
+- Add Data Residency documentation
+
+### 🚜 Refactor
+
+- *(rag)* Restructure architecture with interface-based design
+- Changed ChatCommand.Execute to return response object
+
+### 💼 Other
+
+- Update Go version to 1.27.2
 ## [1.4.0] - 2026-10-02
 
 ### 🚀 Features
