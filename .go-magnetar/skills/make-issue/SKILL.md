@@ -1,6 +1,6 @@
 ---
 name: make-issue
-description: Programming and code assistance
+description: Create GitHub issues from user requests
 disable: false
 ---
 
