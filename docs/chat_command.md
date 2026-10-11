@@ -18,6 +18,9 @@ go-magnetar provides several built-in chat commands accessible from the interact
 | `/readonly` | — | Toggle read-only mode (blocks all modification operations) |
 | `/fetch` | `/f` | Fetch content from a URL, optionally save to file |
 | `/confluence.edit` | — | Edit a Confluence page using Markdown content from a file |
+| `/session.save` | — | Save current conversation session to a file |
+| `/profile` | — | Show current profile or switch to a different profile |
+| `/skill` | `/sk` | List available skills or load/activate a skill |
 
 ## /confluence.edit Command
 
@@ -56,10 +59,6 @@ confluence:
 
 See [docs/security.md](./security.md) for Confluence security considerations.
 
-| `/session.save` | — | Save current conversation session to a file |
-| `/profile` | — | Show current profile or switch to a different profile |
-| `/skill` | `/sk` | List available skills or load/activate a skill |
-
 ## /profile Command
 
 Display available profiles and their status:
@@ -81,37 +80,6 @@ Switch to a different profile:
 ```
 > /profile production
 Switched to profile: production
-
-## /skill Command
-
-List available skills or load/activate a skill.
-
-When no args are provided, the command lists all available skills (only enabled skills):
-
-```
-> /skill
-> /skill
-Available skills:
-  * coding - Programming and code assistance
-  * writing - Writing and content creation
-```
-
-To load a skill:
-
-```
-> /skill coding
-Loaded skill: coding
-```
-
-To load a skill with additional context:
-
-```
-> /skill writing "Help me write a blog post"
-Loaded skill: writing
-```
-
-The skill content will be passed to the model as the system prompt, and
-the conversation will continue with the new context.
 ```
 
 ## Command Syntax

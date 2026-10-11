@@ -389,6 +389,16 @@ Each chunk's ID is UUID v5 derived from its text (`uuid.NewSHA1`). Repeated call
 
 See [docs/architecture.md](./architecture.md) for complete architecture documentation.
 
+## Skills
+
+Skills are reusable files that customize the agent's behavior for specific tasks. They allow you to define specialized instructions, enforce output formats, and tailor the agent to project-specific conventions.
+
+Skills are loaded from two locations:
+- **User skills**: `~/.go-magnetar/skills/` — global skills
+- **Project skills**: `{current_dir}/.go-magnetar/skills/` — project-specific skills (takes priority)
+
+See [docs/skill.md](./docs/skill.md) for complete skill documentation.
+
 ## Dependencies
 
 See [docs/dependencies.md](./dependencies.md) for a complete list of dependencies.

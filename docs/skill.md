@@ -157,3 +157,36 @@ When skills with the same name exist in multiple locations, **project skills alw
 
 This priority system ensures that project-specific skills always override general-purpose user skills, providing a clean way to customize behavior per project while maintaining user-level defaults.
 
+## Using Skills
+
+Skills are activated via the `/skill` chat command in the interactive REPL.
+
+### List Available Skills
+
+```
+> /skill
+Available skills:
+  * coding - Programming and code assistance
+  * writing - Writing and content creation
+```
+
+### Load a Skill
+
+```
+> /skill coding
+Loaded skill: coding
+```
+
+### Load a Skill with Context
+
+```
+> /skill writing "Help me write a blog post"
+Loaded skill: writing
+```
+
+The skill content is applied as system instructions to the model, and the conversation continues with the new context.
+
+See [docs/chat_command.md](./chat_command.md) for complete command documentation.
+
+## License
+
