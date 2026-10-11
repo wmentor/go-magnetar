@@ -7,10 +7,69 @@ go-magnetar — a knowledge base tool built on RAG (Retrieval-Augmented Generati
 - **Chat agent** — answers questions strictly based on indexed data (no hallucinations or guessing)
 - **Index command** — `/index <path|url> [-m <message>]` indexes documents directly from the chat REPL
 - **Fetch command** — `/fetch <url> [file]` retrieves and displays content from URLs
+- **Skills** — customize agent behavior with reusable skill files for specialized tasks
 
 > Web pages are cleaned of ads, navigation, and other noise, then processed through readability extraction and converted to Markdown. Confluence URLs (both standard and short links) are also supported via the `confluence` block. JIRA issues are supported via the `jira` block. GitLab merge requests (including file changes) are supported via the `gitlab` block. GitHub repositories, files, and directory trees are supported via the `github` block.
 
 Supported file formats for indexing: `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`, and `.html`. See [docs/file_codecs.md](./docs/file_codecs.md) for complete format support and codec details.
+
+## Skills
+
+Skills are reusable files that customize the agent's behavior for specific tasks:
+
+### What are Skills?
+
+Skills are Markdown files that contain specialized instructions, templates, and workflows for the agent. They allow you to:
+
+- **Define custom instructions** — Teach the agent specialized knowledge or workflows ( coding, writing, research, etc.)
+- **Enforce output formats** — Use templates to ensure consistent issue reports, documentation, etc.
+- **Project-specific customization** — Override user-level skills with project-specific behavior
+- **Toggle per session** — Enable/disable skills as needed
+
+### Where are Skills Stored?
+
+Skills are loaded from two locations:
+
+- **User skills**: `~/.go-magnetar/skills/` — global skills available across all projects
+- **Project skills**: `{current_dir}/.go-magnetar/skills/` — project-specific skills (takes priority)
+
+### Skill Format
+
+Each skill is stored in a directory containing a `SKILL.md` file:
+
+```
+my-skill/
+└── SKILL.md
+```
+
+SKILL.md content structure:
+```markdown
+---
+name: skill-name
+description: Brief description
+disable: false
+---
+
+[Skill content goes here]
+```
+
+### Using Skills
+
+Activate a skill using the `/skill` command:
+
+```bash
+> /skill coding-assistant
+```
+
+The skill content is applied as instructions to the agent.
+
+### Skill Priority
+
+Project skills always override user skills when a conflict occurs. If the same skill exists in both locations, the project-level skill takes precedence.
+
+> **Note:** Skills currently only support the `SKILL.md` file. Supporting files and scripts will be added in future releases.
+
+See [docs/skill.md](./skill.md) for complete skill documentation.
 
 ## Requirements
 

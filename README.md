@@ -1,13 +1,16 @@
 # go-magnetar
 
-An AI chat agent with an integrated knowledge base. Chat with any OpenAI-compatible LLM, index documents and web pages into a local vector database, and get answers grounded in your own content.
+An AI chat agent with an integrated knowledge base and customizable skills. Chat with any OpenAI-compatible LLM, index documents and web pages into a local vector database, and get answers grounded in your own content.
 
 ## What it does
 
 - **Chat** — interactive REPL with multi-turn conversation and automatic context compaction
 - **Index** — `/index <file|url>` adds documents to your RAG knowledge base (optional)
 - **Fetch** — `/fetch <url>` retrieves and displays web content as Markdown
+- **Skills** — customize agent behavior with reusable skill files for specialized tasks
 - **Integrations** — Confluence, JIRA, GitHub, GitLab (all optional, disabled by default)
+
+**Skills** — customize agent behavior with reusable skill files for specialized tasks
 
 Supported file formats: `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`, `.html`
 
@@ -128,6 +131,43 @@ Beyond answering questions, the agent has access to tools it can call automatica
 
 The agent picks tools automatically based on your question. You don't need to specify which tool to use.
 
+## Skills
+
+Skills are reusable files that customize the agent's behavior for specific tasks:
+
+- **Custom instructions** — Define specialized workflows for coding, writing, research, etc.
+- **Templates** — Enforce consistent output formats (e.g., bug reports, feature requests)
+- **Project-specific guidance** — Tailor the agent to your project's conventions
+- **Enable/disable per project** — Override user-level skills with project-specific ones
+
+Skills are stored in:
+- **User skills**: `~/.go-magnetar/skills/` — global skills
+- **Project skills**: `{current_dir}/.go-magnetar/skills/` — project-specific skills (takes priority)
+
+Example skill file structure:
+```
+my-skill/
+└── SKILL.md
+```
+
+SKILL.md content:
+```markdown
+---
+name: coding-assistant
+description: Programming assistant with Go expertise
+disable: false
+---
+
+You are an expert Go developer...
+```
+
+Usage:
+```bash
+> /skill coding-assistant
+```
+
+See [docs/skill.md](./docs/skill.md) for complete skill documentation.
+
 ## Using the knowledge base (RAG)
 
 The RAG feature is **optional**. Enable it when you want the agent to answer questions based on your own documents.
@@ -203,7 +243,7 @@ The agent will now search the knowledge base before answering any question.
 | `/stat` | — | Show context stats (tokens, messages, models) |
 | `/profile [name]` | — | Show or switch profile |
 | `/readonly` | — | Toggle read-only mode |
-| `/confluence.edit <page-id> <content>` | — | Edit a Confluence page by ID with Markdown content |
+| `/confluence.edit <url> <content>` | — | Edit a Confluence page by URL with Markdown content |
 | `/idxtab <file>` | — | Index multiple documents from a JSON lines file |
 | `/session.save <file>` | — | Save conversation to a JSON file |
 
@@ -277,6 +317,7 @@ go-magnetar --read-only
 - [Agent tools](./docs/agent_tools.md)
 - [File format support](./docs/file_codecs.md)
 - [Text preprocessor](./docs/preprocessor.md)
+- [Skills](./docs/skill.md)
 - [Security](./docs/security.md)
 - [Data Residency](./docs/data_residency.md)
 - [User manual](./docs/user_manual.md)

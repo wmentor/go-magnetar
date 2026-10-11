@@ -70,6 +70,53 @@ main()
   └── agent.Run()                      — starts REPL
 ```
 
+## Skills
+
+Skills provide specialized instructions and workflows for specific tasks. go-magnetar loads skills from two locations:
+
+1. **User skills**: `~/.go-magnetar/skills`
+2. **Project skills**: `{current_dir}/.go-magnetar/skills`
+
+### Skill Loading
+
+Skills are loaded during plugin initialization and integrated into the system:
+
+```
+plugin.InitAll(State{Config})
+  └── Load skills from ~/.go-magnetar/skills and ./.go-magnetar/skills
+        └── Parse SKILL.md files
+              └── Extract YAML frontmatter (name, description, disable)
+                    └── Load skill content for ChatAgent
+```
+
+### Skill Integration in Chat Agent
+
+When a skill is applied via `/skill <name>` command:
+
+```
+/skill <name> [optional_text]
+  └── handleCommand() → ChatCommand.Execute()
+        └── state.SkillStore.Get(ctx, skillName)
+              └── makeApplySkillMessage(skill, optionalText)
+                    └── Return ChatCommandResponse{Content: skill_output}
+                          └── Line = cmdResponse.Content (line 629 in agent.go)
+                                └── a.Ask(line) (line 639 in agent.go)
+                                      └── LLM processes skill output as user input
+```
+
+### Skill Output Handling
+
+Skill results are treated as direct user input and passed to the LLM without tool calls:
+
+1. Skill output replaces the command input
+2. No tools are invoked unless explicitly instructed by the skill
+3. Skill results bypass the search/tool workflow
+4. The LLM responds directly to the skill output
+
+### Skill Priority
+
+Project skills have priority over user skills. If a skill with the same name exists in both locations, the project skill will be used.
+
 ### Data flow: file indexing
 
 ```
@@ -259,6 +306,69 @@ func (p *MyPlugin) Init(s plugin.State, hub plugin.Hub) error {
     })
     return nil
 }
+```
+
+## Skills
+
+Skills provide specialized instructions and workflows for specific tasks. go-magnetar loads skills from two locations:
+
+1. **User skills**: `~/.go-magnetar/skills`
+2. **Project skills**: `{current_dir}/.go-magnetar/skills`
+
+### Skill Loading
+
+Skills are loaded during plugin initialization and integrated into the system:
+
+```
+plugin.InitAll(State{Config})
+  └── Load skills from ~/.go-magnetar/skills and ./.go-magnetar/skills
+        └── Parse SKILL.md files
+              └── Extract YAML frontmatter (name, description, disable)
+                    └── Load skill content for ChatAgent
+```
+
+### Skill Integration in Chat Agent
+
+When a skill is applied via `/skill <name>` command:
+
+```
+/skill <name> [optional_text]
+  └── handleCommand() → ChatCommand.Execute()
+        └── state.SkillStore.Get(ctx, skillName)
+              └── makeApplySkillMessage(skill, optionalText)
+                    └── Return ChatCommandResponse{Content: skill_output}
+                          └── Line = cmdResponse.Content (line 629 in agent.go)
+                                └── a.Ask(line) (line 639 in agent.go)
+                                      └── LLM processes skill output as user input
+```
+
+### Skill Output Handling
+
+Skill results are treated as direct user input and passed to the LLM without tool calls:
+
+1. Skill output replaces the command input
+2. No tools are invoked unless explicitly instructed by the skill
+3. Skill results bypass the search/tool workflow
+4. The LLM responds directly to the skill output
+
+### Skill Priority
+
+Project skills have priority over user skills. If a skill with the same name exists in both locations, the project skill will be used.
+
+### Skills Directory Structure
+
+```
+~/.go-magnetar/skills/
+├── coding/
+│   └── SKILL.md
+├── writing/
+│   └── SKILL.md
+└── make-issue/
+    └── SKILL.md
+
+project/.go-magnetar/skills/
+└── project-specific/
+    └── SKILL.md
 ```
 
 ### Key interfaces
