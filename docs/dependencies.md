@@ -52,7 +52,7 @@ Mockery is used to generate mock objects for testing. It is invoked via `make ge
 Install mockery:
 
 ```bash
-go install github.com/vektra/mockery/v3@v3.7.4
+go install github.com/vektra/mockery/v3@v3.8.1
 ```
 
 ### golangci-lint
