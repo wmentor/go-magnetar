@@ -33,7 +33,7 @@ tidy:
 	go mod tidy
 
 generate:
-	#@if [ -x "$$(command -v mockery)" ]; then echo "run mockery..." ; mockery ; else echo "mockery not found" ; fi
+	@if [ -x "$$(command -v mockery)" ]; then echo "run mockery..." ; mockery ; else echo "mockery not found" ; fi
 
 test:
 	@echo "clean cache"
@@ -52,6 +52,6 @@ setup-tools:
 	@go install gotest.tools/gotestsum@latest
 	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
 	@go install golang.org/x/vuln/cmd/govulncheck@latest
-	@go install github.com/vektra/mockery/v3@v3.7.4
+	@go install github.com/vektra/mockery/v3@v3.8.1
 	@go install github.com/goreleaser/goreleaser/v2@latest
 	@echo "Done. Tools installed to $$(go env GOPATH)/bin (ensure it is on your PATH)."
