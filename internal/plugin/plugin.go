@@ -78,6 +78,20 @@ type LLMTool struct {
 	IsSearchTool bool
 }
 
+// ChatCommandInput encapsulates all parameters for ChatCommand execution.
+// Using a pointer allows optional parameters in the future without breaking API changes.
+type ChatCommandInput struct {
+	AgentHandler AgentHandle
+	Args         string
+	// future fields can be added here without breaking changes
+}
+
+// ChatCommandResponse is returned by ChatCommand.Execute.
+type ChatCommandResponse struct {
+	Content string // If not an empty string, it will be passed to the LLM.
+	Exit    bool   // Exit flag.
+}
+
 // ChatCommand is a slash command available in the chat REPL.
 type ChatCommand struct {
 	// Name is the primary command name without "/", e.g. "stat".
@@ -87,13 +101,7 @@ type ChatCommand struct {
 	// Help is a one-line description shown in /help output.
 	Help string
 	// Execute is called when the command is matched.
-	// args contains any text following the command name (trimmed).
-	Execute func(ctx context.Context, agent AgentHandle, args string) (*ChatCommandResponse, error)
-}
-
-type ChatCommandResponse struct {
-	Content string // If not an empty string, it will be passed to the LLM.
-	Exit    bool   // Exit flag.
+	Execute func(ctx context.Context, params *ChatCommandInput) (*ChatCommandResponse, error)
 }
 
 // AgentHandle is passed to ChatCommand.Execute.

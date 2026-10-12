@@ -27,7 +27,8 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	return nil
 }
 
-func (p *Plugin) execute(_ context.Context, _ plugin.AgentHandle, args string) (*plugin.ChatCommandResponse, error) {
+func (p *Plugin) execute(_ context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
+	args := params.Args
 	switch args {
 	case "on":
 		p.state.ReadOnly = true

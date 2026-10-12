@@ -28,14 +28,15 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 		Name:    "session.save",
 		Aliases: []string{},
 		Help:    "Save current conversation session to a file.",
-		Execute: func(_ context.Context, a plugin.AgentHandle, args string) (*plugin.ChatCommandResponse, error) {
+		Execute: func(_ context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
+			args := params.Args
 			if args == "" {
 				fmt.Fprintln(out, "Usage: /session.save <filename>")
 				return plugin.NopChatCommandResponse, nil
 			}
 
 			filename := filepath.Clean(common.ExpandHome(args))
-			msgs := a.Messages()
+			msgs := params.AgentHandler.Messages()
 
 			data, err := json.MarshalIndent(msgs, "", "  ")
 			if err != nil {

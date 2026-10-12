@@ -40,7 +40,8 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	return nil
 }
 
-func (p *Plugin) execute(_ context.Context, a plugin.AgentHandle, args string) (*plugin.ChatCommandResponse, error) {
+func (p *Plugin) execute(_ context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
+	args := params.Args
 	if args == "" {
 		fmt.Fprintln(os.Stdout, "Usage: /fetch <url> [file]")
 		return plugin.NopChatCommandResponse, nil

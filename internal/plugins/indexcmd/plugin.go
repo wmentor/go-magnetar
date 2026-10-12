@@ -56,7 +56,8 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	return nil
 }
 
-func (p *Plugin) execute(ctx context.Context, agent plugin.AgentHandle, args string) (*plugin.ChatCommandResponse, error) {
+func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
+	args := params.Args
 	if args == "" {
 		return nil, fmt.Errorf("usage: /index <path|url> [-m <message>]")
 	}
@@ -90,7 +91,8 @@ type Entry struct {
 	Message string `json:"message"`
 }
 
-func (p *Plugin) executeTab(ctx context.Context, agent plugin.AgentHandle, args string) (*plugin.ChatCommandResponse, error) {
+func (p *Plugin) executeTab(ctx context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
+	args := params.Args
 	filename := common.ExpandHome(strings.TrimSpace(args))
 
 	file, err := os.Open(filename)

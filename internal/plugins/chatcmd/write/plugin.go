@@ -22,14 +22,15 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 		Name:    "write",
 		Help:    "Save the last assistant answer to a file.",
 		Aliases: []string{"w"},
-		Execute: func(_ context.Context, a plugin.AgentHandle, args string) (*plugin.ChatCommandResponse, error) {
+		Execute: func(_ context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
+			args := params.Args
 			if args == "" {
 				fmt.Fprintln(os.Stdout, "Usage: /write <filename>")
 				return plugin.NopChatCommandResponse, nil
 			}
 
 			filename := filepath.Clean(common.ExpandHome(args))
-			msgs := a.Messages()
+			msgs := params.AgentHandler.Messages()
 
 			if len(msgs) < 2 {
 				fmt.Fprintln(os.Stdout, "Nothing to save: no conversation history")

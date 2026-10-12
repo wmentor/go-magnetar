@@ -22,7 +22,7 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 		Name:    "help",
 		Aliases: []string{"h"},
 		Help:    "Show this help message.",
-		Execute: func(_ context.Context, _ plugin.AgentHandle, _ string) (*plugin.ChatCommandResponse, error) {
+		Execute: func(_ context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
 			printHelp()
 			return plugin.NopChatCommandResponse, nil
 		},

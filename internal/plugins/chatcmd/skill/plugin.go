@@ -22,7 +22,8 @@ func (p *Plugin) Init(state *plugin.State, hub plugin.Hub) error {
 		Name:    "skill",
 		Aliases: []string{"sk"},
 		Help:    "List available skills or load/activate a skill",
-		Execute: func(ctx context.Context, _ plugin.AgentHandle, args string) (*plugin.ChatCommandResponse, error) {
+		Execute: func(ctx context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
+			args := params.Args
 			if args == "" {
 				listSkills(os.Stdout, state.SkillStore)
 				return plugin.NopChatCommandResponse, nil

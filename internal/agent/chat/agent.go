@@ -565,11 +565,14 @@ func (a *ChatAgent) handleCommand(line string, knownCommands []plugin.ChatComman
 		args = strings.TrimSpace(parts[1])
 	}
 
-	handle := &agentHandle{a: a}
-
 	for _, cmd := range knownCommands {
 		if matchCommand(name, cmd) {
-			resp, err := cmd.Execute(context.Background(), handle, args)
+			handle := &agentHandle{a: a}
+			cmdInput := &plugin.ChatCommandInput{
+				AgentHandler: handle,
+				Args:         args,
+			}
+			resp, err := cmd.Execute(context.Background(), cmdInput)
 			if err != nil {
 				printer.Error("chat: command error", "cmd", cmd.Name, "err", err)
 				return nil, err

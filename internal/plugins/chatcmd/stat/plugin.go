@@ -22,9 +22,9 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name: "stat",
 		Help: "Print context statistics (messages, tokens, bytes, models).",
-		Execute: func(_ context.Context, a plugin.AgentHandle, _ string) (*plugin.ChatCommandResponse, error) {
-			msgs := a.Messages()
-			cfg := a.Config()
+		Execute: func(_ context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
+			msgs := params.AgentHandler.Messages()
+			cfg := params.AgentHandler.Config()
 
 			var totalBytes, totalTokens int
 			for _, m := range msgs {

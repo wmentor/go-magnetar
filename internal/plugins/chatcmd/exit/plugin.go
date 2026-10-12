@@ -18,7 +18,7 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 		Name:    "exit",
 		Aliases: []string{"quit", "q"},
 		Help:    "End the session and exit.",
-		Execute: func(_ context.Context, _ plugin.AgentHandle, _ string) (*plugin.ChatCommandResponse, error) {
+		Execute: func(_ context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
 			return &plugin.ChatCommandResponse{Exit: true}, nil
 		},
 	})

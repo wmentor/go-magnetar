@@ -24,17 +24,18 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name: "profile",
 		Help: "Show current profile or switch to a different profile.",
-		Execute: func(ctx context.Context, a plugin.AgentHandle, args string) (*plugin.ChatCommandResponse, error) {
+		Execute: func(ctx context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
+			args := params.Args
 			if args == "" {
-				printCurrentProfile(a.Config(), a.Messages())
+				printCurrentProfile(params.AgentHandler.Config(), params.AgentHandler.Messages())
 				return plugin.NopChatCommandResponse, nil
 			}
 
-			if err := a.Config().SetProfile(args); err != nil {
+			if err := params.AgentHandler.Config().SetProfile(args); err != nil {
 				return nil, errors.Wrap(err, "set profile")
 			}
 
-			a.Reconfigure()
+			params.AgentHandler.Reconfigure()
 
 			fmt.Printf("Switched to profile: %s\n", args)
 			return plugin.NopChatCommandResponse, nil

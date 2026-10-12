@@ -9,7 +9,7 @@ internal/
   chunk/chunk.go                 — text chunking (UTF-8, paragraph/heading boundaries)
   plugin/
     plugin.go                    — Plugin, Hub, AgentHandle interfaces;
-                                    State, LLMTool, ChatCommand, ErrExit types
+                                    State, LLMTool, ChatCommand, ChatCommandInput, ChatCommandResponse, ErrExit types
     registry.go                  — global registry; Register, InitAll, Stop,
                                     LLMTools, ChatCommands, SetRoot, Reset
   plugins/
@@ -20,7 +20,7 @@ internal/
       indexcmd/plugin.go           — /index chat command plugin
     chatcmd/
       help/plugin.go             — /help  (assembles output from plugin.ChatCommands())
-      exit/plugin.go             — /exit  (returns plugin.ErrExit)
+      exit/plugin.go             — /exit  (returns plugin.ChatCommandResponse{Exit: true})
       new/plugin.go              — /new   (calls AgentHandle.Reset())
       compact/plugin.go          — /compact (calls AgentHandle.Compact())
       stat/plugin.go             — /stat  (reads AgentHandle.Messages() + Config())
@@ -286,7 +286,36 @@ go-magnetar uses a plugin architecture modelled after `database/sql` drivers.
 ### Adding a new chat command
 
 Same pattern but call `hub.RegisterChatCommand(plugin.ChatCommand{...})` in `Init`.
-Return `plugin.ErrExit` from `Execute` to signal the REPL to quit.
+Return `plugin.ChatCommandResponse{Exit: true}` to signal the REPL to quit.
+
+The `ChatCommand.Execute` method accepts a pointer to `ChatCommandInput` struct:
+
+```go
+type ChatCommandInput struct {
+    AgentHandler AgentHandle
+    Args         string
+    // future fields can be added here without breaking changes
+}
+```
+
+Using a pointer allows:
+- Making parameters optional in the future (adding new fields without breaking API)
+- Avoiding struct copying during parameter passing
+- Easy extension of functionality without signature changes
+
+Example:
+```go
+func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
+    args := params.Args
+    agent := params.AgentHandler
+    
+    // Access agent methods via params.AgentHandler
+    msgs := agent.Messages()
+    
+    // Process args...
+    return plugin.NopChatCommandResponse, nil
+}
+```
 
 ### Adding a text preprocessor
 
@@ -393,6 +422,25 @@ type AgentHandle interface {
     Config() *config.Config
     Compact() error
     Reset()
+}
+
+// ChatCommandInput encapsulates all parameters for ChatCommand execution.
+type ChatCommandInput struct {
+    AgentHandler AgentHandle
+    Args         string
+    // future fields can be added here without breaking changes
+}
+
+type ChatCommandResponse struct {
+    Content string // If not an empty string, it will be passed to the LLM.
+    Exit    bool   // Exit flag.
+}
+
+type ChatCommand struct {
+    Name    string
+    Aliases []string
+    Help    string
+    Execute func(ctx context.Context, params *ChatCommandInput) (*ChatCommandResponse, error)
 }
 ```
 

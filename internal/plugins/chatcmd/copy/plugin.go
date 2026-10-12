@@ -27,8 +27,8 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 		Name:    "copy",
 		Aliases: []string{"c"},
 		Help:    "Copy the last assistant answer to clipboard.",
-		Execute: func(_ context.Context, a plugin.AgentHandle, _ string) (*plugin.ChatCommandResponse, error) {
-			msgs := a.Messages()
+		Execute: func(_ context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
+			msgs := params.AgentHandler.Messages()
 
 			if len(msgs) < 2 {
 				fmt.Fprintln(out, "Nothing to copy: no conversation history")

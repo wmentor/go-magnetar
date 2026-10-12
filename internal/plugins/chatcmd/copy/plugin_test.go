@@ -75,7 +75,11 @@ func TestCopyCommand(t *testing.T) {
 			oldOut := out
 			defer func() { out = oldOut }()
 
-			_, err := cmd.Execute(context.Background(), mockAgent, "")
+			cmdInput := &plugin.ChatCommandInput{
+				AgentHandler: mockAgent,
+				Args:         "",
+			}
+			_, err := cmd.Execute(context.Background(), cmdInput)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Execute() error = %v, wantErr %v", err, tt.wantErr)
 			}

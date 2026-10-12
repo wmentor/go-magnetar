@@ -26,8 +26,8 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 		Name:    "less",
 		Help:    "View the last assistant answer using less.",
 		Aliases: []string{"l"},
-		Execute: func(_ context.Context, a plugin.AgentHandle, args string) (*plugin.ChatCommandResponse, error) {
-			msgs := a.Messages()
+		Execute: func(_ context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
+			msgs := params.AgentHandler.Messages()
 
 			if len(msgs) < 2 {
 				fmt.Fprintln(os.Stdout, "Nothing to view: no conversation history")
