@@ -188,20 +188,23 @@ func ResolveShortPageID(shortCode string) (string, error) {
 // decodeShortPageID decodes a Confluence short page ID (e.g., "A4HhC") to numeric ID using Base64.
 // Confluence pads the code to 11 chars with 'A' and adds '=' for padding, then decodes to 32-bit LE integer.
 func decodeShortPageID(shortCode string) (int64, error) {
-	// 1. Pad to 11 characters with 'A' and add '='
-	paddedCode := shortCode
+	// 1. Replace Confluence-specific URL-safe characters with standard Base64 characters
+	paddedCode := strings.ReplaceAll(shortCode, "_", "+")
+	paddedCode = strings.ReplaceAll(paddedCode, "-", "/")
+
+	// 2. Pad to 11 characters with 'A' and add '='
 	if len(paddedCode) < 11 {
 		paddedCode = paddedCode + strings.Repeat("A", 11-len(paddedCode))
 	}
 	paddedCode += "="
 
-	// 2. Decode Base64 to bytes
+	// 3. Decode Base64 to bytes
 	decoded, err := base64.StdEncoding.DecodeString(paddedCode)
 	if err != nil {
 		return 0, fmt.Errorf("confluence: failed to decode short code %q: %w", shortCode, err)
 	}
 
-	// 3. Unpack 32-bit Little-Endian integer using binary package
+	// 4. Unpack 32-bit Little-Endian integer using binary package
 	if len(decoded) < 4 {
 		return 0, errors.New("confluence: decoded data too short for page ID")
 	}

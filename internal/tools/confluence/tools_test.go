@@ -223,6 +223,12 @@ func TestResolveShortPageID(t *testing.T) {
 			want:    "277024768",
 			wantErr: false,
 		},
+		{
+			name:    "special characters",
+			input:   "_baJCg",
+			want:    "176797433",
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
