@@ -175,10 +175,8 @@ func (c *ConfluenceTools) FetchPage(pageID string, isShortID bool) (string, erro
 	return sb.String(), nil
 }
 
-// resolveShortPageID resolves a short Confluence page code (e.g., AgA5) to numeric ID.
+// ResolveShortPageID resolves a short Confluence page code (e.g., AgA5) to numeric ID.
 func ResolveShortPageID(shortCode string) (string, error) {
-	printer.ToolCall(printer.IconSearch, "confluence: resolving short Confluence page ID", "short_code", shortCode)
-
 	pageID, err := decodeShortPageID(shortCode)
 	if err != nil {
 		return "", err
@@ -212,6 +210,24 @@ func decodeShortPageID(shortCode string) (int64, error) {
 	return int64(pageID), nil
 }
 
+func HTMLFixTags(content string) string {
+	forReplace := map[string]string{
+		"<br>": "<br/>",
+		"<hr>": "<hr/>",
+	}
+
+	for k, v := range forReplace {
+		content = strings.ReplaceAll(content, k, v)
+	}
+
+	forRemove := []string{"</br>", "</hr>"}
+	for _, rec := range forRemove {
+		content = strings.ReplaceAll(content, rec, "")
+	}
+
+	return content
+}
+
 // EditPage edits a Confluence page by ID with Markdown content.
 func (c *ConfluenceTools) EditPage(pageID string, markdownContent string) (string, error) {
 	printer.ToolCall(printer.IconSave, "confluence_page_edit", "page_id", pageID)
@@ -235,10 +251,8 @@ func (c *ConfluenceTools) EditPage(pageID string, markdownContent string) (strin
 	if err != nil {
 		return "", fmt.Errorf("confluence_page_edit: failed to convert markdown to HTML: %w", err)
 	}
-	htmlContent := strings.TrimSpace(buf.String())
 
-	htmlContent = strings.ReplaceAll(htmlContent, "<br>", "<br/>")
-	htmlContent = strings.ReplaceAll(htmlContent, "</br>", "")
+	htmlContent := HTMLFixTags(buf.String())
 
 	printer.ToolCall(printer.IconSave, "confluence_page_edit: converted markdown to HTML", "page_id", pageID)
 
