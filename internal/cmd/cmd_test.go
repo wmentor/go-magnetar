@@ -1,41 +1,15 @@
 package cmd
 
 import (
-	"io"
+	"bytes"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/printer"
 )
-
-// captureStdout runs fn and returns everything it printed to stdout.
-func captureStdout(t *testing.T, fn func()) string {
-	t.Helper()
-
-	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	orig := os.Stdout
-	os.Stdout = w
-	defer func() { os.Stdout = orig }()
-
-	fn()
-
-	if err := w.Close(); err != nil {
-		t.Fatal(err)
-	}
-
-	out, err := io.ReadAll(r)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	return string(out)
-}
 
 func TestPrintEnabledModules(t *testing.T) {
 	tests := []struct {
@@ -85,7 +59,13 @@ func TestPrintEnabledModules(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			out := captureStdout(t, func() { printEnabledModules(cfg) })
+			// Use bytes.Buffer as the printer output
+			var buf bytes.Buffer
+			p := printer.New(&buf, false)
+
+			printEnabledModules(p, cfg)
+
+			out := buf.String()
 
 			for _, s := range tt.want {
 				if !strings.Contains(out, s) {

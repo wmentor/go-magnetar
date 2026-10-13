@@ -60,11 +60,11 @@ func Execute() error {
 		_ = cfg.SetProfile(root.Profile)
 	}
 
-	printer.SetDefault(printer.New(false))
+	printer.SetDefault(printer.New(os.Stdout, false))
 
 	if root.File == "" {
 		version.PrintVersion(cfg.ProfileParamString("llm.model"))
-		printEnabledModules(cfg)
+		printEnabledModules(printer.GetDefault(), cfg)
 	}
 
 	workDir, err := os.Getwd()
@@ -151,37 +151,37 @@ func loadSession(a *chat.ChatAgent, filename string) error {
 	return nil
 }
 
-func printEnabledModules(cfg *config.Config) {
+func printEnabledModules(prnt printer.Printer, cfg *config.Config) {
 	has := false
 	if cfg.String("confluence.base_url") != "" && cfg.Bool("confluence.enable") {
-		printer.Print(printer.IconModule, "confluence plugin is enabled")
+		prnt.Print(printer.IconModule, "confluence plugin is enabled")
 		has = true
 	}
 	if cfg.String("gitlab.base_url") != "" && cfg.Bool("gitlab.enable") {
-		printer.Print(printer.IconModule, "gitlab plugin is enabled")
+		prnt.Print(printer.IconModule, "gitlab plugin is enabled")
 		has = true
 	}
 	if cfg.String("github.base_url") != "" && cfg.Bool("github.enable") {
-		printer.Print(printer.IconModule, "github plugin is enabled")
+		prnt.Print(printer.IconModule, "github plugin is enabled")
 		has = true
 	}
 	if cfg.Bool("guard.enable") {
-		printer.Print(printer.IconModule, "guard plugin is enabled")
+		prnt.Print(printer.IconModule, "guard plugin is enabled")
 		has = true
 	}
 	if cfg.String("jira.base_url") != "" && cfg.Bool("jira.enable") {
-		printer.Print(printer.IconModule, "jira plugin is enabled")
+		prnt.Print(printer.IconModule, "jira plugin is enabled")
 		has = true
 	}
 	if cfg.String("rag.llm.base_url") != "" && cfg.Bool("rag.enable") {
-		printer.Print(printer.IconModule, "rag plugin is enabled")
+		prnt.Print(printer.IconModule, "rag plugin is enabled")
 		has = true
 	}
 	if cfg.Bool("ssh.enable") {
-		printer.Print(printer.IconModule, "ssh plugin is enabled")
+		prnt.Print(printer.IconModule, "ssh plugin is enabled")
 		has = true
 	}
 	if has {
-		printer.EmptyLine()
+		prnt.EmptyLine()
 	}
 }

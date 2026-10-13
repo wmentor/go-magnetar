@@ -3,6 +3,8 @@ package printer
 import (
 	"bytes"
 	"fmt"
+	"io"
+	"os"
 	"strings"
 )
 
@@ -25,24 +27,42 @@ const (
 	IconURL     = Icon("🌐")
 )
 
-type Printer struct {
+type Printer interface {
+	Verbose(enable bool)
+	Debug(message string, params ...any)
+	Info(message string, params ...any)
+	Warn(message string, params ...any)
+	Error(message string, params ...any)
+	ToolCall(typeIcon string, message string, params ...any)
+	Print(typeIcon string, message string, params ...any)
+	Ask(question string) string
+	ToolEmptyLine()
+	EmptyLine()
+}
+
+type printer struct {
+	out     io.Writer
 	verbose bool
 }
 
-func New(verbose bool) *Printer {
-	return &Printer{verbose: verbose}
+func New(out io.Writer, verbose bool) Printer {
+	return &printer{verbose: verbose, out: out}
 }
 
 var (
-	defaultPrinter *Printer
+	defaultPrinter Printer
 )
 
-func SetDefault(p *Printer) {
+func SetDefault(p Printer) {
 	defaultPrinter = p
 }
 
+func GetDefault() Printer {
+	return defaultPrinter
+}
+
 func init() {
-	defaultPrinter = New(true)
+	defaultPrinter = New(os.Stdout, true)
 }
 
 func Verbose(enable bool) {
@@ -72,31 +92,32 @@ func Print(typeIcon string, message string, params ...any) {
 func ToolCall(typeIcon string, message string, params ...any) {
 	defaultPrinter.ToolCall(typeIcon, message, params...)
 }
-func (p *Printer) Debug(message string, params ...any) {
+
+func (p *printer) Debug(message string, params ...any) {
 	if p.verbose {
 		p.Print("", message, params...)
 	}
 }
 
-func (p *Printer) Info(message string, params ...any) {
+func (p *printer) Info(message string, params ...any) {
 	p.Print("", message, params...)
 }
 
-func (p *Printer) Error(message string, params ...any) {
+func (p *printer) Error(message string, params ...any) {
 	p.Print(IconError, message, params...)
 }
 
-func (p *Printer) Warn(message string, params ...any) {
+func (p *printer) Warn(message string, params ...any) {
 	p.Print(IconAlert, message, params...)
 }
 
-func (p *Printer) ToolCall(typeIcon string, message string, params ...any) {
+func (p *printer) ToolCall(typeIcon string, message string, params ...any) {
 	if p.verbose {
 		p.Print(typeIcon, message, params...)
 	}
 }
 
-func (p *Printer) Print(typeIcon string, message string, params ...any) {
+func (p *printer) Print(typeIcon string, message string, params ...any) {
 	sb := bytes.NewBuffer(nil)
 
 	if typeIcon != "" {
@@ -116,7 +137,7 @@ func (p *Printer) Print(typeIcon string, message string, params ...any) {
 		}
 		sb.WriteString("]")
 	}
-	fmt.Println(sb.String())
+	fmt.Fprintln(p.out, sb.String())
 }
 
 func ToolEmptyLine() {
@@ -127,10 +148,10 @@ func Ask(question string) string {
 	return defaultPrinter.Ask(question)
 }
 
-func (p *Printer) Ask(question string) string {
+func (p *printer) Ask(question string) string {
 	p.Print(IconRobot, question)
 	for {
-		fmt.Printf(" %s ", IconIam)
+		fmt.Fprintf(p.out, " %s ", IconIam)
 
 		var answer string
 		_, _ = fmt.Scanln(&answer)
@@ -142,9 +163,9 @@ func (p *Printer) Ask(question string) string {
 	}
 }
 
-func (p *Printer) ToolEmptyLine() {
+func (p *printer) ToolEmptyLine() {
 	if p.verbose {
-		fmt.Println("")
+		fmt.Fprintln(p.out, "")
 	}
 }
 
@@ -152,10 +173,10 @@ func EmptyLine() {
 	defaultPrinter.EmptyLine()
 }
 
-func (p *Printer) EmptyLine() {
-	fmt.Println("")
+func (p *printer) EmptyLine() {
+	fmt.Fprintln(p.out, "")
 }
 
-func (p *Printer) Verbose(enable bool) {
+func (p *printer) Verbose(enable bool) {
 	p.verbose = enable
 }
