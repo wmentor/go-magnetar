@@ -276,35 +276,13 @@ func (w *WebTools) WebSearch(query string) (string, error) {
 
 // extractIssueKeyFromJIRAURL extracts the issue key (e.g., GOARCH-60) from a JIRA URL.
 func extractIssueKeyFromJIRAURL(url string) (string, error) {
-	// Handle URLs with /browse/
-	if _, after, ok := strings.Cut(url, "/browse/"); ok {
-		idPart := after
-		if idx2 := strings.Index(idPart, "/"); idx2 != -1 {
-			idPart = idPart[:idx2]
+	for _, path := range []string{"/browse/", "/issues/"} {
+		_, idPart, ok := strings.Cut(url, path)
+		if !ok {
+			continue
 		}
-		if idx2 := strings.Index(idPart, "?"); idx2 != -1 {
-			idPart = idPart[:idx2]
-		}
-		if idx2 := strings.Index(idPart, "#"); idx2 != -1 {
-			idPart = idPart[:idx2]
-		}
-		if idPart == "" {
-			return "", fmt.Errorf("issue key is empty")
-		}
-		return idPart, nil
-	}
-
-	// Handle URLs with /issues/
-	if _, after, ok := strings.Cut(url, "/issues/"); ok {
-		idPart := after
-		if idx2 := strings.Index(idPart, "/"); idx2 != -1 {
-			idPart = idPart[:idx2]
-		}
-		if idx2 := strings.Index(idPart, "?"); idx2 != -1 {
-			idPart = idPart[:idx2]
-		}
-		if idx2 := strings.Index(idPart, "#"); idx2 != -1 {
-			idPart = idPart[:idx2]
+		if idx := strings.IndexAny(idPart, "/?#"); idx != -1 {
+			idPart = idPart[:idx]
 		}
 		if idPart == "" {
 			return "", fmt.Errorf("issue key is empty")
