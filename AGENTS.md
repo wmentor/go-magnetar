@@ -407,6 +407,26 @@ See [docs/dependencies.md](./dependencies.md) for a complete list of dependencie
 
 See [docs/security.md](./docs/security.md) for complete security information.
 
+## Code Style
+
+**IMPORTANT**: All code comments must be written in English!
+
+**IMPORTANT**: When returning errors returned by other functions/methods, use `errors.Wrap` from `github.com/pkg/errors` or `fmt.Errorf` to add context.
+
+**IMPORTANT**: For custom errors in new packages, define them as global variables with `Err` prefix (e.g., `ErrRefRequired`) in `internal/<package>/errors.go`.
+
+**IMPORTANT**: README.md MUST be written in Russian!
+
+**IMPORTANT**: After adding new features, run the linter via `make check/lint` and fix all warnings.
+
+## Unit tests
+
+**IMPORTANT**: All tests must start with `t.Parallel()` to enable concurrent test execution.
+
+**IMPORTANT**: All helper functions for tests must be marked with `t.Helper()` to provide better error context.
+
+**IMPORTANT**: After adding new functionality, run unit tests via `make test/unit` and fix any failures.
+
 ## Tools
 
 Use `go doc` to explore packages and symbols:
