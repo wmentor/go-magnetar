@@ -37,6 +37,25 @@ var (
 		"tsv":   &tsv.Codec{},
 		"xlsx":  &excel.Codec{},
 	}
+
+	// mimeCodecs maps MIME types to codecs.
+	mimeCodecs = map[string]Codec{
+		"text/csv":                  &csv.Codec{},
+		"text/tab-separated-values": &tsv.Codec{},
+		"application/pdf":           &pdf.Codec{},
+		"application/vnd.openxmlformats-officedocument.wordprocessingml.document":   &docx.Codec{},
+		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":         &excel.Codec{},
+		"application/vnd.oasis.opendocument.text":                                   &odt.Codec{},
+		"application/vnd.openxmlformats-officedocument.presentationml.presentation": &pptx.Codec{},
+	}
+
+	mimeBinary = map[string]struct{}{
+		"application/pdf": {},
+		"application/vnd.openxmlformats-officedocument.wordprocessingml.document":   {},
+		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":         {},
+		"application/vnd.oasis.opendocument.text":                                   {},
+		"application/vnd.openxmlformats-officedocument.presentationml.presentation": {},
+	}
 )
 
 type Codec interface {
@@ -48,4 +67,16 @@ func GetCodec(extentionName string) (Codec, error) {
 		return c, nil
 	}
 	return nil, ErrCodecNotFound
+}
+
+func GetCodecByMIME(mime string) (Codec, error) {
+	if c, has := mimeCodecs[strings.ToLower(mime)]; has {
+		return c, nil
+	}
+	return nil, ErrCodecNotFound
+}
+
+func IsBinaryFormat(mimeType string) bool {
+	_, has := mimeBinary[mimeType]
+	return has
 }

@@ -1,6 +1,7 @@
 package web
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -17,6 +18,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"golang.org/x/net/html/charset"
 
+	"github.com/wmentor/go-magnetar/internal/codec"
 	"github.com/wmentor/go-magnetar/internal/codec/html"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
@@ -47,8 +49,8 @@ func New(cfg *config.Config, root *os.Root, state *plugin.State) (*WebTools, err
 	}, nil
 }
 
-// fetchURLWithMediaType retrieves content from a URL and returns (body, content_type, error).
-func (w *WebTools) fetchURLWithMediaType(url string) (string, string, error) {
+// fetchURLWithContentType retrieves content from a URL and returns (body, content_type, error).
+func (w *WebTools) fetchURLWithContentType(url string) ([]byte, string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeout)
 	defer cancel()
 
@@ -64,33 +66,40 @@ func (w *WebTools) fetchURLWithMediaType(url string) (string, string, error) {
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
-		return "", "", fmt.Errorf("web_fetch: failed to create request for %q: %w", url, err)
+		return nil, "", fmt.Errorf("web_fetch: failed to create request for %q: %w", url, err)
 	}
 
 	req.Header.Set("User-Agent", userAgent)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", "", fmt.Errorf("web_fetch: failed to fetch URL %q: %w", url, err)
+		return nil, "", fmt.Errorf("web_fetch: failed to fetch URL %q: %w", url, err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf("web_fetch: URL %q returned status %d", url, resp.StatusCode)
+		return nil, "", fmt.Errorf("web_fetch: URL %q returned status %d", url, resp.StatusCode)
 	}
 
 	contentType := resp.Header.Get("Content-Type")
-	utf8, err1 := charset.NewReader(resp.Body, contentType)
-	if err1 != nil {
-		return "", "", fmt.Errorf("web_fetch: decode URL %q error: %w", url, err1)
+
+	var dataReader io.Reader = resp.Body
+
+	mimeType, err := GetMimeType(contentType)
+	if err != nil || !codec.IsBinaryFormat(mimeType) {
+		utf8, err1 := charset.NewReader(resp.Body, contentType)
+		if err1 != nil {
+			return nil, "", fmt.Errorf("web_fetch: decode URL %q error: %w", url, err1)
+		}
+		dataReader = utf8
 	}
 
-	body, err := io.ReadAll(utf8)
+	body, err := io.ReadAll(dataReader)
 	if err != nil {
-		return "", "", fmt.Errorf("web_fetch: failed to read response body: %w", err)
+		return nil, "", fmt.Errorf("web_fetch: failed to read response body: %w", err)
 	}
 
-	return string(body), contentType, nil
+	return body, contentType, nil
 }
 
 // WebFetch fetches a web page, preprocesses it (if HTML), and returns the cleaned content.
@@ -183,7 +192,7 @@ func (w *WebTools) webFetch(url string, isFetch bool) (string, error) {
 		}
 	}
 
-	content, contentType, err := w.fetchURLWithMediaType(url)
+	content, contentType, err := w.fetchURLWithContentType(url)
 	if err != nil {
 		if isFetch {
 			printer.ToolCall(printer.IconError, "web_fetch: failed to fetch URL", "url", url, "err", err)
@@ -192,16 +201,32 @@ func (w *WebTools) webFetch(url string, isFetch bool) (string, error) {
 		return "", errors.New("web_search: failed")
 	}
 
-	contentType = strings.ToLower(contentType)
+	mimeType, err := GetMimeType(contentType)
+	if err != nil {
+		if isFetch {
+			printer.ToolCall(printer.IconError, "web_fetch: failed to parse MIME type", "url", url, "err", err)
+			return "", fmt.Errorf("web_fetch: failed to parse MIME type for URL %q", url)
+		}
+		return "", errors.New("web_search: failed")
+	}
 
-	if strings.Contains(contentType, "text/html") {
+	if mimeCodec, err := codec.GetCodecByMIME(mimeType); err == nil {
+		if result, e := mimeCodecWork(mimeCodec, content); e == nil {
+			return result, nil
+		} else {
+			fmt.Println(result)
+			return "", fmt.Errorf("decode data error: %w", e)
+		}
+	}
+
+	if strings.Contains(mimeType, "text/html") {
 		codec := &html.Codec{}
-		return codec.ProcessContent(content, url)
+		return codec.ProcessContent(string(content), url)
 	}
 
 	for _, rssType := range []string{"application/rss+xml", "text/xml", "application/xml"} {
-		if strings.Contains(contentType, rssType) {
-			if r, e := rss.Decode(strings.NewReader(content)); e == nil {
+		if strings.Contains(mimeType, rssType) {
+			if r, e := rss.Decode(bytes.NewReader(content)); e == nil {
 				if len(r.Channel.Items) == 0 {
 					break
 				}
@@ -212,7 +237,33 @@ func (w *WebTools) webFetch(url string, isFetch bool) (string, error) {
 		}
 	}
 
-	return content, nil
+	return string(content), nil
+}
+
+func mimeCodecWork(myCodec codec.Codec, content []byte) (string, error) {
+	if myCodec == nil {
+		return "", errors.New("codec is nil")
+	}
+
+	// Create a temporary file
+	tmpFile, err := os.CreateTemp("", "magnetar-")
+	if err != nil {
+		return "", fmt.Errorf("create temp file error: %w", err)
+	}
+	defer os.Remove(tmpFile.Name())
+
+	// Write content to the temporary file
+	if _, err := tmpFile.Write(content); err != nil {
+		return "", fmt.Errorf("write temp file error: %w", err)
+	}
+
+	// Close the file before reading
+	if err := tmpFile.Close(); err != nil {
+		return "", fmt.Errorf("close temp file error: %w", err)
+	}
+
+	// Read the file using the codec
+	return myCodec.ReadFile(tmpFile.Name())
 }
 
 // WebSearch executes web search and returns results in Markdown format.
