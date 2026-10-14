@@ -1,4 +1,4 @@
-.PHONY: all build clean install run-agent lint tidy fix format setup-tools
+.PHONY: all build clean install run-agent check/lint tidy fix format setup-tools
 
 ifeq ($(shell command -v gotestsum 2> /dev/null),)
     TEST_RUNNER := go test
@@ -6,7 +6,7 @@ else
     TEST_RUNNER := gotestsum --
 endif
 
-all: clean fix format generate tidy test lint build install
+all: clean fix format generate tidy test check/lint build install
 
 build:
 	go build -o bin/go-magnetar ./cmd/go-magnetar
@@ -23,8 +23,14 @@ format:
 fix:
 	go fix ./...
 
-lint:
+check/lint:
 	@if [ -x "$$(command -v golangci-lint)" ]; then echo "run golangci-lint..." ; golangci-lint run ./... ; else echo "golangci-lint not found" ; fi
+
+check/tidy:
+	go mod tidy && git diff --exit-code -- go.mod go.sum
+
+check/vuln:
+	@if [ -x "$$(command -v govulncheck)" ]; then echo "run govulncheck..." ; govulncheck -show verbose ./... ; else echo "govulncheck not found" ; fi
 
 vet:
 	go vet ./...
@@ -54,4 +60,5 @@ setup-tools:
 	@go install golang.org/x/vuln/cmd/govulncheck@latest
 	@go install github.com/vektra/mockery/v3@v3.8.1
 	@go install github.com/goreleaser/goreleaser/v2@latest
+	@go install github.com/evilmartians/lefthook/v2@v2.2.2
 	@echo "Done. Tools installed to $$(go env GOPATH)/bin (ensure it is on your PATH)."
