@@ -17,7 +17,7 @@ profiles:
 `
 
 	tmpFile := "/tmp/test-env-config.yaml"
-	if err := os.WriteFile(tmpFile, []byte(testConfig), 0644); err != nil {
+	if err := os.WriteFile(tmpFile, []byte(testConfig), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	defer os.Remove(tmpFile)

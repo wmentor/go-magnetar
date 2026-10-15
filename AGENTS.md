@@ -6,7 +6,7 @@ A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines a 
 
 - Go 1.27.2
 - API key for OpenAI-compatible LLM and embedding model
-- Development tools: run `make setup-tools` to install gotestsum, golangci-lint, govulncheck, mockery, and goreleaser (see [docs/makefile.md](./docs/makefile.md) and [docs/dependencies.md](./docs/dependencies.md))
+- Development tools: run `make setup/tools` to install all development tools (see [docs/dev_tools.md](./docs/dev_tools.md))
 
 **Note:** Qdrant is **no longer required**. The default vector store is **Chromem** (built-in, in-memory with optional persistence). Qdrant is available as an optional external store for production deployments.
 
@@ -43,10 +43,10 @@ See [docs/architecture.md](./docs/architecture.md) for vector store architecture
 ## Build
 
 ```bash
-make setup-tools  # install gotestsum, golangci-lint, govulncheck, mockery, goreleaser
+make setup/tools  # install all development tools (see docs/dev_tools.md)
 make build        # binary -> bin/go-magnetar
-make tidy         # synchronize go.mod / go.sum
-make lint         # golangci-lint (falls back if not installed)
+make run/tidy     # synchronize go.mod / go.sum
+make check/lint   # golangci-lint (falls back if not installed)
 make clean        # remove bin/
 ```
 
@@ -209,7 +209,7 @@ The agent provides an interactive REPL with multi-turn conversation support and 
 ```bash
 ./bin/go-magnetar -c my-config.yaml agent
 # or via Makefile (uses configs/config.yaml):
-make run-agent
+make run
 ```
 
 ### Working with the agent
@@ -425,7 +425,7 @@ See [docs/security.md](./docs/security.md) for complete security information.
 
 **IMPORTANT**: All helper functions for tests must be marked with `t.Helper()` to provide better error context.
 
-**IMPORTANT**: After adding new functionality, run unit tests via `make test/unit` and fix any failures.
+**IMPORTANT**: After adding new functionality, run unit tests via `make test` and fix any failures.
 
 ## Tools
 

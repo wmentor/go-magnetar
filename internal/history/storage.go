@@ -93,7 +93,7 @@ func (s *Storage) Save() error {
 		return errors.Wrap(err, "marshal history records")
 	}
 
-	if err := os.WriteFile(s.filename, data, 0644); err != nil {
+	if err := os.WriteFile(s.filename, data, 0o644); err != nil {
 		return errors.Wrapf(err, "write history to %s", s.filename)
 	}
 

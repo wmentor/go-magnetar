@@ -42,7 +42,7 @@ func NewStore(cfg *config.Config) (*Store, error) {
 		dataDir = strings.Replace(dataDir, "~", homeDir, 1)
 
 		dbPath := filepath.Join(dataDir, "chromem")
-		if err := os.MkdirAll(dbPath, 0755); err != nil {
+		if err := os.MkdirAll(dbPath, 0o755); err != nil {
 			return nil, fmt.Errorf("failed to create chromem data directory: %w", err)
 		}
 

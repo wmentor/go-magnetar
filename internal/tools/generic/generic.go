@@ -26,8 +26,10 @@ import (
 	"github.com/wmentor/go-magnetar/internal/printer"
 )
 
-const execTimeout = 1 * time.Minute
-const execOutputMaxSize = 64 * 1024
+const (
+	execTimeout       = 1 * time.Minute
+	execOutputMaxSize = 64 * 1024
+)
 
 var blockList = []*regexp.Regexp{
 	regexp.MustCompile(`(?i)^\s*rm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+)*(/\s*$|/\s+)`),
@@ -208,7 +210,7 @@ func (g *GenericTools) FileWrite(filename string, content string) bool {
 		printer.Error("file_write: blocked by read-only mode", "file", filename)
 		return false
 	}
-	err := g.root.WriteFile(filename, []byte(content), 0644)
+	err := g.root.WriteFile(filename, []byte(content), 0o644)
 	if err != nil {
 		printer.Error("file_write: failed to write file", "file", filename, "err", err)
 		return false
@@ -276,7 +278,6 @@ func (g *GenericTools) FileList(filter *FileListFilter) []string {
 		results = append(results, relPath)
 		return nil
 	})
-
 	if err != nil {
 		printer.Error("file_list: failed to walk directory", "path", g.root.Name(), "err", err)
 		return []string{fmt.Sprintf("error: %v", err)}

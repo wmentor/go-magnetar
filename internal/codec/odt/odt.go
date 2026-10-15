@@ -9,9 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	ErrInvalidFileFormat = errors.New("invalid file format")
-)
+var ErrInvalidFileFormat = errors.New("invalid file format")
 
 type Codec struct{}
 

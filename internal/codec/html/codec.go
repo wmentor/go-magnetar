@@ -12,9 +12,7 @@ type Codec struct{}
 
 type preprocessor func(content string, page string) (string, error)
 
-var (
-	preprocessors = []preprocessor{cleanHTML, processReadability, htmlToText}
-)
+var preprocessors = []preprocessor{cleanHTML, processReadability, htmlToText}
 
 func (c *Codec) ReadFile(filename string) (string, error) {
 	f, err := os.Open(filename)

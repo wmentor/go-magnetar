@@ -23,14 +23,14 @@ func EnsureConfigDir(homeDir string) error {
 		}
 		// Ensure store directory exists
 		storeDir := filepath.Join(configDir, "store")
-		if err := os.MkdirAll(storeDir, 0755); err != nil {
+		if err := os.MkdirAll(storeDir, 0o755); err != nil {
 			return err
 		}
 		return nil
 	}
 
 	// Directory doesn't exist, create it
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0o755); err != nil {
 		return err
 	}
 
@@ -41,7 +41,7 @@ func EnsureConfigDir(homeDir string) error {
 
 	// Ensure store directory exists
 	storeDir := filepath.Join(configDir, "store")
-	return os.MkdirAll(storeDir, 0755)
+	return os.MkdirAll(storeDir, 0o755)
 }
 
 // SyncTemplates copies new template files from embed.FS to config directory.
@@ -104,9 +104,9 @@ func extractFile(baseDir string, embedPath string, localName string) error {
 	localPath := filepath.Join(baseDir, localName)
 
 	// Create parent directories if needed
-	if err := os.MkdirAll(filepath.Dir(localPath), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(localPath), 0o755); err != nil {
 		return err
 	}
 
-	return os.WriteFile(localPath, data, 0644)
+	return os.WriteFile(localPath, data, 0o644)
 }

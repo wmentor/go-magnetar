@@ -25,9 +25,7 @@ type Config struct {
 	configDir string
 }
 
-var (
-	ErrProfileNotFound = errors.New("profile not found")
-)
+var ErrProfileNotFound = errors.New("profile not found")
 
 // Load reads and parses a YAML config file at the given path.
 func Load(path string) (*Config, error) {

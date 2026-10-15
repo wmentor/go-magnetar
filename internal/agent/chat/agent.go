@@ -471,9 +471,11 @@ type inputModel struct {
 	quit  bool
 }
 
-var _ = promptStyle
-var _ = promptSymbol
-var _ = questionStyle
+var (
+	_ = promptStyle
+	_ = promptSymbol
+	_ = questionStyle
+)
 
 func getTerminalWidth() int {
 	width, _, err := term.GetSize(int(os.Stdin.Fd()))

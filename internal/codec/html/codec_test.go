@@ -171,7 +171,7 @@ func TestCodec_ReadFile(t *testing.T) {
 			tmpDir := t.TempDir()
 			filename := filepath.Join(tmpDir, "test.html")
 
-			if err := os.WriteFile(filename, []byte(tt.html), 0644); err != nil {
+			if err := os.WriteFile(filename, []byte(tt.html), 0o644); err != nil {
 				t.Fatalf("write temp file error: %v", err)
 			}
 

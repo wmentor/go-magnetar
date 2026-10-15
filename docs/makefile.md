@@ -4,15 +4,18 @@ This document describes all available Makefile targets for go-magnetar.
 
 ## Available Commands
 
-### make setup-tools
+### make setup/tools
 
 Install all development tools required for working on go-magnetar into `$(go env GOPATH)/bin`:
 
 - **gotestsum** (`gotest.tools/gotestsum@latest`) — improved test output used by `make test`
-- **golangci-lint** (`github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0`) — matches CI `GOLANGCI_LINT_VERSION`, used by `make lint`
+- **golangci-lint** (`github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0`) — matches CI `GOLANGCI_LINT_VERSION`, used by `make check/lint`
 - **govulncheck** (`golang.org/x/vuln/cmd/govulncheck@latest`) — vulnerability scanner used in CI
 - **mockery** (`github.com/vektra/mockery/v3@v3.8.1`) — mock generation used by `make generate`
 - **goreleaser** (`github.com/goreleaser/goreleaser/v2@latest`) — optional release builder
+- **lefthook** (`github.com/evilmartians/lefthook/v2@v2.2.2`) — git hooks manager
+- **gci** (`github.com/daixiang0/gci@latest`) — import ordering used by `make fmt/imports`
+- **gofumpt** (`mvdan.cc/gofumpt@latest`) — stricter formatter used by `make fmt/sources`
 
 Ensure `$(go env GOPATH)/bin` is on your `PATH` after running this target. Tools are installed with `go install` and are not vendored into the repository.
 
@@ -34,19 +37,35 @@ Remove the bin/ directory and all built binaries.
 
 Build and run the application.
 
-### make format
+### make fmt/imports
 
-Run go fmt on all packages to format code according to Go standards.
+Run gci to pin and order Go imports.
 
-### make fix
+### make fmt/sources
 
-Run go fix on all packages to apply automatic code fixes.
+Run gofumpt for stricter code formatting.
 
-### make lint
+### make check/vet
 
 Run go vet to identify suspicious constructs in the code.
 
-### make tidy
+### make check/vuln
+
+Run govulncheck to scan for known Go vulnerabilities.
+
+### make run/fix
+
+Run go fix on all packages to apply automatic code fixes.
+
+### make check/lint
+
+Run golangci-lint for linting Go code.
+
+### make install
+
+Build and install the binary to `${HOME}/.local/bin/`.
+
+### make run/tidy
 
 Run go mod tidy to update go.mod and go.sum files.
 
@@ -68,6 +87,6 @@ This command:
 ## Usage Notes
 
 - Most targets depend on others (e.g., run depends on build)
-- The all target runs targets in a specific order: clean → fix → format → generate → tidy → test → lint → build
+- The all target runs targets in a specific order: clean → run/fix → run/tidy → fmt/imports → fmt/sources → generate → test → check/vet → check/lint → build → install
 - Run make without arguments to execute make all
 - Individual targets can be run independently for faster development cycles

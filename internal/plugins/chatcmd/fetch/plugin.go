@@ -66,7 +66,7 @@ func (p *Plugin) execute(_ context.Context, params *plugin.ChatCommandInput) (*p
 	}
 
 	if filename != "" {
-		if err := os.WriteFile(filename, []byte(content), 0644); err != nil {
+		if err := os.WriteFile(filename, []byte(content), 0o644); err != nil {
 			fmt.Fprintf(os.Stdout, "Error saving file: %v\n", err)
 			return plugin.NopChatCommandResponse, nil
 		}

@@ -85,7 +85,7 @@ func TestResolveEnvVars(t *testing.T) {
 			name:  "single file",
 			input: "content: $file:test.txt",
 			setup: func() {
-				os.WriteFile("test.txt", []byte("file content"), 0644)
+				os.WriteFile("test.txt", []byte("file content"), 0o644)
 			},
 			cleanup: func() {
 				os.Remove("test.txt")
@@ -96,8 +96,8 @@ func TestResolveEnvVars(t *testing.T) {
 			name:  "multiple files",
 			input: "$file:a.txt and $file:b.txt",
 			setup: func() {
-				os.WriteFile("a.txt", []byte("first"), 0644)
-				os.WriteFile("b.txt", []byte("second"), 0644)
+				os.WriteFile("a.txt", []byte("first"), 0o644)
+				os.WriteFile("b.txt", []byte("second"), 0o644)
 			},
 			cleanup: func() {
 				os.Remove("a.txt")
@@ -115,7 +115,7 @@ func TestResolveEnvVars(t *testing.T) {
 			input: "$file:$env:FILE_VAR",
 			setup: func() {
 				os.Setenv("FILE_VAR", "msg.txt")
-				os.WriteFile("msg.txt", []byte("Hello"), 0644)
+				os.WriteFile("msg.txt", []byte("Hello"), 0o644)
 			},
 			cleanup: func() {
 				os.Remove("msg.txt")
@@ -127,7 +127,7 @@ func TestResolveEnvVars(t *testing.T) {
 			name:  "file and env mixed",
 			input: "$file:msg.txt $env:USER",
 			setup: func() {
-				os.WriteFile("msg.txt", []byte("Hello"), 0644)
+				os.WriteFile("msg.txt", []byte("Hello"), 0o644)
 				os.Setenv("USER", "World")
 			},
 			cleanup: func() {
@@ -140,7 +140,7 @@ func TestResolveEnvVars(t *testing.T) {
 			name:  "file with newlines",
 			input: "$file:multiline.txt",
 			setup: func() {
-				os.WriteFile("multiline.txt", []byte("line1\nline2\nline3"), 0644)
+				os.WriteFile("multiline.txt", []byte("line1\nline2\nline3"), 0o644)
 			},
 			cleanup: func() {
 				os.Remove("multiline.txt")
@@ -151,8 +151,8 @@ func TestResolveEnvVars(t *testing.T) {
 			name:  "file with path",
 			input: "$file:subdir/test.txt",
 			setup: func() {
-				os.Mkdir("subdir", 0755)
-				os.WriteFile("subdir/test.txt", []byte("nested"), 0644)
+				os.Mkdir("subdir", 0o755)
+				os.WriteFile("subdir/test.txt", []byte("nested"), 0o644)
 			},
 			cleanup: func() {
 				os.Remove("subdir/test.txt")
@@ -181,7 +181,7 @@ func TestResolveEnvVars(t *testing.T) {
 	t.Run("file relative to baseDir", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		testFile := filepath.Join(tmpDir, "test.txt")
-		if err := os.WriteFile(testFile, []byte("content from baseDir"), 0644); err != nil {
+		if err := os.WriteFile(testFile, []byte("content from baseDir"), 0o644); err != nil {
 			t.Fatalf("failed to create test file: %v", err)
 		}
 
@@ -195,7 +195,7 @@ func TestResolveEnvVars(t *testing.T) {
 	t.Run("file with absolute path ignores baseDir", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		testFile := filepath.Join(tmpDir, "absolute.txt")
-		if err := os.WriteFile(testFile, []byte("absolute content"), 0644); err != nil {
+		if err := os.WriteFile(testFile, []byte("absolute content"), 0o644); err != nil {
 			t.Fatalf("failed to create test file: %v", err)
 		}
 
@@ -211,12 +211,12 @@ func TestResolveEnvVars(t *testing.T) {
 		tmpDir := t.TempDir()
 
 		testDir := filepath.Join(tmpDir, "testdir")
-		if err := os.MkdirAll(testDir, 0755); err != nil {
+		if err := os.MkdirAll(testDir, 0o755); err != nil {
 			t.Fatalf("failed to create test dir: %v", err)
 		}
 
 		testFile := filepath.Join(testDir, "tilde.txt")
-		if err := os.WriteFile(testFile, []byte("tilde content"), 0644); err != nil {
+		if err := os.WriteFile(testFile, []byte("tilde content"), 0o644); err != nil {
 			t.Fatalf("failed to create test file: %v", err)
 		}
 
@@ -231,7 +231,7 @@ func TestResolveEnvVars(t *testing.T) {
 	t.Run("file with nested env var", func(t *testing.T) {
 		tmpDir := t.TempDir()
 		testFile := filepath.Join(tmpDir, "nested.txt")
-		if err := os.WriteFile(testFile, []byte("nested content"), 0644); err != nil {
+		if err := os.WriteFile(testFile, []byte("nested content"), 0o644); err != nil {
 			t.Fatalf("failed to create test file: %v", err)
 		}
 
@@ -255,17 +255,17 @@ profiles:
     llm:
       api_key: $file:secrets/api_key.txt
 `
-		if err := os.WriteFile(configFile, []byte(configContent), 0644); err != nil {
+		if err := os.WriteFile(configFile, []byte(configContent), 0o644); err != nil {
 			t.Fatalf("failed to create config file: %v", err)
 		}
 
 		secretsDir := filepath.Join(tmpDir, "secrets")
-		if err := os.MkdirAll(secretsDir, 0755); err != nil {
+		if err := os.MkdirAll(secretsDir, 0o755); err != nil {
 			t.Fatalf("failed to create secrets dir: %v", err)
 		}
 
 		apiKeyFile := filepath.Join(secretsDir, "api_key.txt")
-		if err := os.WriteFile(apiKeyFile, []byte("my-secret-key"), 0644); err != nil {
+		if err := os.WriteFile(apiKeyFile, []byte("my-secret-key"), 0o644); err != nil {
 			t.Fatalf("failed to create api key file: %v", err)
 		}
 

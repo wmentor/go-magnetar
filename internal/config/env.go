@@ -7,8 +7,10 @@ import (
 	"strings"
 )
 
-var envVarPattern = regexp.MustCompile(`\$env:([A-Za-z_][A-Za-z0-9_]*)`)
-var fileVarPattern = regexp.MustCompile(`\$file:([^$\s]+)`)
+var (
+	envVarPattern  = regexp.MustCompile(`\$env:([A-Za-z_][A-Za-z0-9_]*)`)
+	fileVarPattern = regexp.MustCompile(`\$file:([^$\s]+)`)
+)
 
 func ResolveEnvVars(value string, baseDir ...string) string {
 	value = envVarPattern.ReplaceAllStringFunc(value, func(match string) string {

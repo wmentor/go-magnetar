@@ -12,9 +12,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/plugin"
 )
 
-var (
-	out io.Writer = os.Stdout
-)
+var out io.Writer = os.Stdout
 
 func init() {
 	plugin.Register("chatcmd.save", &Plugin{})
@@ -44,7 +42,7 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 				return plugin.NopChatCommandResponse, nil
 			}
 
-			if err := os.WriteFile(filename, data, 0644); err != nil {
+			if err := os.WriteFile(filename, data, 0o644); err != nil {
 				fmt.Fprintf(out, "Error saving file: %v\n", err)
 				return plugin.NopChatCommandResponse, nil
 			}

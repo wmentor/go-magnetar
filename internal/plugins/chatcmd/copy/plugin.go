@@ -16,10 +16,8 @@ import (
 	"github.com/wmentor/go-magnetar/internal/plugin"
 )
 
-var (
-	// ErrInvalidIndex is returned when the /copy argument is not a non-negative integer.
-	ErrInvalidIndex = errors.New("usage: /copy [index] — index must be a non-negative integer (0 = last answer)")
-)
+// ErrInvalidIndex is returned when the /copy argument is not a non-negative integer.
+var ErrInvalidIndex = errors.New("usage: /copy [index] — index must be a non-negative integer (0 = last answer)")
 
 func init() {
 	plugin.Register("chatcmd.copy", &Plugin{})

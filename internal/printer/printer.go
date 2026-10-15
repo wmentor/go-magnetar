@@ -49,9 +49,7 @@ func New(out io.Writer, verbose bool) Printer {
 	return &printer{verbose: verbose, out: out}
 }
 
-var (
-	defaultPrinter Printer
-)
+var defaultPrinter Printer
 
 func SetDefault(p Printer) {
 	defaultPrinter = p

@@ -613,7 +613,8 @@ func (g *GitHubTools) formatTreeMarkdown(files []struct {
 		Git  string `json:"git"`
 		HTML string `json:"html"`
 	} `json:"_links"`
-}, path string) string {
+}, path string,
+) string {
 	var sb strings.Builder
 
 	fmt.Fprintf(&sb, "**Contents of %s**\n\n", path)
@@ -974,7 +975,8 @@ func (g *GitHubTools) formatIssueMarkdown(issueData *struct {
 	UpdatedAt    string `json:"updated_at"`
 	ClosedAt     string `json:"closed_at"`
 	HTMLURL      string `json:"html_url"`
-}, comments []string) string {
+}, comments []string,
+) string {
 	var sb strings.Builder
 
 	fmt.Fprintf(&sb, "# Issue #%d: %s\n\n", issueData.Number, issueData.Title)
@@ -1231,7 +1233,8 @@ func (g *GitHubTools) formatMilestoneMarkdown(milestoneData *struct {
 	UpdatedAt string `json:"updated_at"`
 	ClosedAt  string `json:"closed_at"`
 	HTMLURL   string `json:"html_url"`
-}) string {
+},
+) string {
 	var sb strings.Builder
 
 	fmt.Fprintf(&sb, "# Milestone #%d: %s\n\n", milestoneData.Number, milestoneData.Title)
