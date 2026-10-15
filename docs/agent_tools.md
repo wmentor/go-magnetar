@@ -20,6 +20,7 @@ go-magnetar provides the following tools for the chat agent:
 | `github_issue` | `(repo: string, issue: string) -> string` | Fetches a GitHub issue and its comments, returns issue details in Markdown format |
 | `github_milestone` | `(repo: string, milestone: string) -> string` | Fetches a GitHub milestone and returns its details in Markdown format |
 | `confluence_page_edit` | `(page_id: string, markdown: string) -> string` | Edits a Confluence page by converting Markdown to HTML and updating via REST API |
+| `jira_issue_create` | `(project_key: string, summary: string, description: string, issue_type: string) -> object` | Creates a new JIRA issue with Markdown-to-Jira conversion (blocked in read-only mode). See [tool_jira.md](./tool_jira.md) for complete documentation |
 
 ## Search strategy
 

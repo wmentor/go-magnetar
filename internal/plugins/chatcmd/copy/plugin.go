@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -77,9 +78,9 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 // are intermediate steps, not answers, so they are skipped.
 func assistantAnswers(msgs []openai.ChatCompletionMessage) []string {
 	var out []string
-	for i := len(msgs) - 1; i >= 0; i-- {
-		if msgs[i].Role == openai.ChatMessageRoleAssistant && len(msgs[i].ToolCalls) == 0 {
-			out = append(out, msgs[i].Content)
+	for _, msg := range slices.Backward(msgs) {
+		if msg.Role == openai.ChatMessageRoleAssistant && len(msg.ToolCalls) == 0 {
+			out = append(out, msg.Content)
 		}
 	}
 	return out

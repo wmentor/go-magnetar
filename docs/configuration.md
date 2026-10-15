@@ -105,8 +105,9 @@ All plugins are disabled by default. Enable a plugin by setting `enable: true`:
 | Key | Type | Description |
 |---|---|---|
 | `enable` | boolean | Enable/disable JIRA fetching (default: `false`) |
-| `base_url` | string | JIRA base URL |
-| `api_key` | string | JIRA API key |
+| `readonly` | boolean | Read-only mode: disables issue creation and other write operations (default: `false`) |
+| `base_url` | string | JIRA base URL (e.g., `https://jira.example.com`) |
+| `api_key` | string | JIRA API key for REST API v2 authentication |
 
 #### GitLab (`gitlab`)
 
@@ -224,3 +225,20 @@ This order ensures that plugin-specific settings in include files take precedenc
 ## Example Configuration
 
 See [example-config.md](./example-config.md) for a complete example configuration file.
+
+### JIRA Configuration Example
+
+```yaml
+version: "1.0"
+profile: default
+include:
+  - plugins/jira.yml
+
+jira:
+  enable: true
+  base_url: https://jira.example.com
+  api_key: $env:JIRA_API_KEY
+  readonly: false  # Set to true to disable issue creation
+```
+
+For more information about JIRA tools and available operations, see [tool_jira.md](./tool_jira.md).

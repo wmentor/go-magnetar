@@ -1,4 +1,5 @@
 jira:
   enable: false  # enable/disable JIRA fetching (default: false)
+  readonly: true # read-only mode
   base_url: https://jira.example.com  # JIRA base URL
   api_key: ""  # JIRA API key

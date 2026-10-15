@@ -45,6 +45,17 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 			return tools.Dispatch("jira_task_search", args), nil
 		},
 	})
+
+	// Register create issue tool if not in read-only mode
+	if !s.Config.Bool("jira.readonly") {
+		hub.RegisterTool(plugin.LLMTool{
+			Definition: jira.StaticDefinitionCreate,
+			Execute: func(_ context.Context, args string) (string, error) {
+				return tools.Dispatch("jira_issue_create", args), nil
+			},
+		})
+	}
+
 	return nil
 }
 

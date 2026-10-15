@@ -15,6 +15,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/printer"
+	"github.com/wmentor/go-magnetar/internal/tools/jira/render"
 )
 
 const jiraDefaultTimeout = time.Minute
@@ -385,6 +386,130 @@ func (j *JiraTools) FetchIssuesByJQL(jql string, maxResults int, startAt int) (s
 	return sb.String(), nil
 }
 
+// CreateIssueInput represents the input parameters for CreateIssue.
+type CreateIssueInput struct {
+	ProjectKey  string `json:"project_key"`
+	Summary     string `json:"summary"`
+	Description string `json:"description"`
+	IssueType   string `json:"issue_type"`
+}
+
+// CreateIssueResult represents the response from JIRA when creating an issue.
+type CreateIssueResult struct {
+	ID   string `json:"id"`
+	Key  string `json:"key"`
+	Self string `json:"self"`
+}
+
+// CreateIssue creates a new JIRA issue with the given parameters.
+// Description is converted from Markdown to Jira format using md2jira.
+func (j *JiraTools) CreateIssue(input CreateIssueInput) (CreateIssueResult, error) {
+	printer.ToolCall(printer.IconSave, "jira_issue_create", "project_key", input.ProjectKey, "summary", input.Summary, "issue_type", input.IssueType)
+
+	ctx, cancel := context.WithTimeout(context.Background(), jiraDefaultTimeout)
+	defer cancel()
+
+	tr := &http.Transport{
+		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
+		DisableKeepAlives: true,
+	}
+
+	client := &http.Client{
+		Timeout:   jiraDefaultTimeout,
+		Transport: tr,
+	}
+
+	// Convert Markdown description to Jira format
+	jiraDescription := render.Convert(input.Description)
+
+	// Prepare request body
+	requestBody := struct {
+		Fields struct {
+			Project struct {
+				Key string `json:"key"`
+			} `json:"project"`
+			Summary     string `json:"summary"`
+			Description string `json:"description"`
+			IssueType   struct {
+				Name string `json:"name"`
+			} `json:"issuetype"`
+		} `json:"fields"`
+	}{
+		Fields: struct {
+			Project struct {
+				Key string `json:"key"`
+			} `json:"project"`
+			Summary     string `json:"summary"`
+			Description string `json:"description"`
+			IssueType   struct {
+				Name string `json:"name"`
+			} `json:"issuetype"`
+		}{
+			Project: struct {
+				Key string `json:"key"`
+			}{
+				Key: input.ProjectKey,
+			},
+			Summary:     input.Summary,
+			Description: jiraDescription,
+			IssueType: struct {
+				Name string `json:"name"`
+			}{
+				Name: input.IssueType,
+			},
+		},
+	}
+
+	bodyBytes, err := json.Marshal(requestBody)
+	if err != nil {
+		return CreateIssueResult{}, fmt.Errorf("jira_issue_create: failed to marshal request body: %w", err)
+	}
+
+	apiURL := fmt.Sprintf("%s/rest/api/2/issue", j.cfg.String("jira.base_url"))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, strings.NewReader(string(bodyBytes)))
+	if err != nil {
+		return CreateIssueResult{}, fmt.Errorf("jira_issue_create: failed to create request: %w", err)
+	}
+
+	req.Header.Set("Authorization", "Bearer "+j.cfg.String("jira.api_key"))
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return CreateIssueResult{}, fmt.Errorf("jira_issue_create: failed to create issue: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
+		respBody, _ := io.ReadAll(resp.Body)
+		return CreateIssueResult{}, fmt.Errorf("jira_issue_create: create issue returned status %d: %s", resp.StatusCode, string(respBody))
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	utf8, err := charset.NewReader(resp.Body, contentType)
+	if err != nil {
+		return CreateIssueResult{}, fmt.Errorf("jira_issue_create: decode response error: %w", err)
+	}
+
+	respBody, err := io.ReadAll(utf8)
+	if err != nil {
+		return CreateIssueResult{}, fmt.Errorf("jira_issue_create: failed to read response body: %w", err)
+	}
+
+	var result CreateIssueResult
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return CreateIssueResult{}, fmt.Errorf("jira_issue_create: failed to parse response: %w", err)
+	}
+
+	printer.ToolCall(printer.IconSave, "jira_issue_create: issue created successfully",
+		"issue_key", result.Key,
+		"issue_id", result.ID)
+
+	return result, nil
+}
+
 // Definition returns the OpenAI tool schema for jira_task_get.
 func (j *JiraTools) Definition() openai.Tool {
 	return openai.Tool{
@@ -443,6 +568,17 @@ func (j *JiraTools) Dispatch(name string, args string) string {
 		}
 		return content
 
+	case "jira_issue_create":
+		var params CreateIssueInput
+		if err := json.Unmarshal([]byte(args), &params); err != nil {
+			return "error: failed to parse arguments"
+		}
+		result, err := j.CreateIssue(params)
+		if err != nil {
+			return fmt.Sprintf("error: %v", err)
+		}
+		return fmt.Sprintf("Issue created successfully:\nID: %s\nKey: %s\nSelf: %s", result.ID, result.Key, result.Self)
+
 	default:
 		return "error: unknown tool " + name
 	}
@@ -496,6 +632,40 @@ func StaticDefinitionSearch() openai.Tool {
 					},
 				},
 				"required": []string{"jql"},
+			},
+		},
+	}
+}
+
+// StaticDefinitionCreate returns the OpenAI tool schema for jira_issue_create without
+// requiring an initialised JiraTools instance. Used by the plugin for lazy init.
+func StaticDefinitionCreate() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "jira_issue_create",
+			Description: "Create a new JIRA issue with project, summary, description (Markdown to Jira format), and issue type.",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"project_key": map[string]any{
+						"type":        "string",
+						"description": "JIRA project key (e.g., TASK, GOARCH)",
+					},
+					"summary": map[string]any{
+						"type":        "string",
+						"description": "Issue summary (short description)",
+					},
+					"description": map[string]any{
+						"type":        "string",
+						"description": "Issue description in Markdown format",
+					},
+					"issue_type": map[string]any{
+						"type":        "string",
+						"description": "Issue type name (e.g., Bug, Task, Story)",
+					},
+				},
+				"required": []string{"project_key", "summary", "description", "issue_type"},
 			},
 		},
 	}

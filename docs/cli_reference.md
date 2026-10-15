@@ -7,7 +7,7 @@ go-magnetar provides a unified CLI interface with the following flags:
 | Flag | Description |
 |---|---|
 | `-p, --profile <name>` | Use a specific configuration profile. Overrides the profile specified in the config file. |
-| `-f, --file <path>` | Non-interactive mode: read input from file, send to agent, print answer, and exit. Chat commands are not available in this mode. |
+| `-f, --file <path>` | Non-interactive mode: read input from file (or stdin if `-`), send to agent, print answer, and exit. Chat commands are not available in this mode. |
 | `--session <path>` | Load a previously saved conversation session from a JSON file. |
 | `--read-only` | Run in read-only mode. Disables file write operations and shell modifications. |
 | `-h, --help` | Show help and exit. |
@@ -25,6 +25,9 @@ go-magnetar -p production
 # Non-interactive mode (scripting / batch)
 go-magnetar -f questions.txt
 
+# Read from stdin
+echo "What is go-magnetar?" | go-magnetar -f -
+
 # Load a saved session
 go-magnetar --session session.json
 
@@ -37,7 +40,16 @@ go-magnetar -p production --read-only
 
 ## Non-Interactive Mode
 
-When using `-f` or `--file`, the program reads the input file, sends it to the agent, prints the answer, and exits. Text preprocessor placeholders like `{{date}}`, `{{uuid}}`, `{{file:path}}` are expanded, but chat commands (e.g., `/index`, `/fetch`) are not available.
+When using `-f` or `--file`, the program reads the input file (or stdin if `-`), sends it to the agent, prints the answer, and exits. Text preprocessor placeholders like `{{date}}`, `{{uuid}}`, `{{file:path}}` are expanded, but chat commands (e.g., `/index`, `/fetch`) are not available.
+
+## Reading from stdin
+
+To read input from stdin, use `-` as the file path:
+
+```bash
+echo "What is go-magnetar?" | go-magnetar -f -
+cat questions.txt | go-magnetar -f -
+```
 
 ## Configuration Profiles
 
