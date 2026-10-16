@@ -31,10 +31,35 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		return err
 	}
 
+	// Register gitlab_fetch_mr
 	hub.RegisterTool(plugin.LLMTool{
 		Definition: gitlab.StaticDefinition,
 		Execute: func(_ context.Context, args string) (string, error) {
 			return tools.Dispatch("gitlab_fetch_mr", args), nil
+		},
+	})
+
+	// Register gitlab_repo
+	hub.RegisterTool(plugin.LLMTool{
+		Definition: gitlab.StaticDefinitionRepository,
+		Execute: func(_ context.Context, args string) (string, error) {
+			return tools.Dispatch("gitlab_repo", args), nil
+		},
+	})
+
+	// Register gitlab_file
+	hub.RegisterTool(plugin.LLMTool{
+		Definition: gitlab.StaticDefinitionFile,
+		Execute: func(_ context.Context, args string) (string, error) {
+			return tools.Dispatch("gitlab_file", args), nil
+		},
+	})
+
+	// Register gitlab_tree
+	hub.RegisterTool(plugin.LLMTool{
+		Definition: gitlab.StaticDefinitionTree,
+		Execute: func(_ context.Context, args string) (string, error) {
+			return tools.Dispatch("gitlab_tree", args), nil
 		},
 	})
 

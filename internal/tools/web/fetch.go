@@ -11,7 +11,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"regexp"
 	"strings"
 	"time"
 
@@ -134,11 +133,45 @@ func (w *WebTools) webFetch(url string, isFetch bool) (string, error) {
 		}
 	}
 
+	//nolint:nestif // TODO.
 	if w.cfg.String("gitlab.base_url") != "" && w.cfg.Bool("gitlab.enable") {
-		if strings.HasPrefix(url, w.cfg.String("gitlab.base_url")) && strings.Contains(url, "/-/merge_requests/") {
-			projectPath, issueID, err := extractProjectAndMergeRequestFromGitLabURL(url, w.cfg.String("gitlab.base_url"))
-			if err == nil && projectPath != "" && issueID != "" {
-				return w.fetchGitLabMergeRequest(projectPath, issueID)
+		if strings.HasPrefix(url, w.cfg.String("gitlab.base_url")) {
+			// Check for merge request
+			if strings.Contains(url, "/-/merge_requests/") || strings.Contains(url, "/-/mr/") {
+				projectPath, issueID, err := extractProjectAndMergeRequestFromGitLabURL(url)
+				if err == nil && projectPath != "" && issueID != "" {
+					return w.fetchGitLabMergeRequest(projectPath, issueID)
+				}
+			}
+
+			// Check for file (blob)
+			if strings.Contains(url, "/-/blob/") {
+				projectPath, branch, file, err := extractGitLabFileURL(url)
+				if err == nil && projectPath != "" && file != "" {
+					if branch == "" {
+						branch = "main"
+					}
+					return w.fetchGitLabFile(projectPath, branch, file)
+				}
+			}
+
+			// Check for tree (directory)
+			if strings.Contains(url, "/-/tree/") || strings.Contains(url, "/-/commits/") {
+				projectPath, branch, path, err := extractGitLabTreeURL(url)
+				if err == nil && projectPath != "" {
+					if branch == "" {
+						branch = "main"
+					}
+					return w.fetchGitLabTree(projectPath, branch, path)
+				}
+			}
+
+			// Check for repository (root level)
+			if !strings.Contains(url, "/-/") {
+				projectPath, err := extractGitLabRepoURL(url)
+				if err == nil && projectPath != "" {
+					return w.fetchGitLabRepository(projectPath)
+				}
 			}
 		}
 	}
@@ -371,20 +404,29 @@ func (w *WebTools) Dispatch(name string, args string) string {
 }
 
 // extractProjectAndMergeRequestFromGitLabURL extracts the project path and merge request ID from a GitLab URL.
-func extractProjectAndMergeRequestFromGitLabURL(url string, baseURL string) (string, string, error) {
+func extractProjectAndMergeRequestFromGitLabURL(rawURL string) (string, string, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", "", fmt.Errorf("invalid URL: %w", err)
+	}
+
 	// Handle URLs with /-/merge_requests/ and the short /-/mr/ form
 	for _, marker := range []string{"/-/merge_requests/", "/-/mr/"} {
-		before, after, ok := strings.Cut(url, marker)
-		if !ok {
+		if !strings.Contains(u.Path, marker) {
 			continue
 		}
 
-		pathPart := before
-		// Extract project path (remove base URL)
+		// Split path at marker
+		parts := strings.SplitN(u.Path, marker, 2)
+		if len(parts) < 2 {
+			continue
+		}
 
-		pathPart = strings.TrimPrefix(pathPart, baseURL)
+		// Extract project path (before marker)
+		projectPath := strings.TrimPrefix(parts[0], "/")
 
-		idPart := after
+		// Extract MR ID (after marker)
+		idPart := parts[1]
 		if idx2 := strings.Index(idPart, "/"); idx2 != -1 {
 			idPart = idPart[:idx2]
 		}
@@ -398,9 +440,6 @@ func extractProjectAndMergeRequestFromGitLabURL(url string, baseURL string) (str
 			return "", "", fmt.Errorf("merge request ID is empty")
 		}
 
-		// Extract project path from the URL
-		projectPath := strings.TrimPrefix(pathPart, "/")
-
 		return projectPath, idPart, nil
 	}
 
@@ -411,6 +450,24 @@ func extractProjectAndMergeRequestFromGitLabURL(url string, baseURL string) (str
 func (w *WebTools) fetchGitLabMergeRequest(projectPath string, mrID string) (string, error) {
 	printer.ToolCall(printer.IconSearch, "web_fetch: fetch GitLab merge request", "project_path", projectPath, "mr_id", mrID)
 	return gitlab.New(w.cfg).FetchMergeRequest(projectPath, mrID)
+}
+
+// fetchGitLabRepository fetches a GitLab repository and returns its content.
+func (w *WebTools) fetchGitLabRepository(projectPath string) (string, error) {
+	printer.ToolCall(printer.IconSearch, "web_fetch: fetch GitLab repository", "project_path", projectPath)
+	return gitlab.New(w.cfg).FetchRepository(projectPath)
+}
+
+// fetchGitLabFile fetches a GitLab file and returns its content.
+func (w *WebTools) fetchGitLabFile(projectPath string, branch string, file string) (string, error) {
+	printer.ToolCall(printer.IconSearch, "web_fetch: fetch GitLab file", "project_path", projectPath, "branch", branch, "file", file)
+	return gitlab.New(w.cfg).FetchFile(projectPath, branch, file)
+}
+
+// fetchGitLabTree fetches a GitLab directory tree and returns its content.
+func (w *WebTools) fetchGitLabTree(projectPath string, branch string, path string) (string, error) {
+	printer.ToolCall(printer.IconSearch, "web_fetch: fetch GitLab tree", "project_path", projectPath, "branch", branch, "path", path)
+	return gitlab.New(w.cfg).FetchTree(projectPath, branch, path)
 }
 
 // extractGitHubRepoURL extracts owner and repo from GitHub repository URL.
@@ -435,134 +492,6 @@ func extractGitHubRepoURL(url string) (string, string, error) {
 	return owner, repo, nil
 }
 
-var (
-	errNotGitHubURL          = errors.New("not a GitHub URL")
-	errNotGitHubTreeURL      = errors.New("not a GitHub tree/commits URL")
-	errNotGitHubBlobURL      = errors.New("not a GitHub blob URL")
-	errNotGitHubIssueURL     = errors.New("not a GitHub issue URL")
-	errNotGitHubMilestoneURL = errors.New("not a GitHub milestone URL")
-)
-
-// Patterns for the path of a github.com URL (see githubURLPath).
-var (
-	// Matches /{owner}/{repo}/(tree|commits)/{branch}[/path].
-	githubTreePathRe = regexp.MustCompile(`^/([^/]+)/([^/]+)/(tree|commits)/([^/]+)(?:/(.+))?$`)
-	// Matches /{owner}/{repo}/blob/{branch}/{file}.
-	githubBlobPathRe = regexp.MustCompile(`^/([^/]+)/([^/]+)/blob/([^/]+)/(.+)$`)
-	// Matches /{owner}/{repo}/issues/{number}.
-	githubIssuePathRe = regexp.MustCompile(`^/([^/]+)/([^/]+)/issues/(\d+)$`)
-	// Matches /{owner}/{repo}/milestone/{number}.
-	githubMilestonePathRe = regexp.MustCompile(`^/([^/]+)/([^/]+)/milestone/(\d+)$`)
-)
-
-// githubURLPath returns the escaped path of a github.com URL without the query string,
-// fragment and trailing slash. It returns an error for any other host.
-func githubURLPath(rawURL string) (string, error) {
-	if !strings.Contains(rawURL, "://") {
-		rawURL = "https://" + rawURL
-	}
-
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return "", fmt.Errorf("invalid URL: %w", err)
-	}
-
-	switch strings.ToLower(u.Hostname()) {
-	case "github.com", "www.github.com":
-	default:
-		return "", errNotGitHubURL
-	}
-
-	return strings.TrimRight(u.EscapedPath(), "/"), nil
-}
-
-// extractGitHubTreeURL extracts owner, repo, branch, and path from GitHub tree URL.
-// Pattern: https://github.com/owner/repo/tree/branch/path or https://github.com/owner/repo/commits/branch
-func extractGitHubTreeURL(rawURL string) (string, string, string, string, error) {
-	path, err := githubURLPath(rawURL)
-	if err != nil {
-		return "", "", "", "", err
-	}
-
-	matches := githubTreePathRe.FindStringSubmatch(path)
-	if matches != nil {
-		// matches[5] (the path) is empty when the URL has no path after the branch.
-		return matches[1], matches[2], matches[4], matches[5], nil
-	}
-
-	return "", "", "", "", errNotGitHubTreeURL
-}
-
-// extractGitHubFileURL extracts owner, repo, branch, and file path from GitHub blob URL.
-// Pattern: https://github.com/owner/repo/blob/branch/path/to/file
-func extractGitHubFileURL(rawURL string) (string, string, string, string, error) {
-	path, err := githubURLPath(rawURL)
-	if err != nil {
-		return "", "", "", "", err
-	}
-
-	matches := githubBlobPathRe.FindStringSubmatch(path)
-	if matches != nil {
-		owner := matches[1]
-		repo := matches[2]
-		branch := matches[3]
-		file := matches[4]
-		return owner, repo, branch, file, nil
-	}
-
-	return "", "", "", "", errNotGitHubBlobURL
-}
-
-func extractGitHubIssueURL(rawURL string) (string, string, string, error) {
-	path, err := githubURLPath(rawURL)
-	if err != nil {
-		return "", "", "", err
-	}
-
-	matches := githubIssuePathRe.FindStringSubmatch(path)
-	if matches != nil {
-		return matches[1], matches[2], matches[3], nil
-	}
-	return "", "", "", errNotGitHubIssueURL
-}
-
-func extractGitHubMilestoneURL(rawURL string) (string, string, string, error) {
-	path, err := githubURLPath(rawURL)
-	if err != nil {
-		return "", "", "", err
-	}
-
-	matches := githubMilestonePathRe.FindStringSubmatch(path)
-	if matches != nil {
-		return matches[1], matches[2], matches[3], nil
-	}
-	return "", "", "", errNotGitHubMilestoneURL
-}
-
-func extractGitHubAdvisoryURL(url string) (string, error) {
-	if strings.Contains(url, "/advisories/") {
-		parts := strings.Split(url, "/advisories/")
-		if len(parts) > 1 {
-			idPart := parts[1]
-			if idx := strings.Index(idPart, "/"); idx != -1 {
-				idPart = idPart[:idx]
-			}
-			if idx := strings.Index(idPart, "?"); idx != -1 {
-				idPart = idPart[:idx]
-			}
-			if idx := strings.Index(idPart, "#"); idx != -1 {
-				idPart = idPart[:idx]
-			}
-			if idPart == "" {
-				return "", fmt.Errorf("advisory ID is empty")
-			}
-			return idPart, nil
-		}
-	}
-
-	return "", fmt.Errorf("not a GitHub advisory URL")
-}
-
 // StaticDefinition returns the OpenAI tool schema for web_fetch without
 // requiring an initialised WebTools instance. Used by the plugin for lazy init.
 func StaticDefinition() openai.Tool {
@@ -571,13 +500,13 @@ func StaticDefinition() openai.Tool {
 		Function: &openai.FunctionDefinition{
 			Name: "web_fetch",
 			Description: "Fetch a web page and return clean Markdown content. Supports " +
-				"Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories, issues, and milestones.",
+				"Confluence pages, JIRA issues, GitLab repositories/files/tree/merge requests, and GitHub repositories, issues, and milestones.",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
 					"url": map[string]any{
 						"type":        "string",
-						"description": "URL of the web page, Confluence page, JIRA issue, GitLab merge request, or GitHub repository to fetch",
+						"description": "URL of the web page, Confluence page, JIRA issue, GitLab repository/file/tree/merge request, or GitHub repository to fetch",
 					},
 				},
 				"required": []string{"url"},
