@@ -231,6 +231,24 @@ func HTMLFixTags(content string) string {
 	return content
 }
 
+// ConvertMarkdown converts Markdown content to HTML for Confluence.
+func ConvertMarkdown(markdownContent string) (string, error) {
+	// Convert Markdown to HTML using goldmark
+	var buf strings.Builder
+	markdown := goldmark.New(
+		goldmark.WithExtensions(
+			extension.GFM,
+			extension.Typographer,
+		),
+	)
+	err := markdown.Convert([]byte(markdownContent), &buf)
+	if err != nil {
+		return "", fmt.Errorf("convertmarkdown: failed to convert markdown to HTML: %w", err)
+	}
+
+	return HTMLFixTags(buf.String()), nil
+}
+
 // EditPage edits a Confluence page by ID with Markdown content.
 func (c *ConfluenceTools) EditPage(pageID string, markdownContent string) (string, error) {
 	printer.ToolCall(printer.IconSave, "confluence_page_edit", "page_id", pageID)
@@ -246,16 +264,10 @@ func (c *ConfluenceTools) EditPage(pageID string, markdownContent string) (strin
 	}
 
 	// Convert Markdown to HTML using goldmark
-	var buf strings.Builder
-	markdown := goldmark.New(
-		goldmark.WithExtensions(extension.Typographer),
-	)
-	err = markdown.Convert([]byte(markdownContent), &buf)
+	htmlContent, err := ConvertMarkdown(markdownContent)
 	if err != nil {
 		return "", fmt.Errorf("confluence_page_edit: failed to convert markdown to HTML: %w", err)
 	}
-
-	htmlContent := HTMLFixTags(buf.String())
 
 	printer.ToolCall(printer.IconSave, "confluence_page_edit: converted markdown to HTML", "page_id", pageID)
 
