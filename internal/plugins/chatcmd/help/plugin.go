@@ -3,7 +3,6 @@ package helpplugin
 import (
 	"context"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 
@@ -22,36 +21,33 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 		Name:    "help",
 		Aliases: []string{"h"},
 		Help:    "Show this help message.",
-		Execute: func(_ context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
-			printHelp()
-			return plugin.NopChatCommandResponse, nil
+		Execute: func(_ context.Context, _ *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
+			return &plugin.ChatCommandResponse{Stdout: formatHelp(plugin.ChatCommands())}, nil
 		},
 	})
 	return nil
 }
 
-func printHelp() {
-	cmds := plugin.ChatCommands()
-
+func formatHelp(cmds []plugin.ChatCommand) string {
 	// Sort alphabetically for stable output.
 	sort.Slice(cmds, func(i, j int) bool {
 		return cmds[i].Name < cmds[j].Name
 	})
 
 	var sb strings.Builder
-	sb.WriteString("Available chat commands:\n")
+	sb.WriteString("## Available chat commands\n\n")
 	for _, c := range cmds {
-		fmt.Fprintf(&sb, "    /%-12s %s", c.Name, c.Help)
+		fmt.Fprintf(&sb, "- `/%s`: %s", c.Name, c.Help)
 		if len(c.Aliases) > 0 {
 			aliases := make([]string, len(c.Aliases))
 			for i, a := range c.Aliases {
-				aliases[i] = "/" + a
+				aliases[i] = "`/" + a + "`"
 			}
 			fmt.Fprintf(&sb, " (aliases: %s)", strings.Join(aliases, ", "))
 		}
 		fmt.Fprintln(&sb, "")
 	}
-	sb.WriteString("\nKeyboard shortcuts:\n")
-	sb.WriteString("    ↑/↓          navigate command history\n")
-	fmt.Fprint(os.Stdout, sb.String()+"\n")
+	sb.WriteString("\n## Keyboard shortcuts\n\n")
+	sb.WriteString("- ↑/↓: navigate command history\n")
+	return sb.String()
 }
