@@ -83,12 +83,14 @@ type LLMTool struct {
 type ChatCommandInput struct {
 	AgentHandler AgentHandle
 	Args         string
+	Printer      printer.Printer
 	// future fields can be added here without breaking changes
 }
 
 // ChatCommandResponse is returned by ChatCommand.Execute.
 type ChatCommandResponse struct {
 	Content string // If not an empty string, it will be passed to the LLM.
+	Stdout  string // If not an empty string, it will be printed to stdout.
 	Exit    bool   // Exit flag.
 }
 

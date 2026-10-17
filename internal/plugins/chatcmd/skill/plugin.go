@@ -3,8 +3,6 @@ package skillplugin
 import (
 	"context"
 	"fmt"
-	"io"
-	"os"
 	"strings"
 
 	"github.com/wmentor/go-magnetar/internal/plugin"
@@ -25,8 +23,9 @@ func (p *Plugin) Init(state *plugin.State, hub plugin.Hub) error {
 		Execute: func(ctx context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
 			args := params.Args
 			if args == "" {
-				listSkills(os.Stdout, state.SkillStore)
-				return plugin.NopChatCommandResponse, nil
+				return &plugin.ChatCommandResponse{
+					Stdout: listSkills(state.SkillStore),
+				}, nil
 			}
 
 			parts := strings.SplitN(args, " ", 2)
@@ -45,19 +44,19 @@ func (p *Plugin) Init(state *plugin.State, hub plugin.Hub) error {
 				return nil, fmt.Errorf("skill '%s' is not enabled", skillName)
 			}
 
-			fmt.Printf("Loaded skill: %s\n\n", skillName)
-
-			return &plugin.ChatCommandResponse{Content: makeApplySkillMessage(skill, optionalText)}, nil
+			return &plugin.ChatCommandResponse{
+				Content: makeApplySkillMessage(skill, optionalText),
+				Stdout:  fmt.Sprintf("Loaded skill: %s\n\n", skillName),
+			}, nil
 		},
 	})
 	return nil
 }
 
-func listSkills(out io.Writer, skillStore plugin.SkillStore) {
+func listSkills(skillStore plugin.SkillStore) string {
 	skills, err := skillStore.List(context.Background())
 	if err != nil {
-		fmt.Fprintf(out, "failed to list skills: %v\n", err)
-		return
+		return fmt.Sprintf("failed to list skills: %v\n", err)
 	}
 
 	var sb strings.Builder
@@ -74,7 +73,7 @@ func listSkills(out io.Writer, skillStore plugin.SkillStore) {
 		}
 	}
 
-	fmt.Fprint(out, sb.String())
+	return sb.String()
 }
 
 func makeApplySkillMessage(skill *plugin.Skill, optionalText string) string {

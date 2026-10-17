@@ -1,7 +1,6 @@
 package skillplugin
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"testing"
@@ -100,9 +99,8 @@ func TestListSkills(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			store := &mockSkillStore{skills: tc.skills}
-			var buf bytes.Buffer
-			listSkills(&buf, store)
-			assert.Equal(t, tc.expected, buf.String())
+			answer := listSkills(store)
+			assert.Equal(t, tc.expected, answer)
 		})
 	}
 }
@@ -177,6 +175,170 @@ func TestMakeApplySkillMessage(t *testing.T) {
 			t.Parallel()
 			got := makeApplySkillMessage(tt.skill, tt.optionalText)
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// mockHub implements Hub interface for testing
+type mockHub struct {
+	RegisteredCommands []plugin.ChatCommand
+}
+
+func (m *mockHub) RegisterTool(tool plugin.LLMTool) {
+	// no-op
+}
+
+func (m *mockHub) RegisterChatCommand(cmd plugin.ChatCommand) {
+	m.RegisteredCommands = append(m.RegisteredCommands, cmd)
+}
+
+func (m *mockHub) RegisterPreprocessor(fn plugin.PreprocessorFunc) {
+	// no-op
+}
+
+func (m *mockHub) Go(f func(ctx context.Context)) {
+	// no-op
+}
+
+func (m *mockHub) Stop() {
+	// no-op
+}
+
+// TestExecute tests the Execute function of the skill command
+func TestExecute(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		setupStore  func() plugin.SkillStore
+		args        string
+		wantErr     bool
+		wantStdout  string
+		wantContent string
+	}{
+		{
+			name: "no args - list skills",
+			setupStore: func() plugin.SkillStore {
+				return &mockSkillStore{
+					skills: []*plugin.Skill{
+						{
+							Name:        "coding",
+							Description: "Programming assistant",
+							Content:     "You are a coding expert...",
+							Enable:      true,
+						},
+					},
+				}
+			},
+			args:        "",
+			wantErr:     false,
+			wantStdout:  "Available skills:\n  * coding - Programming assistant\n",
+			wantContent: "",
+		},
+		{
+			name: "enabled skill with content",
+			setupStore: func() plugin.SkillStore {
+				return &mockSkillStore{
+					skills: []*plugin.Skill{
+						{
+							Name:    "coding",
+							Content: "You are a coding expert...",
+							Enable:  true,
+						},
+					},
+				}
+			},
+			args:        "coding",
+			wantErr:     false,
+			wantStdout:  "Loaded skill: coding\n\n",
+			wantContent: "# SKILL: coding\n\nYou are a coding expert...\n\nIMPORTANT: to solve the next problem, use the skill `coding`\n",
+		},
+		{
+			name: "enabled skill with optional text",
+			setupStore: func() plugin.SkillStore {
+				return &mockSkillStore{
+					skills: []*plugin.Skill{
+						{
+							Name:    "coding",
+							Content: "You are a coding expert...",
+							Enable:  true,
+						},
+					},
+				}
+			},
+			args:        "coding Write a haiku about Go",
+			wantErr:     false,
+			wantStdout:  "Loaded skill: coding\n\n",
+			wantContent: "# SKILL: coding\n\nYou are a coding expert...\n\nIMPORTANT: to solve the next problem, use the skill `coding`\n# Problem:\n\nWrite a haiku about Go\n",
+		},
+		{
+			name: "disabled skill",
+			setupStore: func() plugin.SkillStore {
+				return &mockSkillStore{
+					skills: []*plugin.Skill{
+						{
+							Name:    "writing",
+							Content: "You are a writing expert...",
+							Enable:  false,
+						},
+					},
+				}
+			},
+			args:        "writing",
+			wantErr:     true,
+			wantStdout:  "",
+			wantContent: "",
+		},
+		{
+			name: "non-existent skill",
+			setupStore: func() plugin.SkillStore {
+				return &mockSkillStore{
+					skills: []*plugin.Skill{},
+				}
+			},
+			args:        "nonexistent",
+			wantErr:     true,
+			wantStdout:  "",
+			wantContent: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			store := tt.setupStore()
+			state := &plugin.State{
+				SkillStore: store,
+			}
+
+			// Create plugin and register command
+			p := &Plugin{}
+			hub := &mockHub{}
+			err := p.Init(state, hub)
+			assert.NoError(t, err)
+
+			// Get the registered command
+			commands := hub.RegisteredCommands
+			assert.Len(t, commands, 1)
+			skillCommand := commands[0]
+
+			input := &plugin.ChatCommandInput{
+				Args: tt.args,
+			}
+
+			ctx := context.Background()
+			response, err := skillCommand.Execute(ctx, input)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				if response != nil {
+					assert.Equal(t, tt.wantStdout, response.Stdout)
+					assert.Equal(t, tt.wantContent, response.Content)
+				}
+			}
 		})
 	}
 }

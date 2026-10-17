@@ -555,6 +555,18 @@ func readInput() (string, bool, error) {
 	return strings.TrimSpace(final.input.Value()), final.quit, nil
 }
 
+// printAnswer renders and prints the given answer to stdout.
+// If rendering fails, it falls back to printing the raw answer.
+func (a *ChatAgent) printAnswer(answer string) {
+	rendered, err := a.renderer.Render(answer)
+	if err != nil {
+		fmt.Fprintln(os.Stdout, answer)
+		fmt.Fprintln(os.Stdout)
+	} else {
+		fmt.Fprint(os.Stdout, rendered)
+	}
+}
+
 // handleCommand processes a slash-command entered by the user.
 // Returns (*plugin.ChatCommandResponse, error).
 func (a *ChatAgent) handleCommand(line string, knownCommands []plugin.ChatCommand) (*plugin.ChatCommandResponse, error) {
@@ -573,6 +585,7 @@ func (a *ChatAgent) handleCommand(line string, knownCommands []plugin.ChatComman
 			cmdInput := &plugin.ChatCommandInput{
 				AgentHandler: handle,
 				Args:         args,
+				Printer:      printer.GetDefault(),
 			}
 			resp, err := cmd.Execute(context.Background(), cmdInput)
 			if err != nil {
@@ -634,6 +647,10 @@ func (a *ChatAgent) Run() error {
 				if cmdResponse.Exit {
 					break
 				}
+				// Print Stdout to stdout if present
+				if cmdResponse.Stdout != "" {
+					a.printAnswer(cmdResponse.Stdout)
+				}
 				if cmdResponse.Content == "" {
 					continue
 				}
@@ -654,13 +671,7 @@ func (a *ChatAgent) Run() error {
 			continue
 		}
 
-		rendered, err := a.renderer.Render(answer)
-		if err != nil {
-			fmt.Fprintln(os.Stdout, answer)
-			fmt.Fprintln(os.Stdout)
-		} else {
-			fmt.Fprint(os.Stdout, rendered)
-		}
+		a.printAnswer(answer)
 	}
 
 	return nil
