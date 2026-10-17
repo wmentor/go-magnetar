@@ -1,6 +1,6 @@
 # go-magnetar
 
-An AI chat agent with an integrated knowledge base and customizable skills. Chat with any OpenAI-compatible LLM, index documents and web pages into a local vector database, and get answers grounded in your own content.
+An AI chat agent with an integrated knowledge base and customizable skills. A single standalone binary with everything included — no dependencies to install, no go install needed. Just download, run, and start chatting with any OpenAI-compatible LLM, indexing documents and web pages into a local vector database, and get answers grounded in your own content.
 
 ## What it does
 
@@ -9,8 +9,6 @@ An AI chat agent with an integrated knowledge base and customizable skills. Chat
 - **Fetch** — `/fetch <url>` retrieves and displays web content as Markdown
 - **Skills** — customize agent behavior with reusable skill files for specialized tasks
 - **Integrations** — Confluence, JIRA, GitHub, GitLab (all optional, disabled by default)
-
-**Skills** — customize agent behavior with reusable skill files for specialized tasks
 
 Supported file formats: `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`, `.html`
 
@@ -51,9 +49,11 @@ See [docs/architecture.md](./docs/architecture.md) for vector store architecture
 
 ### 1. Install
 
-**Option A — pre-built binary:**
+**Option A — pre-built binary (recommended):**
 
-Download from [GitHub Releases](https://github.com/wmentor/go-magnetar/releases/) and place it in your `$PATH`.
+Download a single standalone binary from [GitHub Releases](https://github.com/wmentor/go-magnetar/releases/) and place it in your `$PATH`.
+
+**Why a single binary?** go-magnetar is distributed as a **single self-contained binary** with all dependencies compiled in. No need to install Go, manage dependencies, or worry about version conflicts. Just download, make executable, and run — everything you need is already there.
 
 **Option B — `go install`:**
 
@@ -128,6 +128,8 @@ Beyond answering questions, the agent has access to tools it can call automatica
 | `cve` | Look up vulnerability info from the OSV database |
 | `github_*` | Read GitHub repos, files, issues, milestones |
 | `confluence_page_edit` | Edit a Confluence page by ID with Markdown content |
+
+For a complete list of tools and their detailed documentation, see [docs/agent_tools.md](./docs/agent_tools.md).
 
 The agent picks tools automatically based on your question. You don't need to specify which tool to use.
 
