@@ -92,6 +92,7 @@ func NewJIRARenderer(source []byte, opts Options) *JIRARenderer {
 		source:    source,
 		options:   opts,
 		listStack: make([]ast.Node, 0),
+		warnings:  make([]string, 0),
 	}
 }
 
@@ -531,7 +532,10 @@ func (r *JIRARenderer) renderRawHTML(buf *strings.Builder, n *ast.RawHTML, enter
 			segment := segments.At(i)
 			html.Write(segment.Value(r.source))
 		}
-		converted := r.convertHTML(html.String())
+		htmlStr := html.String()
+		converted := r.convertHTML(htmlStr)
+		// Debug logging
+		_ = converted
 		buf.WriteString(converted)
 	}
 }
@@ -540,35 +544,35 @@ func (r *JIRARenderer) renderRawHTML(buf *strings.Builder, n *ast.RawHTML, enter
 func (r *JIRARenderer) convertHTML(html string) string {
 	// Convert <sup> to ^text^
 	supRe := regexp.MustCompile(`<sup>([^<]*)</sup>`)
-	html = supRe.ReplaceAllString(html, "^$1^")
+	html = supRe.ReplaceAllString(html, "^${1}^")
 
 	// Convert <sub> to ~text~
 	subRe := regexp.MustCompile(`<sub>([^<]*)</sub>`)
-	html = subRe.ReplaceAllString(html, "~$1~")
+	html = subRe.ReplaceAllString(html, "~${1}~")
 
-	// Convert <br> and <br/> to \\
+	// Convert <br> and <br/> to \\\\
 	brRe := regexp.MustCompile(`<br\s*/?>`)
-	html = brRe.ReplaceAllString(html, "\\\\")
+	html = brRe.ReplaceAllString(html, "\\\\\n")
 
 	// Convert <strong> and <b> to *text*
 	strongRe := regexp.MustCompile(`<(?:strong|b)>([^<]*)</(?:strong|b)>`)
-	html = strongRe.ReplaceAllString(html, "*$1*")
+	html = strongRe.ReplaceAllString(html, "*${1}*")
 
 	// Convert <em> and <i> to _text_
 	emRe := regexp.MustCompile(`<(?:em|i)>([^<]*)</(?:em|i)>`)
-	html = emRe.ReplaceAllString(html, "_$1_")
+	html = emRe.ReplaceAllString(html, "_${1}_")
 
 	// Convert <code> to {{text}}
 	codeRe := regexp.MustCompile(`<code>([^<]*)</code>`)
-	html = codeRe.ReplaceAllString(html, "{{$1}}")
+	html = codeRe.ReplaceAllString(html, "{{${1}}}")
 
 	// Convert <del> and <s> to -text-
 	delRe := regexp.MustCompile(`<(?:del|s)>([^<]*)</(?:del|s)>`)
-	html = delRe.ReplaceAllString(html, "-$1-")
+	html = delRe.ReplaceAllString(html, "-${1}-")
 
 	// Convert <u> to +text+
 	uRe := regexp.MustCompile(`<u>([^<]*)</u>`)
-	html = uRe.ReplaceAllString(html, "+$1+")
+	html = uRe.ReplaceAllString(html, "+${1}+")
 
 	// Strip remaining HTML tags
 	tagRe := regexp.MustCompile(`<[^>]+>`)
