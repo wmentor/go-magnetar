@@ -1,10 +1,78 @@
 package chat
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/wmentor/go-magnetar/internal/plugin"
 )
+
+func TestLoadProjectContext(t *testing.T) {
+	tests := []struct {
+		name         string
+		files        map[string]string
+		expectedName string
+		expectedBody string
+		expectedOk   bool
+	}{
+		{
+			name:         "only AGENTS.md",
+			files:        map[string]string{"AGENTS.md": "agents"},
+			expectedName: "AGENTS.md",
+			expectedBody: "agents",
+			expectedOk:   true,
+		},
+		{
+			name:         "only CLAUDE.md",
+			files:        map[string]string{"CLAUDE.md": "claude"},
+			expectedName: "CLAUDE.md",
+			expectedBody: "claude",
+			expectedOk:   true,
+		},
+		{
+			name:         "both files, AGENTS.md wins",
+			files:        map[string]string{"AGENTS.md": "agents", "CLAUDE.md": "claude"},
+			expectedName: "AGENTS.md",
+			expectedBody: "agents",
+			expectedOk:   true,
+		},
+		{
+			name:       "neither file",
+			files:      map[string]string{},
+			expectedOk: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dir := t.TempDir()
+			for name, body := range tt.files {
+				if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0o644); err != nil {
+					t.Fatalf("write %s: %v", name, err)
+				}
+			}
+
+			root, err := os.OpenRoot(dir)
+			if err != nil {
+				t.Fatalf("open root: %v", err)
+			}
+			defer root.Close()
+
+			name, content, ok := loadProjectContext(root)
+			if ok != tt.expectedOk || name != tt.expectedName || string(content) != tt.expectedBody {
+				t.Errorf("loadProjectContext() = (%q, %q, %v); want (%q, %q, %v)",
+					name, content, ok, tt.expectedName, tt.expectedBody, tt.expectedOk)
+			}
+		})
+	}
+
+	t.Run("nil root", func(t *testing.T) {
+		if _, _, ok := loadProjectContext(nil); ok {
+			t.Errorf("loadProjectContext(nil) ok = true; want false")
+		}
+	})
+}
 
 func TestMatchCommand(t *testing.T) {
 	tests := []struct {

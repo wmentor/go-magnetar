@@ -77,7 +77,21 @@ const (
 	charsPerToken = 4
 )
 
-const agentsFile = "AGENTS.md"
+// projectContextFiles lists project context files in priority order; the first one found is loaded.
+var projectContextFiles = []string{"AGENTS.md", "CLAUDE.md"}
+
+// loadProjectContext returns the name and content of the first existing project context file in root.
+func loadProjectContext(root *os.Root) (string, []byte, bool) {
+	if root == nil {
+		return "", nil, false
+	}
+	for _, name := range projectContextFiles {
+		if content, err := root.ReadFile(name); err == nil {
+			return name, content, true
+		}
+	}
+	return "", nil, false
+}
 
 // ChatAgent is an interactive REPL-based chat agent backed by a RAG knowledge base.
 type ChatAgent struct {
@@ -105,14 +119,10 @@ func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
 
 	language := cfg.String("language")
 	systemContent := fmt.Sprintf(systemPromptTemplate, language)
-	if root != nil {
-		if _, statErr := root.Stat(agentsFile); statErr == nil {
-			if content, err := root.ReadFile(agentsFile); err == nil {
-				systemContent = systemContent + "\n\n# Project context (from AGENTS.md)\n\n" + string(content)
-				printer.ToolCall(printer.IconDone, "AGENTS.md has been loaded")
-				printer.ToolEmptyLine()
-			}
-		}
+	if name, content, ok := loadProjectContext(root); ok {
+		systemContent = systemContent + "\n\n# Project context (from " + name + ")\n\n" + string(content)
+		printer.ToolCall(printer.IconDone, name+" has been loaded")
+		printer.ToolEmptyLine()
 	}
 
 	messages := []openai.ChatCompletionMessage{
