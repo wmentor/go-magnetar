@@ -184,6 +184,13 @@ func (w *WebTools) webFetch(url string, isFetch bool) (string, error) {
 					return github.New(w.cfg).FetchFile(owner+"/"+repo, branch, file)
 				}
 			}
+			// Check for pull request before tree/commits to avoid conflicts with /pull/123/commits
+			if isGitHubPullRequestURL(url) {
+				owner, repo, prNum, err := extractGitHubPullRequestURL(url)
+				if err == nil && owner != "" && repo != "" && prNum != "" {
+					return github.New(w.cfg).FetchPullRequest(owner+"/"+repo, prNum)
+				}
+			}
 			if strings.Contains(url, "/tree/") || strings.Contains(url, "/commits/") || strings.HasSuffix(url, "/") {
 				owner, repo, branch, path, err := extractGitHubTreeURL(url)
 				if err == nil && owner != "" && repo != "" {

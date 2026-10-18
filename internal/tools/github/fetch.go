@@ -818,6 +818,20 @@ func (g *GitHubTools) Dispatch(name string, args string) string {
 		}
 		return content
 
+	case "github_pull_request":
+		var params struct {
+			Repo string `json:"repo"`
+			PR   string `json:"pr"`
+		}
+		if err := json.Unmarshal([]byte(args), &params); err != nil {
+			return "error: failed to parse arguments"
+		}
+		content, err := g.FetchPullRequest(params.Repo, params.PR)
+		if err != nil {
+			return fmt.Sprintf("error: %v", err)
+		}
+		return content
+
 	default:
 		return "error: unknown tool " + name
 	}
@@ -1382,6 +1396,455 @@ func StaticDefinitionTree() openai.Tool {
 					},
 				},
 				"required": []string{"repo"},
+			},
+		},
+	}
+}
+
+// PullRequestFile represents a file changed in a pull request.
+type PullRequestFile struct {
+	SHA         string `json:"sha"`
+	BlobURL     string `json:"blob_url"`
+	RawURL      string `json:"raw_url"`
+	ContentsURL string `json:"contents_url"`
+	Path        string `json:"filename"`
+	Status      string `json:"status"`
+	Additions   int    `json:"additions"`
+	Deletions   int    `json:"deletions"`
+	Changes     int    `json:"changes"`
+	Size        int    `json:"size"`
+	Diff        string `json:"patch"` // GitHub uses "patch" for diff
+}
+
+// PullRequestComment represents a review comment on a PR.
+type PullRequestComment struct {
+	ID   int    `json:"id"`
+	Body string `json:"body"`
+	User struct {
+		Login     string `json:"login"`
+		AvatarURL string `json:"avatar_url"`
+		HTMLURL   string `json:"html_url"`
+	} `json:"user"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
+	Path      string `json:"path"`
+	Position  int    `json:"position"`
+	Line      int    `json:"line"`
+	InReplyTo int    `json:"in_reply_to_id"`
+}
+
+// PullRequestReview represents a review on a PR.
+type PullRequestReview struct {
+	ID   int `json:"id"`
+	User struct {
+		Login     string `json:"login"`
+		AvatarURL string `json:"avatar_url"`
+		HTMLURL   string `json:"html_url"`
+	} `json:"user"`
+	Body      string `json:"body"`
+	State     string `json:"state"`
+	Submitted string `json:"submitted_at"`
+	CommitID  string `json:"commit_id"`
+}
+
+// PullRequest represents a GitHub pull request with all its details.
+type PullRequest struct {
+	ID     int    `json:"id"`
+	Number int    `json:"number"`
+	Title  string `json:"title"`
+	State  string `json:"state"`
+	Locked bool   `json:"locked"`
+	Body   string `json:"body"`
+	User   struct {
+		Login     string `json:"login"`
+		AvatarURL string `json:"avatar_url"`
+		HTMLURL   string `json:"html_url"`
+	} `json:"user"`
+	Labels []struct {
+		Name        string `json:"name"`
+		Color       string `json:"color"`
+		Description string `json:"description"`
+	} `json:"labels"`
+	Mergeable     *bool                `json:"mergeable"`
+	CommentsCount int                  `json:"comments"`        // Number of review comments
+	ReviewsCount  int                  `json:"review_comments"` // Number of reviews
+	Files         []PullRequestFile    `json:"files"`
+	Comments      []PullRequestComment `json:"-"` // populated separately from comments endpoint
+	Reviews       []PullRequestReview  `json:"-"` // populated separately from reviews endpoint
+	// Statistics from PR details
+	Commits        int    `json:"commits"`
+	Additions      int    `json:"additions"`
+	Deletions      int    `json:"deletions"`
+	ChangedFiles   int    `json:"changed_files"`
+	MergeCommitSHA string `json:"merge_commit_sha"`
+	CreatedAt      string `json:"created_at"`
+	UpdatedAt      string `json:"updated_at"`
+	ClosedAt       string `json:"closed_at"`
+	MergedAt       string `json:"merged_at"`
+	HTMLURL        string `json:"html_url"`
+	Base           struct {
+		Label string `json:"label"`
+		Ref   string `json:"ref"`
+		Repo  struct {
+			ID    int    `json:"id"`
+			Name  string `json:"name"`
+			Owner struct {
+				Login string `json:"login"`
+			} `json:"owner"`
+		} `json:"repo"`
+	} `json:"base"`
+	Head struct {
+		Label string `json:"label"`
+		Ref   string `json:"ref"`
+		Repo  struct {
+			ID    int    `json:"id"`
+			Name  string `json:"name"`
+			Owner struct {
+				Login string `json:"login"`
+			} `json:"owner"`
+		} `json:"repo"`
+	} `json:"head"`
+}
+
+// FetchPullRequest fetches a GitHub pull request with all its details including files, comments, and reviews.
+func (g *GitHubTools) FetchPullRequest(repo string, prNum string) (string, error) {
+	owner, repoName, err := parseGitHubRepoURL(repo)
+	if err != nil {
+		return "", fmt.Errorf("github_pull_request: failed to parse repository URL: %w", err)
+	}
+
+	printer.ToolCall(printer.IconSearch, "github_pull_request", "repo", repo, "pr", prNum)
+
+	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	defer cancel()
+
+	// Fetch PR details
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls/%s", owner, repoName, prNum)
+
+	resp, err := g.fetchWithHeaders(ctx, http.MethodGet, apiURL)
+	if err != nil {
+		return "", fmt.Errorf("github_pull_request: failed to fetch PR: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("github_pull_request: PR #%s returned status %d: %s", prNum, resp.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("github_pull_request: failed to read response body: %w", err)
+	}
+
+	var prData PullRequest
+	if err := json.Unmarshal(body, &prData); err != nil {
+		return "", fmt.Errorf("github_pull_request: failed to parse response: %w", err)
+	}
+
+	// Fetch files changed in the PR
+	files, err := g.fetchPullRequestFiles(owner, repoName, prNum)
+	if err != nil {
+		printer.ToolCall(printer.IconError, "github_pull_request: failed to fetch files", "repo", repo, "pr", prNum, "err", err)
+	} else {
+		prData.Files = files
+		prData.Additions, prData.Deletions, prData.ChangedFiles = g.calculateChanges(files)
+	}
+
+	// Fetch review comments
+	comments, err := g.fetchPullRequestComments(owner, repoName, prNum)
+	if err != nil {
+		printer.ToolCall(printer.IconError, "github_pull_request: failed to fetch comments", "repo", repo, "pr", prNum, "err", err)
+	} else {
+		prData.Comments = comments
+	}
+
+	// Fetch reviews
+	reviews, err := g.fetchPullRequestReviews(owner, repoName, prNum)
+	if err != nil {
+		printer.ToolCall(printer.IconError, "github_pull_request: failed to fetch reviews", "repo", repo, "pr", prNum, "err", err)
+	} else {
+		prData.Reviews = reviews
+	}
+
+	return g.formatPullRequestMarkdown(&prData), nil
+}
+
+// fetchPullRequestFiles fetches files changed in a pull request.
+//
+//nolint:dupl // Similar structure to fetchPullRequestComments and fetchPullRequestReviews.
+func (g *GitHubTools) fetchPullRequestFiles(owner string, repoName string, prNum string) ([]PullRequestFile, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	defer cancel()
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls/%s/files", owner, repoName, prNum)
+
+	resp, err := g.fetchWithHeaders(ctx, http.MethodGet, apiURL)
+	if err != nil {
+		return nil, fmt.Errorf("github_pull_request: failed to fetch files: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("github_pull_request: files endpoint returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("github_pull_request: failed to read files response: %w", err)
+	}
+
+	var files []PullRequestFile
+	if err := json.Unmarshal(body, &files); err != nil {
+		return nil, fmt.Errorf("github_pull_request: failed to parse files response: %w", err)
+	}
+
+	return files, nil
+}
+
+// fetchPullRequestComments fetches review comments on a pull request.
+//
+//nolint:dupl // Similar structure to fetchPullRequestFiles and fetchPullRequestReviews.
+func (g *GitHubTools) fetchPullRequestComments(owner string, repoName string, prNum string) ([]PullRequestComment, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	defer cancel()
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls/%s/comments", owner, repoName, prNum)
+
+	resp, err := g.fetchWithHeaders(ctx, http.MethodGet, apiURL)
+	if err != nil {
+		return nil, fmt.Errorf("github_pull_request: failed to fetch comments: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("github_pull_request: comments endpoint returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("github_pull_request: failed to read comments response: %w", err)
+	}
+
+	var comments []PullRequestComment
+	if err := json.Unmarshal(body, &comments); err != nil {
+		return nil, fmt.Errorf("github_pull_request: failed to parse comments response: %w", err)
+	}
+
+	return comments, nil
+}
+
+// fetchPullRequestReviews fetches reviews on a pull request.
+//
+//nolint:dupl // Similar structure to fetchPullRequestFiles and fetchPullRequestComments.
+func (g *GitHubTools) fetchPullRequestReviews(owner string, repoName string, prNum string) ([]PullRequestReview, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	defer cancel()
+
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls/%s/reviews", owner, repoName, prNum)
+
+	resp, err := g.fetchWithHeaders(ctx, http.MethodGet, apiURL)
+	if err != nil {
+		return nil, fmt.Errorf("github_pull_request: failed to fetch reviews: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("github_pull_request: reviews endpoint returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("github_pull_request: failed to read reviews response: %w", err)
+	}
+
+	var reviews []PullRequestReview
+	if err := json.Unmarshal(body, &reviews); err != nil {
+		return nil, fmt.Errorf("github_pull_request: failed to parse reviews response: %w", err)
+	}
+
+	return reviews, nil
+}
+
+// calculateChanges calculates total additions, deletions, and changed files from file list.
+func (g *GitHubTools) calculateChanges(files []PullRequestFile) (int, int, int) {
+	var additions, deletions int
+	changedFiles := len(files)
+	for _, file := range files {
+		additions += file.Additions
+		deletions += file.Deletions
+	}
+	return additions, deletions, changedFiles
+}
+
+// formatPullRequestMarkdown formats PR data as Markdown.
+func (g *GitHubTools) formatPullRequestMarkdown(pr *PullRequest) string {
+	var sb strings.Builder
+
+	fmt.Fprintf(&sb, "# Pull Request #%d: %s\n\n", pr.Number, pr.Title)
+	fmt.Fprintf(&sb, "**Status:** %s\n\n", pr.State)
+	if pr.Locked {
+		sb.WriteString("**⚠️ This PR is locked**\n\n")
+	}
+	fmt.Fprintf(&sb, "**Author:** @%s\n\n", pr.User.Login)
+	fmt.Fprintf(&sb, "**Created:** %s\n\n", pr.CreatedAt)
+	fmt.Fprintf(&sb, "**Updated:** %s\n\n", pr.UpdatedAt)
+	if pr.ClosedAt != "" {
+		fmt.Fprintf(&sb, "**Closed:** %s\n\n", pr.ClosedAt)
+	}
+	if pr.MergedAt != "" {
+		fmt.Fprintf(&sb, "**Merged:** %s\n\n", pr.MergedAt)
+	}
+	fmt.Fprintf(&sb, "**URL:** %s\n\n", pr.HTMLURL)
+
+	// Base and Head branches
+	fmt.Fprintf(&sb, "**Base:** %s:%s\n\n", pr.Base.Repo.Owner.Login, pr.Base.Ref)
+	fmt.Fprintf(&sb, "**Head:** %s:%s\n\n", pr.Head.Repo.Owner.Login, pr.Head.Ref)
+
+	// Change statistics
+	if pr.ChangedFiles > 0 {
+		fmt.Fprintf(&sb, "**Changes:** %d files, %d additions, %d deletions\n\n",
+			pr.ChangedFiles, pr.Additions, pr.Deletions)
+	}
+
+	// Labels
+	if len(pr.Labels) > 0 {
+		labelNames := make([]string, 0, len(pr.Labels))
+		for _, label := range pr.Labels {
+			labelNames = append(labelNames, label.Name)
+		}
+		fmt.Fprintf(&sb, "**Labels:** %s\n\n", strings.Join(labelNames, ", "))
+	}
+
+	// Merge status
+	if pr.Mergeable != nil {
+		if *pr.Mergeable {
+			fmt.Fprintf(&sb, "**Mergeable:** Yes\n\n")
+		} else {
+			fmt.Fprintf(&sb, "**Mergeable:** No\n\n")
+		}
+	}
+
+	// Description
+	if pr.Body != "" {
+		fmt.Fprintf(&sb, "## Description\n\n%s\n\n", pr.Body)
+	}
+
+	// Files changed
+	if len(pr.Files) > 0 {
+		fmt.Fprintf(&sb, "## Files Changed (%d)\n\n", len(pr.Files))
+		sb.WriteString("| File | Changes | Status |\n")
+		sb.WriteString("|------|---------|--------|\n")
+		for _, file := range pr.Files {
+			status := "modified"
+			if len(file.Diff) > 0 {
+				if strings.Contains(file.Diff, "new file") {
+					status = "added"
+				} else if strings.Contains(file.Diff, "deleted file") {
+					status = "deleted"
+				}
+			}
+			fmt.Fprintf(&sb, "| `%s` | +%d -%d | %s |\n", file.Path, file.Additions, file.Deletions, status)
+		}
+		sb.WriteString("\n")
+
+		// Show detailed diff for each file
+		for _, file := range pr.Files {
+			if file.Diff != "" {
+				fmt.Fprintf(&sb, "### %s\n\n", file.Path)
+				fmt.Fprintf(&sb, "```diff\n%s\n```\n\n", file.Diff)
+			}
+		}
+	}
+
+	// Review comments
+	if len(pr.Comments) > 0 {
+		fmt.Fprintf(&sb, "## Review Comments (%d)\n\n", len(pr.Comments))
+		for _, comment := range pr.Comments {
+			fmt.Fprintf(&sb, "### Comment by @%s on %s (line %d)\n\n", comment.User.Login, comment.Path, comment.Line)
+			fmt.Fprintf(&sb, "%s\n\n", comment.Body)
+			fmt.Fprintf(&sb, "**Posted:** %s\n\n", comment.CreatedAt)
+			sb.WriteString("---\n\n")
+		}
+	}
+
+	// Reviews
+	if len(pr.Reviews) > 0 {
+		fmt.Fprintf(&sb, "## Reviews (%d)\n\n", len(pr.Reviews))
+		for _, review := range pr.Reviews {
+			statusEmoji := "⚪"
+			switch review.State {
+			case "approved":
+				statusEmoji = "✅"
+			case "changes_requested":
+				statusEmoji = "🔄"
+			case "commented":
+				statusEmoji = "💬"
+			case "rejected":
+				statusEmoji = "❌"
+			}
+			fmt.Fprintf(&sb, "### %s Review by @%s\n\n", statusEmoji, review.User.Login)
+			if review.Body != "" {
+				fmt.Fprintf(&sb, "%s\n\n", review.Body)
+			}
+			fmt.Fprintf(&sb, "**Status:** %s\n", strings.Title(review.State))
+			fmt.Fprintf(&sb, "**Submitted:** %s\n\n", review.Submitted)
+			sb.WriteString("---\n\n")
+		}
+	}
+
+	return sb.String()
+}
+
+// DefinitionPullRequest returns the OpenAI tool schema for github_pull_request.
+func (g *GitHubTools) DefinitionPullRequest() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "github_pull_request",
+			Description: "Fetch a GitHub pull request with all details including files changed, comments, and reviews",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"repo": map[string]any{
+						"type":        "string",
+						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
+					},
+					"pr": map[string]any{
+						"type":        "string",
+						"description": "Pull request number (e.g., '7')",
+					},
+				},
+				"required": []string{"repo", "pr"},
+			},
+		},
+	}
+}
+
+// StaticDefinitionPullRequest returns the OpenAI tool schema for github_pull_request without
+// requiring an initialised GitHubTools instance.
+func StaticDefinitionPullRequest() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "github_pull_request",
+			Description: "Fetch a GitHub pull request with all details including files changed, comments, and reviews",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"repo": map[string]any{
+						"type":        "string",
+						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
+					},
+					"pr": map[string]any{
+						"type":        "string",
+						"description": "Pull request number (e.g., '7')",
+					},
+				},
+				"required": []string{"repo", "pr"},
 			},
 		},
 	}

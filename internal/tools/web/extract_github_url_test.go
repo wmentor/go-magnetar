@@ -451,3 +451,191 @@ func TestExtractGitHubMilestoneURL(t *testing.T) {
 		})
 	}
 }
+
+func TestIsGitHubPullRequestURL(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		input   string
+		want    bool
+	}{
+		{
+			name:  "valid PR URL",
+			input: "https://github.com/prometheus-community/pgbouncer_exporter/pull/309",
+			want:  true,
+		},
+		{
+			name:  "valid PR URL with /files",
+			input: "https://github.com/owner/repo/pull/123/files",
+			want:  true,
+		},
+		{
+			name:  "valid PR URL with /commits",
+			input: "https://github.com/owner/repo/pull/123/commits",
+			want:  true,
+		},
+		{
+			name:  "PR URL with query params",
+			input: "https://github.com/owner/repo/pull/123?expand=1",
+			want:  true,
+		},
+		{
+			name:  "not a GitHub URL",
+			input: "https://gitlab.com/owner/repo/pull/123",
+			want:  false,
+		},
+		{
+			name:  "PR URL with /tree/ before /pull/",
+			input: "https://github.com/owner/tree/repo/pull/123",
+			want:  false,
+		},
+		{
+			name:  "owner named 'pull'",
+			input: "https://github.com/pull/repo/pull/123",
+			want:  false,
+		},
+		{
+			name:  "repo named 'pull'",
+			input: "https://github.com/user/pull/pull/123",
+			want:  false,
+		},
+		{
+			name:  "just /pull/ without number",
+			input: "https://github.com/owner/repo/pull",
+			want:  false,
+		},
+		{
+			name:  "issues URL is not PR",
+			input: "https://github.com/owner/repo/issues/123",
+			want:  false,
+		},
+		{
+			name:  "blob URL is not PR",
+			input: "https://github.com/owner/repo/blob/master/file.go",
+			want:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := isGitHubPullRequestURL(tt.input)
+			if got != tt.want {
+				t.Errorf("isGitHubPullRequestURL(%q) = %v, want %v", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestExtractGitHubPullRequestURL(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		input     string
+		wantOwner string
+		wantRepo  string
+		wantNum   string
+		wantErr   bool
+	}{
+		{
+			name:      "basic pull request URL",
+			input:     "https://github.com/prometheus-community/pgbouncer_exporter/pull/309",
+			wantOwner: "prometheus-community",
+			wantRepo:  "pgbouncer_exporter",
+			wantNum:   "309",
+			wantErr:   false,
+		},
+		{
+			name:      "pull request URL with trailing slash",
+			input:     "https://github.com/golang/go/pull/1234/",
+			wantOwner: "golang",
+			wantRepo:  "go",
+			wantNum:   "1234",
+			wantErr:   false,
+		},
+		{
+			name:      "pull request URL with /files path",
+			input:     "https://github.com/golang/go/pull/1234/files",
+			wantOwner: "golang",
+			wantRepo:  "go",
+			wantNum:   "1234",
+			wantErr:   false,
+		},
+		{
+			name:      "pull request URL with /commits path",
+			input:     "https://github.com/golang/go/pull/1234/commits",
+			wantOwner: "golang",
+			wantRepo:  "go",
+			wantNum:   "1234",
+			wantErr:   false,
+		},
+		{
+			name:      "pull request URL with query parameters",
+			input:     "https://github.com/golang/go/pull/1234?expand=1",
+			wantOwner: "golang",
+			wantRepo:  "go",
+			wantNum:   "1234",
+			wantErr:   false,
+		},
+		{
+			name:      "pull request URL with fragment",
+			input:     "https://github.com/golang/go/pull/1234#pullrequestreview-1",
+			wantOwner: "golang",
+			wantRepo:  "go",
+			wantNum:   "1234",
+			wantErr:   false,
+		},
+		{
+			name:    "pull request URL without number",
+			input:   "https://github.com/golang/go/pull",
+			wantErr: true,
+		},
+		{
+			name:    "issues URL is not a pull request URL",
+			input:   "https://github.com/golang/go/issues/1234",
+			wantErr: true,
+		},
+		{
+			name:      "pull request URL without scheme",
+			input:     "github.com/golang/go/pull/1234",
+			wantOwner: "golang",
+			wantRepo:  "go",
+			wantNum:   "1234",
+		},
+		{
+			name:    "not a GitHub URL",
+			input:   "https://gitlab.com/golang/go/pull/1234",
+			wantErr: true,
+		},
+		{
+			name:    "non-GitHub host containing github.com",
+			input:   "https://notgithub.com/golang/go/pull/1234",
+			wantErr: true,
+		},
+		{
+			name:    "empty input",
+			input:   "",
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			owner, repo, num, err := extractGitHubPullRequestURL(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("extractGitHubPullRequestURL(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+				return
+			}
+			if tt.wantErr {
+				return
+			}
+			if owner != tt.wantOwner || repo != tt.wantRepo || num != tt.wantNum {
+				t.Errorf("extractGitHubPullRequestURL(%q) = (%q, %q, %q), want (%q, %q, %q)",
+					tt.input, owner, repo, num, tt.wantOwner, tt.wantRepo, tt.wantNum)
+			}
+		})
+	}
+}

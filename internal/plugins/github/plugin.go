@@ -73,6 +73,14 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		},
 	})
 
+	// Register github_pull_request tool
+	hub.RegisterTool(plugin.LLMTool{
+		Definition: github.StaticDefinitionPullRequest,
+		Execute: func(_ context.Context, args string) (string, error) {
+			return tools.Dispatch("github_pull_request", args), nil
+		},
+	})
+
 	return nil
 }
 

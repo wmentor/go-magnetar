@@ -14,6 +14,7 @@ var (
 	errNotGitHubBlobURL      = errors.New("not a GitHub blob URL")
 	errNotGitHubIssueURL     = errors.New("not a GitHub issue URL")
 	errNotGitHubMilestoneURL = errors.New("not a GitHub milestone URL")
+	errNotGitHubPRURL        = errors.New("not a GitHub pull request URL")
 )
 
 // Patterns for the path of a github.com URL (see githubURLPath).
@@ -26,7 +27,69 @@ var (
 	githubIssuePathRe = regexp.MustCompile(`^/([^/]+)/([^/]+)/issues/(\d+)$`)
 	// Matches /{owner}/{repo}/milestone/{number}.
 	githubMilestonePathRe = regexp.MustCompile(`^/([^/]+)/([^/]+)/milestone/(\d+)$`)
+	// Matches /{owner}/{repo}/pull/{number} optionally followed by /files or /commits.
+	// This ensures it's a PR URL with explicit number, not just /pull/ as part of repo name.
+	githubPRPathRe = regexp.MustCompile(`^/([^/]+)/([^/]+)/pull/(\d+)(?:/(files|commits))?$`)
 )
+
+// isGitHubPullRequestURL checks if the URL is likely a GitHub PR URL.
+// Returns true only if the URL matches the expected PR pattern.
+func isGitHubPullRequestURL(rawURL string) bool {
+	if !strings.Contains(rawURL, "github.com/") {
+		return false
+	}
+
+	// Parse URL
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+
+	path := strings.TrimPrefix(parsed.Path, "/")
+	parts := strings.Split(path, "/")
+
+	// Expected structure: [owner, repo, pull, number] or [owner, repo, pull, number, files/commits]
+	// So parts[2] must be "pull" and parts[3] must be a number
+	if len(parts) < 4 {
+		return false
+	}
+
+	// Check that parts[2] is exactly "pull" (not just a word containing pull)
+	if parts[2] != "pull" {
+		return false
+	}
+
+	// Check that parts[3] is a number (PR number)
+	if len(parts[3]) == 0 {
+		return false
+	}
+	for i := 0; i < len(parts[3]); i++ {
+		if parts[3][i] < '0' || parts[3][i] > '9' {
+			return false
+		}
+	}
+
+	// If there are more parts, they must be "files" or "commits"
+	if len(parts) > 4 {
+		if parts[4] != "files" && parts[4] != "commits" {
+			return false
+		}
+	}
+
+	// Ensure there's no second "pull" in the path
+	pullCount := 0
+	for _, part := range parts {
+		if part == "pull" {
+			pullCount++
+		}
+	}
+	// Must have exactly one "pull" in the path
+	if pullCount != 1 {
+		return false
+	}
+
+	return true
+}
 
 // githubURLPath returns the escaped path of a github.com URL without the query string,
 // fragment and trailing slash. It returns an error for any other host.
@@ -110,6 +173,20 @@ func extractGitHubMilestoneURL(rawURL string) (string, string, string, error) {
 		return matches[1], matches[2], matches[3], nil
 	}
 	return "", "", "", errNotGitHubMilestoneURL
+}
+
+func extractGitHubPullRequestURL(rawURL string) (string, string, string, error) {
+	path, err := githubURLPath(rawURL)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	matches := githubPRPathRe.FindStringSubmatch(path)
+	if matches != nil {
+		// matches[4] can be "files" or "commits" or empty
+		return matches[1], matches[2], matches[3], nil
+	}
+	return "", "", "", errNotGitHubPRURL
 }
 
 func extractGitHubAdvisoryURL(url string) (string, error) {

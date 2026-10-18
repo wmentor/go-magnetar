@@ -19,6 +19,7 @@ go-magnetar provides the following tools for the chat agent:
 | `github_tree` | `(repo: string, branch: string, path: string) -> string` | Lists repository contents at root or specified path |
 | `github_issue` | `(repo: string, issue: string) -> string` | Fetches a GitHub issue and its comments, returns issue details in Markdown format |
 | `github_milestone` | `(repo: string, milestone: string) -> string` | Fetches a GitHub milestone and returns its details in Markdown format |
+| `github_pull_request` | `(repo: string, pr: string) -> string` | Fetches a GitHub pull request with all details including files changed, comments, and reviews |
 | `gitlab_fetch_mr` | `(project_path: string, mr_id: string) -> string` | Fetches a GitLab merge request and returns its details in Markdown format. See [plugin_gitlab.md](./plugin_gitlab.md) for complete documentation |
 | `gitlab_repo` | `(project_path: string) -> string` | Fetches GitLab repository information and returns its details in Markdown format. See [plugin_gitlab.md](./plugin_gitlab.md) for complete documentation |
 | `gitlab_file` | `(project_path: string, branch: string, file: string) -> string` | Fetches a file from GitLab repository and returns its content. See [plugin_gitlab.md](./plugin_gitlab.md) for complete documentation |
