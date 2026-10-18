@@ -197,6 +197,7 @@ if [ "$LOGINS_COUNT" -gt 0 ]; then
     /^## \[/ {
         if (seen_first && !inserted) {
             # Second release header found — insert contributors block before it
+            print ""
             print "### 👥 Contributors"
             print ""
             print "<div align=\"left\" style=\"padding-left: 20px;\">"

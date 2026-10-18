@@ -1,5 +1,57 @@
 # CHANGELOG
 
+## [1.6.0] - 2026-10-18
+
+### 🚀 Features
+
+- *(cli)* Support `-` as stdin input for --file / -f flag (#121)
+- *(codec)* Add MIME type support for web fetch and document decoding
+- *(chat)* Allow /copy [index] to select a prior assistant answer (#124)
+- *(skill)* Add commit-message skill
+- *(jira)* Add Jira issue creation capability
+- *(gitlab)* Add support for GitLab repositories, files, and tree structures
+- *(skill)* Add bug-hunter skill for detecting common bugs
+- *(confluence)* Add support for tables in posts
+- *(github)* Add support for fetching GitHub pull requests
+
+### 🐛 Bug Fixes
+
+- *(confluence)* Properly escape horizontal rules in Markdown-to-HTML conversion
+- *(confluence)* Decode short page IDs with URL-safe characters
+- *(web)* Extract short GitLab /-/mr/ merge request URLs
+- *(tools)* Stop replaceAllPatterns from looping on unchanged placeholders
+- *(jira)* Add unit tests and fix HTML conversion regex patterns
+
+### 🚜 Refactor
+
+- *(chat)* Introduce ChatCommandInput struct for command execution
+- *(printer)* Convert Printer to interface and add ConsolePrinter implementation
+- *(tools)* Use time package in SystemDate instead of the date command (#138)
+- *(build)* Reorganize Makefile targets and improve code formatting
+- *(chat)* Centralize answer printing and add stdout support
+
+### 🧪 Testing
+
+- *(web)* Cover and simplify JIRA URL extraction
+- *(tools)* Add unit tests for processFiles (#141)
+- *(tools)* Cover unreadable files and empty names in processFiles
+
+### ⚙️ Miscellaneous Tasks
+
+- *(build)* Bumps mockery to v3.8.1
+- *(release)* Use archives.formats for GoReleaser v2
+- *(skill)* Improve make-issue skill instructions
+- *(ci)* Add lefthook to dev tools setup
+- *(ci)* Enable errorlint and use errors.Is for io.EOF checks
+- *(skill)* Add code style and unit testing guidelines to AGENTS.md
+- *(release)* Append contributor list with avatars to CHANGELOG.md
+
+### 👥 Contributors
+
+<div align="left" style="padding-left: 20px;">
+<a href="https://github.com/wmentor"><img src="https://avatars.githubusercontent.com/wmentor?v=4&s=32" width="32" height="32" alt="@wmentor" title="@wmentor" style="border-radius:50%"></a> <a href="https://github.com/spayder"><img src="https://avatars.githubusercontent.com/spayder?v=4&s=32" width="32" height="32" alt="@spayder" title="@spayder" style="border-radius:50%"></a> <a href="https://github.com/Detoy"><img src="https://avatars.githubusercontent.com/Detoy?v=4&s=32" width="32" height="32" alt="@Detoy" title="@Detoy" style="border-radius:50%"></a> <a href="https://github.com/pollychen-lab"><img src="https://avatars.githubusercontent.com/pollychen-lab?v=4&s=32" width="32" height="32" alt="@pollychen-lab" title="@pollychen-lab" style="border-radius:50%"></a> <a href="https://github.com/himanshu748"><img src="https://avatars.githubusercontent.com/himanshu748?v=4&s=32" width="32" height="32" alt="@himanshu748" title="@himanshu748" style="border-radius:50%"></a> 
+</div><br/><br/>
+
 ## [1.5.0] - 2026-10-11
 
 ### 🚀 Features
