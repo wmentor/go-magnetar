@@ -232,17 +232,6 @@ func (g *GenericTools) FileEditMultiple(filename string, edits []FileEditEdit, s
 	return g.fileEdit.FileEditMultiple(filename, edits, strategy)
 }
 
-// FileExists checks if a file exists and returns true if it does.
-func (g *GenericTools) FileExists(filename string) bool {
-	_, err := g.root.Stat(filename)
-	if err != nil {
-		printer.Debug("file_exists: file not found", "file", filename, "err", err)
-		return false
-	}
-	printer.Debug("file_exists: file found", "file", filename)
-	return true
-}
-
 // FileList returns a list of files in the current directory recursively,
 // filtered by glob pattern.
 func (g *GenericTools) FileList(filter *FileListFilter) []string {
@@ -583,27 +572,6 @@ func (g *GenericTools) DefinitionFileWrite() openai.Tool {
 	}
 }
 
-// DefinitionFileExists returns the OpenAI tool schema for file_exists.
-func (g *GenericTools) DefinitionFileExists() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "file_exists",
-			Description: "Check if a file exists",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"filename": map[string]any{
-						"type":        "string",
-						"description": "Path to the file to check",
-					},
-				},
-				"required": []string{"filename"},
-			},
-		},
-	}
-}
-
 // DefinitionFileList returns the OpenAI tool schema for file_list.
 func (g *GenericTools) DefinitionFileList() openai.Tool {
 	return openai.Tool{
@@ -802,19 +770,6 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 		}
 		return "File written successfully."
 
-	case "file_exists":
-		var params struct {
-			Filename string `json:"filename"`
-		}
-		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			printer.Error("file_exists: failed to parse args", "args", args, "err", err)
-			return "error: failed to parse arguments"
-		}
-		if ok := g.FileExists(params.Filename); !ok {
-			return "File does not exist."
-		}
-		return "File exists."
-
 	case "exec":
 		var params struct {
 			Command string `json:"command"`
@@ -911,26 +866,6 @@ func StaticDefinitionFileWrite() openai.Tool {
 					},
 				},
 				"required": []string{"filename", "content"},
-			},
-		},
-	}
-}
-
-func StaticDefinitionFileExists() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "file_exists",
-			Description: "Check if a file exists",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"filename": map[string]any{
-						"type":        "string",
-						"description": "Path to the file to check",
-					},
-				},
-				"required": []string{"filename"},
 			},
 		},
 	}

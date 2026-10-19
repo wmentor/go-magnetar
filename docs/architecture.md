@@ -44,7 +44,7 @@ internal/
     rag/qdrant/
       store.go                   — Qdrant vector store implementation
     web/fetch.go                 — web_fetch tool; HTML fetching and conversion to Markdown
-    generic/generic.go           — file_read, file_list, file_write, file_exists, system_grep, tools
+    generic/generic.go           — file_read, file_list, file_write, system_grep, tools
   agent/
     guard/agent.go               — security guard for exec commands
     indexer/indexer.go           — indexer agent (used by /index command)

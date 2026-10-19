@@ -447,4 +447,8 @@ Prefer `gopls` over `grep` for finding usages and references:
 - `gopls workspace_symbol <query>` -- search symbols across the workspace.
 - `gopls signature <file>:<line>:<col>` -- show a function's signature.
 - `gopls symbols <file>` -- list symbols in a file.
+
+## Important Rules
+
+**IMPORTANT**: Never edit `CHANGELOG.md` manually. Changelog entries are automatically generated and managed by the release process.
 ```
