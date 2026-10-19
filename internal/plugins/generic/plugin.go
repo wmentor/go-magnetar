@@ -51,6 +51,21 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		Execute: func(_ context.Context, args string) (string, error) {
 			return p.get().Dispatch("file_write", args), nil
 		},
+		Sequential: true,
+	})
+	hub.RegisterTool(plugin.LLMTool{
+		Definition: generic.StaticDefinitionFileEdit,
+		Execute: func(_ context.Context, args string) (string, error) {
+			return p.get().Dispatch("file_edit", args), nil
+		},
+		Sequential: true,
+	})
+	hub.RegisterTool(plugin.LLMTool{
+		Definition: generic.StaticDefinitionFileEditMultiple,
+		Execute: func(_ context.Context, args string) (string, error) {
+			return p.get().Dispatch("file_edit_multiple", args), nil
+		},
+		Sequential: true,
 	})
 	hub.RegisterTool(plugin.LLMTool{
 		Definition: generic.StaticDefinitionFileExists,

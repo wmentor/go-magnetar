@@ -67,21 +67,27 @@ Send request to OpenAI with:
        - Add to `alreadyDoneToolCalls` (line 339)
        - Increment `allInterationRealToolCall` IF search limit not reached (lines 340-342)
 
-2. Execute tools in parallel (lines 345-381):
-    - **Search tools** (search, web_fetch, jira_task_search):
-      - Check if `toolCallCount >= maxSearchToolCalls` (20) (lines 358-359)
-      - **Limit reached**: Return error, do NOT execute
-      - **Limit not reached**: 
-        - Increment `toolCallCount` (line 362)
-        - Execute tool (line 363)
-        - Return result or error
-   
-   - **Lookup tools** (github_repo, github_file, jira_task_get, cve, gitlab_fetch_mr):
-     - Execute tool without search limit check (line 371)
-     - Return result or error
+2. Split tool calls into two buckets:
+   - **Parallel tools** (`Sequential: false`): read-only or network tools — executed concurrently via goroutines.
+   - **Sequential tools** (`Sequential: true`): file-mutating tools — executed one at a time after all parallel tools finish.
 
-3. Wait for all tools to complete (lines 383-384)
-4. Append tool results to message history (lines 386-395)
+3. Execute **parallel** tools concurrently:
+    - **Search tools** (`IsSearchTool: true`, e.g. search, web_fetch):
+      - Check if `toolCallCount >= maxSearchToolCalls` (20)
+      - **Limit reached**: Return error, do NOT execute
+      - **Limit not reached**:
+        - Increment `toolCallCount`
+        - Execute tool, return result or error
+    - **Other parallel tools** (github_repo, cve, gitlab_fetch_mr, etc.):
+      - Execute without search limit check, return result or error
+
+4. Wait for all parallel tools to complete.
+
+5. Execute **sequential** tools one at a time, in the order the LLM listed them:
+   - Each tool sees the fully up-to-date filesystem after the previous one finished.
+   - Same search-limit and error handling as parallel tools.
+
+6. Append all tool results to message history.
 
 **Progress Tracking (lines 397-401):**
 
@@ -148,7 +154,15 @@ if atomic.LoadInt64(allInterationRealToolCall) == 0 {
 - Breaks after 4 consecutive iterations without progress
 - Search tool calls exceeding limit still increment `allInterationRealToolCall`
 
-### 4. Maximum Iteration Limit
+### 4. Sequential Execution for File-Mutating Tools
+
+```go
+// LLMTool.Sequential: true
+```
+
+Tools marked `Sequential: true` (`file_write`, `file_edit`, `file_edit_multiple`) are never run in parallel with each other or with other tools in the same LLM response batch. They execute strictly one after another, in the order the LLM listed them, after all parallel tools in the same batch have completed. This prevents lost-write races where two concurrent edits both read the original file and the second one overwrites the first.
+
+### 5. Maximum Iteration Limit
 
 ```go
 for range maxAskLoopIteration { ... }
@@ -158,12 +172,18 @@ Breaks after 50 iterations regardless of other conditions.
 
 ## Tool Categories
 
-### Search Tools (IsSearchTool: true)
+### Search Tools (`IsSearchTool: true`)
+These tools count toward the per-request search call limit and run in parallel.
 - `search`: Unified search tool (calls web_search and rag_search in parallel)
 - `web_fetch`: Fetch web pages (including Confluence, JIRA, GitHub)
 - `jira_task_search`: Search JIRA issues by JQL
 
-### Lookup Tools (IsSearchTool: false)
+### Lookup Tools (`IsSearchTool: false`, `Sequential: false`)
+Read-only or network tools that run in parallel without a search limit.
+- `file_read`: Read a local file
+- `file_list`: List local files
+- `file_exists`: Check if a file exists
+- `exec`: Execute a shell command
 - `github_repo`: Fetch GitHub repository
 - `github_file`: Fetch GitHub file
 - `github_tree`: List repository contents
@@ -173,11 +193,18 @@ Breaks after 50 iterations regardless of other conditions.
 - `gitlab_fetch_mr`: Fetch GitLab merge request
 - `cve`: Lookup vulnerability from OSV database
 
+### Sequential Tools (`Sequential: true`)
+File-mutating tools that run **after all parallel tools finish**, one at a time, in the order the LLM listed them. This guarantees each tool sees the result of the previous write.
+- `file_write`: Write a file (create or overwrite)
+- `file_edit`: Replace a unique text fragment in a plain-text file
+- `file_edit_multiple`: Apply multiple text replacements in a plain-text file
+
 ## Performance Notes
 
-- Tools are executed in **parallel** using goroutines and `sync.WaitGroup`
-- Message history is trimmed to fit context window on each iteration
-- Message compaction is triggered automatically when needed
+- **Parallel tools** are executed concurrently using goroutines and `sync.WaitGroup`.
+- **Sequential tools** run one at a time after all parallel tools in the same batch have finished, preserving correct filesystem state.
+- Message history is trimmed to fit context window on each iteration.
+- Message compaction is triggered automatically when needed.
 
 ## Error Handling
 

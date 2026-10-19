@@ -33,13 +33,30 @@ Parameters:
 - language: %s
 
 Rules:
-- Always try *search* first for every question, even if you think you already know the answer.
-- If *search* returns relevant results, base your answer exclusively on those results.
+- For questions about facts, documents, or knowledge: use *search* first. Base your answer exclusively on what search returns.
+- For file operations (read, edit, create, run commands): use the file/exec tools directly. Do not call search first.
 - You may call *search* multiple times with different queries to gather all necessary information.
 - Do not invent, assume, or extrapolate facts beyond what the tools return.
-- If neither *search* nor *web_fetch* provides relevant information, tell the user honestly that you don't have information on this topic.
+- If *search* provides no relevant results, tell the user honestly that you don't have information on this topic.
 - Be concise and precise.
 - You may execute multiple tools in parallel when the response contains multiple tool calls.
+- NEVER combine file_write, file_edit, or file_edit_multiple with any other tool in the same response.
+  Always call file_read first in a separate step, then call the edit tool alone.
+
+FILE EDITING RULES:
+- ALWAYS call file_read FIRST before any file_edit or file_edit_multiple call. Never guess file contents.
+- Use file_edit for a single targeted replacement; old_text must appear EXACTLY ONCE in the file.
+- Use file_edit_multiple when making several replacements in one file or when old_text appears more than once.
+- Use file_write only when creating a new file or completely rewriting an existing one.
+- file_edit and file_edit_multiple work ONLY with plain-text files (.go, .py, .js, .ts, .md, .yaml, .json, .txt, etc.).
+- Formats .docx, .pdf, .odt, .xlsx, .pptx, .csv, .tsv, .html, .htm have dedicated codecs and CANNOT be edited
+  with file_edit — use file_write or a specialized tool for those formats.
+- The search is CASE-SENSITIVE and requires an exact character-for-character match including whitespace and newlines.
+- Copy old_text verbatim from the file_read output — do not paraphrase or reconstruct it from memory.
+- Include enough surrounding context in old_text to make it unique: add the preceding or following line if needed.
+- If file_edit returns "old_text appears N times", add more context to old_text or switch to file_edit_multiple.
+- If file_edit returns "old_text not found", re-read the file and copy the text again exactly as it appears.
+- Do not add or remove leading/trailing whitespace or newlines in old_text unless the file actually has them.
 
 SKILL USAGE:
 - When a skill is applied (e.g., via /skill command), the skill's output is provided to you as the user's input.
@@ -350,6 +367,50 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 
 			atomic.StoreInt64(allInterationRealToolCall, 0)
 
+			// executeTool runs a single tool call and sends the result to results.
+			executeTool := func(tc openai.ToolCall) {
+				name := tc.Function.Name
+				args := tc.Function.Arguments
+				toolKey := toolRecord{Name: name, Args: args}
+
+				var result string
+				t, ok := toolMap[name]
+				if !ok {
+					result = "error: unknown tool " + name
+				} else {
+					if t.IsSearchTool {
+						if atomic.LoadInt64(toolCallCount) >= maxSearchToolCalls {
+							result = "error: reached maximum number of search tool calls, no further searches allowed"
+							txt := fmt.Sprintf("LLM requested tool call %s but maximum search tool calls (%d) has been reached",
+								toolKey.Name, maxSearchToolCalls)
+							printer.Warn(txt, toolKey.Name, toolKey.Args)
+						} else {
+							atomic.AddInt64(toolCallCount, 1)
+							r, err := t.Execute(context.Background(), args)
+							if err != nil {
+								result = "error: " + err.Error()
+							} else {
+								result = r
+							}
+						}
+					} else {
+						r, err := t.Execute(context.Background(), args)
+						if err != nil {
+							result = "error: " + err.Error()
+						} else {
+							result = r
+						}
+					}
+				}
+				results <- toolResult{toolCall: tc, result: result}
+			}
+
+			// Split tool calls into parallel and sequential buckets.
+			// Sequential tools (e.g. file_edit, file_write) must not run
+			// concurrently because they mutate shared state (the filesystem).
+			var parallelCalls []openai.ToolCall
+			var sequentialCalls []openai.ToolCall
+
 			for _, toolCall := range choice.Message.ToolCalls {
 				toolKey := toolRecord{Name: toolCall.Function.Name, Args: toolCall.Function.Arguments}
 				if _, has := alreadyDoneToolCalls[toolKey]; has {
@@ -360,54 +421,35 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 					})
 					printer.Warn("llm require double tool call", "tool", toolKey.Name, "args", toolKey.Args)
 					continue
-				} else {
-					alreadyDoneToolCalls[toolKey] = struct{}{}
-					if atomic.LoadInt64(toolCallCount) < maxSearchToolCalls {
-						atomic.AddInt64(allInterationRealToolCall, 1)
-					}
+				}
+				alreadyDoneToolCalls[toolKey] = struct{}{}
+				if atomic.LoadInt64(toolCallCount) < maxSearchToolCalls {
+					atomic.AddInt64(allInterationRealToolCall, 1)
 				}
 
+				t, ok := toolMap[toolCall.Function.Name]
+				if ok && t.Sequential {
+					sequentialCalls = append(sequentialCalls, toolCall)
+				} else {
+					parallelCalls = append(parallelCalls, toolCall)
+				}
+			}
+
+			// Run parallel tools concurrently.
+			for _, tc := range parallelCalls {
 				wg.Add(1)
 				go func(tc openai.ToolCall) {
 					defer wg.Done()
+					executeTool(tc)
+				}(tc)
+			}
+			wg.Wait()
 
-					name := tc.Function.Name
-					args := tc.Function.Arguments
-
-					var result string
-					t, ok := toolMap[name]
-					if !ok {
-						result = "error: unknown tool " + name
-					} else {
-						if t.IsSearchTool {
-							if atomic.LoadInt64(toolCallCount) >= maxSearchToolCalls {
-								result = "error: reached maximum number of search tool calls, no further searches allowed"
-								txt := fmt.Sprintf("LLM requested tool call %s but maximum search tool calls (%d) has been reached",
-									toolKey.Name, maxSearchToolCalls)
-								printer.Warn(txt, toolKey.Name, toolKey.Args)
-							} else {
-								atomic.AddInt64(toolCallCount, 1)
-								r, err := t.Execute(context.Background(), args)
-								if err != nil {
-									result = "error: " + err.Error()
-								} else {
-									result = r
-								}
-							}
-						} else {
-							r, err := t.Execute(context.Background(), args)
-							if err != nil {
-								result = "error: " + err.Error()
-							} else {
-								result = r
-							}
-						}
-					}
-					results <- toolResult{toolCall: tc, result: result}
-				}(toolCall)
+			// Run sequential tools one at a time, in the order the LLM listed them.
+			for _, tc := range sequentialCalls {
+				executeTool(tc)
 			}
 
-			wg.Wait()
 			close(results)
 
 			for r := range results {

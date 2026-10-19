@@ -12,7 +12,7 @@ import (
 
 var (
 	ErrInvalidConfig = errors.New("invalid value of config")
-	ErrInvalidStore  = errors.New("invalid value of verctor store")
+	ErrInvalidStore  = errors.New("invalid value of vector store")
 )
 
 type Store interface {

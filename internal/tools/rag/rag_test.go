@@ -73,14 +73,14 @@ func TestNew(t *testing.T) {
 			cfg:       testConfig,
 			store:     nil,
 			wantErr:   true,
-			errString: "invalid value of verctor store",
+			errString: "invalid value of vector store",
 		},
 		{
 			name:      "store as nil interface",
 			cfg:       testConfig,
 			store:     rag.Store(nil),
 			wantErr:   true,
-			errString: "invalid value of verctor store",
+			errString: "invalid value of vector store",
 		},
 	}
 

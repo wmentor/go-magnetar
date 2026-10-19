@@ -123,19 +123,21 @@ type FileListFilter struct {
 
 // GenericTools provides basic file system operations as LLM tools.
 type GenericTools struct {
-	cfg   *config.Config
-	root  *os.Root
-	state *plugin.State
-	guard *guard.Guard
+	cfg      *config.Config
+	root     *os.Root
+	state    *plugin.State
+	guard    *guard.Guard
+	fileEdit *FileEditTools
 }
 
 // New creates a new GenericTools instance.
 func New(cfg *config.Config, root *os.Root, state *plugin.State) *GenericTools {
 	return &GenericTools{
-		cfg:   cfg,
-		root:  root,
-		state: state,
-		guard: guard.New(cfg),
+		cfg:      cfg,
+		root:     root,
+		state:    state,
+		guard:    guard.New(cfg),
+		fileEdit: NewFileEditTools(cfg, root, state),
 	}
 }
 
@@ -216,6 +218,18 @@ func (g *GenericTools) FileWrite(filename string, content string) bool {
 		return false
 	}
 	return true
+}
+
+// FileEdit reads a file, replaces occurrences of oldText with newText, and writes the result back.
+// Returns result string and success flag.
+func (g *GenericTools) FileEdit(filename string, oldText string, newText string) (string, bool) {
+	return g.fileEdit.FileEdit(filename, oldText, newText)
+}
+
+// FileEditMultiple reads a file, applies multiple edits, and writes the result back.
+// Returns result string and success flag.
+func (g *GenericTools) FileEditMultiple(filename string, edits []FileEditEdit, strategy string) (string, bool) {
+	return g.fileEdit.FileEditMultiple(filename, edits, strategy)
 }
 
 // FileExists checks if a file exists and returns true if it does.
@@ -839,6 +853,9 @@ func (g *GenericTools) Dispatch(name string, args string) string {
 			return "error: failed to parse arguments"
 		}
 		return g.SSHExec(params.Command, params.Stdin, params.Addr, params.User, params.Dir)
+
+	case "file_edit", "file_edit_multiple":
+		return g.fileEdit.Dispatch(name, args)
 
 	default:
 		return "error: unknown tool " + name

@@ -76,6 +76,11 @@ type LLMTool struct {
 	// IsSearchTool marks tools that count toward the per-request search call
 	// limit (e.g. rag_search, web_fetch).
 	IsSearchTool bool
+	// Sequential marks tools that must NOT run concurrently with other tool
+	// calls in the same LLM response. All sequential tools in a batch are
+	// executed one after another (in the order the LLM listed them) after
+	// all parallel tools have finished.
+	Sequential bool
 }
 
 // ChatCommandInput encapsulates all parameters for ChatCommand execution.
