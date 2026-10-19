@@ -17,10 +17,96 @@ go-magnetar provides several built-in chat commands accessible from the interact
 | `/copy [index]` | `/c` | Copy an assistant answer to clipboard (default: the last one) |
 | `/readonly` | — | Toggle read-only mode (blocks all modification operations) |
 | `/fetch` | `/f` | Fetch content from a URL, optionally save to file |
+| `/exec` | `/e` | Execute a shell command, redirect stdout/stderr, print exit code on failure |
 | `/confluence.edit` | — | Edit a Confluence page using Markdown content from a file |
 | `/session.save` | — | Save current conversation session to a file |
 | `/profile` | — | Show current profile or switch to a different profile |
 | `/skill` | `/sk` | List available skills or load/activate a skill |
+
+## /fetch Command
+
+Fetch content from a URL, optionally save to file:
+
+```
+> /fetch https://example.com/article
+> /fetch https://example.com/article output.md
+```
+
+The command cleans HTML content and converts it to Markdown. If a filename is provided, the content is saved to that file; otherwise, it's displayed in the terminal (using `less` if available).
+
+## /exec Command
+
+Execute a shell command and redirect stdout/stderr to the console:
+
+```
+> /exec ls -la
+> /exec grep pattern file.txt
+> /exec go build ./...
+```
+
+**Usage:**
+```
+/exec <command> [args...]
+```
+
+**Parameters:**
+- `command` — Shell command to execute (e.g., `ls`, `grep`, `cat`)
+- `args` — Additional arguments for the command
+
+**Output:**
+- `stdout` and `stderr` are printed directly to the console
+- If the command fails (exit code != 0), the exit code is printed at the end: `[Exit code: N]`
+- For non-command errors (e.g., command not found), an `[Error: <error message>]` line is printed
+
+**Security:**
+The command is blocked if it contains dangerous patterns:
+- `rm -rf /` — recursive deletion of root directory
+- `rm -rf *` — recursive deletion of all files in current directory
+- `dd` with `if=` parameter — direct memory access (e.g., `dd if=/dev/zero`)
+- `mkfs` — create filesystem commands
+- `fdisk` — disk partitioning tool
+- `bash -c`, `sh -c`, `zsh -c` — execute command from string argument
+- `curl ... | bash`, `wget ... | sh` — download and pipe to shell
+
+**Examples:**
+
+Display files in current directory:
+```
+> /exec ls -la
+total 123
+drwxr-xr-x  10 user  staff   320 Oct 18 12:00 .
+drwxr-xr-x  10 user  staff   320 Oct 17 10:30 ..
+...
+```
+
+Search for pattern in file:
+```
+> /exec grep "TODO" *.go
+file1.go:42:    // TODO: implement this
+file2.go:15:    // TODO: fix this bug
+```
+
+Run Go build:
+```
+> /exec go build -v ./...
+github.com/wmentor/go-magnetar
+```
+
+Command with failure (exit code printed):
+```
+> /exec cat nonexistent.txt
+cat: nonexistent.txt: No such file or directory
+
+[Exit code: 1]
+```
+
+Command not found (error printed):
+```
+> /exec nonexistentcommand
+zsh:1: command not found: nonexistentcommand
+
+[Error: exit status 127]
+```
 
 ## /confluence.edit Command
 
@@ -98,8 +184,8 @@ Display available profiles and their status:
 > /profile
 Available profiles:
  *> default
-   production
-   development
+    production
+    development
 
 Current profile: default
 LLM model: gpt-4o
