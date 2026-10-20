@@ -609,8 +609,10 @@ func readInput() (string, bool, error) {
 
 // printAnswer renders and prints the given answer to stdout.
 // If rendering fails, it falls back to printing the raw answer.
-func (a *ChatAgent) printAnswer(state *plugin.State, answer string) {
-	state.ResponseStore.Push(answer)
+func (a *ChatAgent) printAnswer(state *plugin.State, answer string, noLog bool) {
+	if !noLog {
+		state.ResponseStore.Push(answer)
+	}
 	rendered, err := a.renderer.Render(answer)
 	if err != nil {
 		fmt.Fprintln(os.Stdout, answer)
@@ -702,7 +704,7 @@ func (a *ChatAgent) Run(state *plugin.State) error {
 				}
 				// Print Stdout to stdout if present
 				if cmdResponse.Stdout != "" {
-					a.printAnswer(state, cmdResponse.Stdout)
+					a.printAnswer(state, cmdResponse.Stdout, cmdResponse.NoLog)
 				}
 				if cmdResponse.Content == "" {
 					continue
@@ -724,7 +726,7 @@ func (a *ChatAgent) Run(state *plugin.State) error {
 			continue
 		}
 
-		a.printAnswer(state, answer)
+		a.printAnswer(state, answer, false)
 	}
 
 	return nil

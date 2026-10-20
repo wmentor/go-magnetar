@@ -456,9 +456,9 @@ func TestIsGitHubPullRequestURL(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name    string
-		input   string
-		want    bool
+		name  string
+		input string
+		want  bool
 	}{
 		{
 			name:  "valid PR URL",

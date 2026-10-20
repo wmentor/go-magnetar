@@ -185,4 +185,3 @@ func (h *mockHub) RegisterCLICommand(cmd any)                      {}
 func (h *mockHub) RegisterPreprocessor(fn plugin.PreprocessorFunc) {}
 func (h *mockHub) Go(f func(context.Context))                      {}
 func (h *mockHub) Stop()                                           {}
-

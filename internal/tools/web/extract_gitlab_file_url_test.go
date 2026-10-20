@@ -8,9 +8,9 @@ func TestExtractGitLabFileURL(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name    string
-		input   string
-		want    struct {
+		name  string
+		input string
+		want  struct {
 			project string
 			branch  string
 			file    string
@@ -18,7 +18,7 @@ func TestExtractGitLabFileURL(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "basic file URL",
+			name:  "basic file URL",
 			input: "https://gitlab.example.com/group/project/-/blob/main/src/main.go",
 			want: struct {
 				project string
@@ -31,7 +31,7 @@ func TestExtractGitLabFileURL(t *testing.T) {
 			},
 		},
 		{
-			name: "file URL with nested path",
+			name:  "file URL with nested path",
 			input: "https://gitlab.example.com/group/project/-/blob/develop/path/to/file.go",
 			want: struct {
 				project string
@@ -44,7 +44,7 @@ func TestExtractGitLabFileURL(t *testing.T) {
 			},
 		},
 		{
-			name: "file URL with query parameters",
+			name:  "file URL with query parameters",
 			input: "https://gitlab.example.com/group/project/-/blob/main/file.go?line=10",
 			want: struct {
 				project string
@@ -57,7 +57,7 @@ func TestExtractGitLabFileURL(t *testing.T) {
 			},
 		},
 		{
-			name: "file URL with fragment",
+			name:  "file URL with fragment",
 			input: "https://gitlab.example.com/group/project/-/blob/main/file.go#L20",
 			want: struct {
 				project string
@@ -70,7 +70,7 @@ func TestExtractGitLabFileURL(t *testing.T) {
 			},
 		},
 		{
-			name: "file URL with query parameters and fragment",
+			name:  "file URL with query parameters and fragment",
 			input: "https://gitlab.example.com/group/project/-/blob/main/file.go?line=10#L20",
 			want: struct {
 				project string
@@ -83,7 +83,7 @@ func TestExtractGitLabFileURL(t *testing.T) {
 			},
 		},
 		{
-			name: "file URL on www.gitlab.com",
+			name:  "file URL on www.gitlab.com",
 			input: "https://www.gitlab.example.com/group/project/-/blob/main/file.go",
 			want: struct {
 				project string

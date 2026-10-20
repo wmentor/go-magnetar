@@ -563,7 +563,6 @@ func TestResult(t *testing.T) {
 
 	opts := testOptions()
 	result, err := ConvertWithOptions("test", opts)
-
 	if err != nil {
 		t.Errorf("ConvertWithOptions() error = %v", err)
 	}

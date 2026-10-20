@@ -8,9 +8,9 @@ func TestExtractGitLabTreeURL(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name    string
-		input   string
-		want    struct {
+		name  string
+		input string
+		want  struct {
 			project string
 			branch  string
 			path    string
@@ -18,7 +18,7 @@ func TestExtractGitLabTreeURL(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name: "basic tree URL",
+			name:  "basic tree URL",
 			input: "https://gitlab.example.com/group/project/-/tree/main",
 			want: struct {
 				project string
@@ -31,7 +31,7 @@ func TestExtractGitLabTreeURL(t *testing.T) {
 			},
 		},
 		{
-			name: "tree URL with path",
+			name:  "tree URL with path",
 			input: "https://gitlab.example.com/group/project/-/tree/main/src",
 			want: struct {
 				project string
@@ -44,7 +44,7 @@ func TestExtractGitLabTreeURL(t *testing.T) {
 			},
 		},
 		{
-			name: "commits URL without path",
+			name:  "commits URL without path",
 			input: "https://gitlab.example.com/group/project/-/commits/main",
 			want: struct {
 				project string
@@ -57,7 +57,7 @@ func TestExtractGitLabTreeURL(t *testing.T) {
 			},
 		},
 		{
-			name: "commits URL with path",
+			name:  "commits URL with path",
 			input: "https://gitlab.example.com/group/project/-/commits/main/src",
 			want: struct {
 				project string
@@ -70,7 +70,7 @@ func TestExtractGitLabTreeURL(t *testing.T) {
 			},
 		},
 		{
-			name: "tree URL with query on branch (no path)",
+			name:  "tree URL with query on branch (no path)",
 			input: "https://gitlab.example.com/group/project/-/tree/main?foo=bar",
 			want: struct {
 				project string
@@ -83,7 +83,7 @@ func TestExtractGitLabTreeURL(t *testing.T) {
 			},
 		},
 		{
-			name: "tree URL with query parameters on path",
+			name:  "tree URL with query parameters on path",
 			input: "https://gitlab.example.com/group/project/-/tree/main/src?foo=bar",
 			want: struct {
 				project string
@@ -96,7 +96,7 @@ func TestExtractGitLabTreeURL(t *testing.T) {
 			},
 		},
 		{
-			name: "tree URL with fragment",
+			name:  "tree URL with fragment",
 			input: "https://gitlab.example.com/group/project/-/tree/main#files",
 			want: struct {
 				project string
@@ -109,7 +109,7 @@ func TestExtractGitLabTreeURL(t *testing.T) {
 			},
 		},
 		{
-			name: "tree URL with path and fragment",
+			name:  "tree URL with path and fragment",
 			input: "https://gitlab.example.com/group/project/-/tree/main/src#files",
 			want: struct {
 				project string
@@ -122,7 +122,7 @@ func TestExtractGitLabTreeURL(t *testing.T) {
 			},
 		},
 		{
-			name: "tree URL on www.gitlab.com",
+			name:  "tree URL on www.gitlab.com",
 			input: "https://www.gitlab.example.com/group/project/-/tree/main",
 			want: struct {
 				project string

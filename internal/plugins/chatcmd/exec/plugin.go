@@ -57,7 +57,6 @@ func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (
 	cmd.Stderr = serr
 
 	err := cmd.Run()
-
 	if err != nil {
 		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			fmt.Fprintf(sout, "\n[Exit code: %d]\n", exitErr.ExitCode())

@@ -48,7 +48,7 @@ func (s *Store) Last(idx int) (string, error) {
 	if idx >= s.size {
 		return "", ErrOutOfBounds
 	}
-	
+
 	// Calculate the actual index in the circular buffer
 	// Most recent is at (head - 1) mod cap
 	actualIdx := (s.head - 1 - idx + s.cap) % s.cap

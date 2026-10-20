@@ -20,9 +20,7 @@ func init() {
 	plugin.Register("chatcmd.copy", &Plugin{})
 }
 
-var (
-	writeAll func(text string) error = clipboard.WriteAll
-)
+var writeAll func(text string) error = clipboard.WriteAll
 
 // Plugin registers the /copy chat command.
 type Plugin struct {
@@ -67,7 +65,7 @@ func (p *Plugin) Init(state *plugin.State, hub plugin.Hub) error {
 }
 
 func stdoutResponse(message string) *plugin.ChatCommandResponse {
-	return &plugin.ChatCommandResponse{Stdout: message + "\n"}
+	return &plugin.ChatCommandResponse{Stdout: message + "\n", NoLog: true}
 }
 
 func parseCopyIndex(args string) (int, error) {
@@ -81,4 +79,3 @@ func parseCopyIndex(args string) (int, error) {
 	}
 	return n, nil
 }
-

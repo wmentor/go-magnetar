@@ -112,6 +112,7 @@ type ChatCommandResponse struct {
 	Content string // If not an empty string, it will be passed to the LLM.
 	Stdout  string // If not an empty string, it will be printed to stdout.
 	Exit    bool   // Exit flag.
+	NoLog   bool   // Don't save response to store.
 }
 
 // ChatCommand is a slash command available in the chat REPL.
