@@ -10,6 +10,7 @@ import (
 	"github.com/atotto/clipboard"
 
 	"github.com/wmentor/go-magnetar/internal/plugin"
+	"github.com/wmentor/go-magnetar/internal/response"
 )
 
 // ErrInvalidIndex is returned when the /copy argument is not a non-negative integer.
@@ -45,8 +46,11 @@ func (p *Plugin) Init(state *plugin.State, hub plugin.Hub) error {
 			}
 
 			content, err := p.responseStore.Last(index)
-			if err != nil {
+			if errors.Is(err, response.ErrOutOfBounds) {
 				return stdoutResponse(fmt.Sprintf("Nothing to copy: no response found at index %d", index)), nil
+			}
+			if err != nil {
+				return nil, fmt.Errorf("read response history: %w", err)
 			}
 			if content == "" {
 				return stdoutResponse("Nothing to copy: selected response is empty"), nil
