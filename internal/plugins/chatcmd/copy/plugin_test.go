@@ -116,6 +116,25 @@ func TestCopyCommand(t *testing.T) {
 	}
 }
 
+func TestCopyCommandReturnsUnexpectedResponseStoreErrors(t *testing.T) {
+	t.Parallel()
+
+	storeErr := errors.New("response store failed")
+	p := &Plugin{}
+	hub := &mockHub{}
+	if err := p.Init(&plugin.State{ResponseStore: failingResponseStore{err: storeErr}}, hub); err != nil {
+		t.Fatalf("Init failed: %v", err)
+	}
+
+	got, err := hub.lastCommand.Execute(context.Background(), &plugin.ChatCommandInput{})
+	if !errors.Is(err, storeErr) {
+		t.Fatalf("Execute() error = %v, want wrapped %v", err, storeErr)
+	}
+	if got != nil {
+		t.Errorf("Execute() response = %#v, want nil when the store fails", got)
+	}
+}
+
 func TestParseCopyIndex(t *testing.T) {
 	t.Parallel()
 
@@ -151,6 +170,14 @@ func TestParseCopyIndex(t *testing.T) {
 type mockHub struct {
 	lastCommand *plugin.ChatCommand
 }
+
+type failingResponseStore struct {
+	err error
+}
+
+func (s failingResponseStore) Push(string) {}
+
+func (s failingResponseStore) Last(int) (string, error) { return "", s.err }
 
 func (h *mockHub) RegisterChatCommand(cmd plugin.ChatCommand)      { h.lastCommand = &cmd }
 func (h *mockHub) RegisterTool(tool plugin.LLMTool)                {}
