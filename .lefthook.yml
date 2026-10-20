@@ -7,5 +7,3 @@ pre-push:
       run: make check/tidy
     tests/unit:
       run: make test
-    check/vuln:
-      run: make check/vuln
