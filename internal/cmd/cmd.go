@@ -17,6 +17,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	version "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/version"
 	"github.com/wmentor/go-magnetar/internal/printer"
+	"github.com/wmentor/go-magnetar/internal/response"
 	"github.com/wmentor/go-magnetar/internal/skill"
 	"github.com/wmentor/go-magnetar/internal/template"
 )
@@ -78,9 +79,14 @@ func Execute() error {
 		filepath.Join(workDir, ".go-magnetar", "skills"),
 	)
 
-	if err := plugin.InitAll(&plugin.State{Config: cfg, ReadOnly: root.ReadOnly, SkillStore: skillStore}); err != nil {
+	responseStore := response.New(plugin.DefaultResponseStoreSize) // circular buffer with capacity DefaultResponseStoreSize
+
+	state := &plugin.State{Config: cfg, ReadOnly: root.ReadOnly, SkillStore: skillStore, ResponseStore: responseStore}
+
+	if err := plugin.InitAll(state); err != nil {
 		return err
 	}
+
 	defer plugin.Stop()
 
 	rootFS, err := os.OpenRoot(workDir)
@@ -134,7 +140,7 @@ func Execute() error {
 		return nil
 	}
 
-	return agent.Run()
+	return agent.Run(state)
 }
 
 func readFileInput(filename string, stdin io.Reader) ([]byte, error) {

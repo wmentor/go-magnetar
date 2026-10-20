@@ -18,6 +18,20 @@ var (
 	NopChatCommandResponse = &ChatCommandResponse{}
 )
 
+// DefaultResponseStoreSize is the default size of the ResponseStore circular buffer.
+const DefaultResponseStoreSize = 32
+
+// ResponseStore interface for storing responses in a circular buffer.
+type ResponseStore interface {
+	// Push adds a new response to the store.
+	// If the store is full, it overwrites the oldest element.
+	Push(response string)
+	// Last returns the response at the given index.
+	// index 0 = most recent, index 1 = second most recent, etc.
+	// Returns error if index is out of bounds.
+	Last(idx int) (string, error)
+}
+
 // Plugin is the only interface a plugin package must implement.
 type Plugin interface {
 	// Init is called once after the config is loaded.
@@ -29,11 +43,12 @@ type Plugin interface {
 // State carries shared infrastructure injected into every plugin at Init time.
 // Named State (not Context) to avoid confusion with context.Context.
 type State struct {
-	Config     *config.Config
-	Root       *os.Root // sandboxed filesystem; nil in the indexer context.
-	Printer    *printer.Printer
-	ReadOnly   bool       // if true, disable file write operations.
-	SkillStore SkillStore // skill storage interface.
+	Config        *config.Config
+	Root          *os.Root // sandboxed filesystem; nil in the indexer context.
+	Printer       *printer.Printer
+	ReadOnly      bool          // if true, disable file write operations.
+	SkillStore    SkillStore    // skill storage interface.
+	ResponseStore ResponseStore // response storage interface (circular buffer with capacity DefaultResponseStoreSize).
 }
 
 // PreprocessorFunc is a function that preprocesses text.

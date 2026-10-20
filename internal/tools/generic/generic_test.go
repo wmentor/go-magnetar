@@ -9,6 +9,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
+	"github.com/wmentor/go-magnetar/internal/response"
 )
 
 func newTestTools(t *testing.T, yaml string, readOnly bool) *GenericTools {
@@ -24,7 +25,9 @@ func newTestTools(t *testing.T, yaml string, readOnly bool) *GenericTools {
 		t.Fatal(err)
 	}
 
-	return New(cfg, nil, &plugin.State{Config: cfg, ReadOnly: readOnly})
+	responseStore := response.New(plugin.DefaultResponseStoreSize)
+
+	return New(cfg, nil, &plugin.State{Config: cfg, ReadOnly: readOnly, ResponseStore: responseStore})
 }
 
 func TestSSHExecEnableFlag(t *testing.T) {
@@ -114,7 +117,8 @@ func TestFileEditSingleOccurrence(t *testing.T) {
 	}
 	defer rootFS.Close()
 
-	g := New(cfg, rootFS, &plugin.State{Config: cfg, ReadOnly: false})
+	responseStore := response.New(plugin.DefaultResponseStoreSize)
+	g := New(cfg, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
 
 	// Create a test file with single occurrence
 	testFile := "test.txt"
@@ -163,7 +167,8 @@ func TestFileEditMultipleOccurrences(t *testing.T) {
 	}
 	defer rootFS.Close()
 
-	g := New(cfg, rootFS, &plugin.State{Config: cfg, ReadOnly: false})
+	responseStore := response.New(plugin.DefaultResponseStoreSize)
+	g := New(cfg, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
 
 	// Create a test file with multiple occurrences
 	testFile := "test.txt"
@@ -211,7 +216,8 @@ func TestFileEditNotFound(t *testing.T) {
 	}
 	defer rootFS.Close()
 
-	g := New(cfg, rootFS, &plugin.State{Config: cfg, ReadOnly: false})
+	responseStore := response.New(plugin.DefaultResponseStoreSize)
+	g := New(cfg, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
 
 	// Create a test file
 	testFile := "test.txt"
@@ -251,7 +257,8 @@ func TestFileEditMultipleAllStrategy(t *testing.T) {
 	}
 	defer rootFS.Close()
 
-	g := New(cfg, rootFS, &plugin.State{Config: cfg, ReadOnly: false})
+	responseStore := response.New(plugin.DefaultResponseStoreSize)
+	g := New(cfg, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
 
 	// Create a test file
 	testFile := "test.txt"
@@ -305,7 +312,8 @@ func TestFileEditMultipleFirstStrategy(t *testing.T) {
 	}
 	defer rootFS.Close()
 
-	g := New(cfg, rootFS, &plugin.State{Config: cfg, ReadOnly: false})
+	responseStore := response.New(plugin.DefaultResponseStoreSize)
+	g := New(cfg, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
 
 	// Create a test file
 	testFile := "test.txt"
@@ -357,7 +365,8 @@ func TestFileEditMultipleNoEdits(t *testing.T) {
 	}
 	defer rootFS.Close()
 
-	g := New(cfg, rootFS, &plugin.State{Config: cfg, ReadOnly: false})
+	responseStore := response.New(plugin.DefaultResponseStoreSize)
+	g := New(cfg, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
 
 	// Create a test file
 	testFile := "test.txt"
@@ -399,7 +408,8 @@ func newTestToolsWithRoot(t *testing.T) (*GenericTools, *os.Root) {
 	}
 	t.Cleanup(func() { rootFS.Close() })
 
-	return New(cfg, rootFS, &plugin.State{Config: cfg, ReadOnly: false}), rootFS
+	responseStore := response.New(plugin.DefaultResponseStoreSize)
+	return New(cfg, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore}), rootFS
 }
 
 // TestFileEditDispatch verifies that file_edit is reachable via GenericTools.Dispatch —

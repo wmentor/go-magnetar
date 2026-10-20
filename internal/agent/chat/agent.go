@@ -609,7 +609,8 @@ func readInput() (string, bool, error) {
 
 // printAnswer renders and prints the given answer to stdout.
 // If rendering fails, it falls back to printing the raw answer.
-func (a *ChatAgent) printAnswer(answer string) {
+func (a *ChatAgent) printAnswer(state *plugin.State, answer string) {
+	state.ResponseStore.Push(answer)
 	rendered, err := a.renderer.Render(answer)
 	if err != nil {
 		fmt.Fprintln(os.Stdout, answer)
@@ -665,7 +666,7 @@ func matchCommand(name string, cmd plugin.ChatCommand) bool {
 }
 
 // Run starts the interactive REPL loop.
-func (a *ChatAgent) Run() error {
+func (a *ChatAgent) Run(state *plugin.State) error {
 	loadHistory()
 	for {
 		line, quit, err := readInput()
@@ -701,7 +702,7 @@ func (a *ChatAgent) Run() error {
 				}
 				// Print Stdout to stdout if present
 				if cmdResponse.Stdout != "" {
-					a.printAnswer(cmdResponse.Stdout)
+					a.printAnswer(state, cmdResponse.Stdout)
 				}
 				if cmdResponse.Content == "" {
 					continue
@@ -723,7 +724,7 @@ func (a *ChatAgent) Run() error {
 			continue
 		}
 
-		a.printAnswer(answer)
+		a.printAnswer(state, answer)
 	}
 
 	return nil

@@ -12,6 +12,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
+	"github.com/wmentor/go-magnetar/internal/response"
 )
 
 type mockAgent struct {
@@ -72,8 +73,9 @@ func TestSaveSessionCommand(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			p := &Plugin{}
 
+			responseStore := response.New(plugin.DefaultResponseStoreSize)
 			hub := &mockHub{}
-			if err := p.Init(&plugin.State{}, hub); err != nil {
+			if err := p.Init(&plugin.State{ResponseStore: responseStore}, hub); err != nil {
 				t.Fatalf("Init failed: %v", err)
 			}
 

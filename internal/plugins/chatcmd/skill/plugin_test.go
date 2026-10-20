@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/wmentor/go-magnetar/internal/plugin"
+	"github.com/wmentor/go-magnetar/internal/response"
 )
 
 type mockSkillStore struct {
@@ -308,8 +309,10 @@ func TestExecute(t *testing.T) {
 			t.Parallel()
 
 			store := tt.setupStore()
+			responseStore := response.New(plugin.DefaultResponseStoreSize)
 			state := &plugin.State{
-				SkillStore: store,
+				SkillStore:    store,
+				ResponseStore: responseStore,
 			}
 
 			// Create plugin and register command

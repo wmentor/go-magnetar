@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"regexp"
@@ -17,9 +18,12 @@ func init() {
 	plugin.Register("chatcmd.exec", &Plugin{})
 }
 
-type Plugin struct{}
+type Plugin struct {
+	state *plugin.State
+}
 
-func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
+func (p *Plugin) Init(state *plugin.State, hub plugin.Hub) error {
+	p.state = state
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name:    "exec",
 		Aliases: []string{"e"},
@@ -44,31 +48,25 @@ func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (
 
 	cmd := exec.CommandContext(ctx, "sh", "-c", args)
 
-	var stdout, stderr bytes.Buffer
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
+	buffer := bytes.NewBuffer(nil)
+
+	sout := io.MultiWriter(os.Stdout, buffer)
+	serr := io.MultiWriter(os.Stderr, buffer)
+
+	cmd.Stdout = sout
+	cmd.Stderr = serr
 
 	err := cmd.Run()
 
-	stdoutStr := stdout.String()
-	stderrStr := stderr.String()
-
-	// Print stdout/stderr to stdout
-	if stdoutStr != "" {
-		fmt.Fprint(os.Stdout, stdoutStr)
-	}
-	if stderrStr != "" {
-		fmt.Fprint(os.Stdout, stderrStr)
-	}
-
-	// Print exit code if command failed
 	if err != nil {
 		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
-			fmt.Fprintf(os.Stdout, "\n[Exit code: %d]\n", exitErr.ExitCode())
+			fmt.Fprintf(sout, "\n[Exit code: %d]\n", exitErr.ExitCode())
 		} else {
-			fmt.Fprintf(os.Stdout, "\n[Error: %v]\n", err)
+			fmt.Fprintf(sout, "\n[Error: %v]\n", err)
 		}
 	}
+
+	p.state.ResponseStore.Push(buffer.String())
 
 	return plugin.NopChatCommandResponse, nil
 }

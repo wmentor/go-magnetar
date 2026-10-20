@@ -10,6 +10,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
+	"github.com/wmentor/go-magnetar/internal/response"
 )
 
 func TestCopyCommand(t *testing.T) {
@@ -154,8 +155,9 @@ func TestCopyCommand(t *testing.T) {
 			})
 
 			p := &Plugin{}
+			responseStore := response.New(plugin.DefaultResponseStoreSize)
 			mockHub := &mockHub{}
-			if err := p.Init(&plugin.State{}, mockHub); err != nil {
+			if err := p.Init(&plugin.State{ResponseStore: responseStore}, mockHub); err != nil {
 				t.Fatalf("Init failed: %v", err)
 			}
 			cmd := mockHub.lastCommand
