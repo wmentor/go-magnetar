@@ -148,33 +148,31 @@ See [docs/security.md](./security.md) for Confluence security considerations.
 
 ## /copy Command
 
-Copy an assistant answer from the current conversation to the clipboard:
+Copy a response from the response history to the clipboard. This includes assistant answers and output from chat commands:
 
 ```
 > /copy
-Answer copied to clipboard
+Response copied to clipboard
 ```
 
-The optional `index` selects which answer to copy, counting back from the most recent one:
+The optional `index` selects which response to copy, counting back from the most recent one:
 
-| Index | Answer |
+| Index | Response |
 |---|---|
-| `0` (default) | The last answer |
-| `1` | The answer before the last one |
-| `n` | The answer `n` steps back |
+| `0` (default) | The most recent response |
+| `1` | The response before the most recent one |
+| `n` | The response `n` steps back |
 
 ```
 > /copy 1
-Answer copied to clipboard
+Response copied to clipboard
 ```
 
-Only answers shown to the user are counted. Intermediate assistant messages that request tool calls are skipped, so they never take up an index.
-
-If the index is not a non-negative integer, the command prints its usage. If the index is larger than the number of answers in the history, nothing is copied:
+If the index is not a non-negative integer, the command prints its usage. If no response is stored at the requested index, nothing is copied:
 
 ```
 > /copy 5
-Nothing to copy: only 2 assistant answer(s) in history
+Nothing to copy: no response found at index 5
 ```
 
 ## /revert Command
@@ -321,3 +319,4 @@ In this mode, text preprocessors are applied but chat commands (e.g., `/readonly
 ## Text Preprocessing
 
 See [docs/preprocessor.md](./preprocessor.md) for a complete reference on text preprocessors and available placeholders.
+
