@@ -225,6 +225,12 @@ func (w *WebTools) webFetch(url string, isFetch bool) (string, error) {
 					}
 				}
 			}
+			if strings.Contains(url, "/releases/tag/") {
+				owner, repo, tag, err := extractGitHubReleaseURL(url)
+				if err == nil && owner != "" && repo != "" && tag != "" {
+					return github.New(w.cfg).FetchRelease(owner+"/"+repo, tag)
+				}
+			}
 			owner, repo, err := extractGitHubRepoURL(url)
 			if err == nil && owner != "" && repo != "" {
 				return github.New(w.cfg).FetchRepository(owner + "/" + repo)

@@ -15,6 +15,7 @@ var (
 	errNotGitHubIssueURL     = errors.New("not a GitHub issue URL")
 	errNotGitHubMilestoneURL = errors.New("not a GitHub milestone URL")
 	errNotGitHubPRURL        = errors.New("not a GitHub pull request URL")
+	errNotGitHubReleaseURL   = errors.New("not a GitHub release URL")
 )
 
 // Patterns for the path of a github.com URL (see githubURLPath).
@@ -211,4 +212,56 @@ func extractGitHubAdvisoryURL(url string) (string, error) {
 	}
 
 	return "", fmt.Errorf("not a GitHub advisory URL")
+}
+
+// extractGitHubReleaseURL extracts owner, repo, and tag from GitHub release URL.
+// Pattern: https://github.com/owner/repo/releases/tag/{tag}
+func extractGitHubReleaseURL(rawURL string) (string, string, string, error) {
+	path, err := githubURLPath(rawURL)
+	if err != nil {
+		return "", "", "", err
+	}
+
+	// Check if the path contains "/releases/tag/"
+	if !strings.Contains(path, "/releases/tag/") {
+		return "", "", "", errNotGitHubReleaseURL
+	}
+
+	// Split at "/releases/tag/"
+	parts := strings.SplitN(path, "/releases/tag/", 2)
+	if len(parts) < 2 {
+		return "", "", "", errNotGitHubReleaseURL
+	}
+
+	// The first part contains "owner/repo"
+	repoPath := parts[0]
+	repoPath = strings.TrimPrefix(repoPath, "/") // Remove leading slash
+
+	// Split repoPath into owner and repo
+	repoParts := strings.Split(repoPath, "/")
+	if len(repoParts) < 2 {
+		return "", "", "", fmt.Errorf("invalid repository path")
+	}
+
+	owner := repoParts[0]
+	repo := repoParts[1]
+
+	// The second part contains the tag name
+	tag := parts[1]
+	// Remove any trailing query string or fragment
+	if idx := strings.Index(tag, "?"); idx != -1 {
+		tag = tag[:idx]
+	}
+	if idx := strings.Index(tag, "#"); idx != -1 {
+		tag = tag[:idx]
+	}
+	if idx := strings.Index(tag, "/"); idx != -1 {
+		tag = tag[:idx]
+	}
+
+	if tag == "" {
+		return "", "", "", fmt.Errorf("tag name is empty")
+	}
+
+	return owner, repo, tag, nil
 }

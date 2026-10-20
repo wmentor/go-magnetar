@@ -832,6 +832,20 @@ func (g *GitHubTools) Dispatch(name string, args string) string {
 		}
 		return content
 
+	case "github_release_info":
+		var params struct {
+			Repo string `json:"repo"`
+			Tag  string `json:"tag"`
+		}
+		if err := json.Unmarshal([]byte(args), &params); err != nil {
+			return "error: failed to parse arguments"
+		}
+		content, err := g.FetchRelease(params.Repo, params.Tag)
+		if err != nil {
+			return fmt.Sprintf("error: %v", err)
+		}
+		return content
+
 	default:
 		return "error: unknown tool " + name
 	}
@@ -1845,6 +1859,209 @@ func StaticDefinitionPullRequest() openai.Tool {
 					},
 				},
 				"required": []string{"repo", "pr"},
+			},
+		},
+	}
+}
+
+// Release represents a GitHub release.
+type Release struct {
+	URL       string `json:"url"`
+	AssetsURL string `json:"assets_url"`
+	UploadURL string `json:"upload_url"`
+	HTMLURL   string `json:"html_url"`
+	ID        int    `json:"id"`
+	Author    struct {
+		Login             string `json:"login"`
+		ID                int    `json:"id"`
+		AvatarURL         string `json:"avatar_url"`
+		GravatarID        string `json:"gravatar_id"`
+		URL               string `json:"url"`
+		HTMLURL           string `json:"html_url"`
+		FollowersURL      string `json:"followers_url"`
+		FollowingURL      string `json:"following_url"`
+		GistsURL          string `json:"gists_url"`
+		StarredURL        string `json:"starred_url"`
+		SubscriptionsURL  string `json:"subscriptions_url"`
+		OrganizationsURL  string `json:"organizations_url"`
+		ReposURL          string `json:"repos_url"`
+		EventsURL         string `json:"events_url"`
+		ReceivedEventsURL string `json:"received_events_url"`
+		Type              string `json:"type"`
+		UserViewType      string `json:"user_view_type"`
+		SiteAdmin         bool   `json:"site_admin"`
+	} `json:"author"`
+	NodeID          string `json:"node_id"`
+	TagName         string `json:"tag_name"`
+	TargetCommitish string `json:"target_commitish"`
+	Name            string `json:"name"`
+	Draft           bool   `json:"draft"`
+	Immutable       bool   `json:"immutable"`
+	Prerelease      bool   `json:"prerelease"`
+	CreatedAt       string `json:"created_at"`
+	UpdatedAt       string `json:"updated_at"`
+	PublishedAt     string `json:"published_at"`
+	Assets          []struct {
+		URL      string `json:"url"`
+		ID       int    `json:"id"`
+		NodeID   string `json:"node_id"`
+		Name     string `json:"name"`
+		Label    string `json:"label"`
+		Uploader struct {
+			Login             string `json:"login"`
+			ID                int    `json:"id"`
+			AvatarURL         string `json:"avatar_url"`
+			GravatarID        string `json:"gravatar_id"`
+			URL               string `json:"url"`
+			HTMLURL           string `json:"html_url"`
+			FollowersURL      string `json:"followers_url"`
+			FollowingURL      string `json:"following_url"`
+			GistsURL          string `json:"gists_url"`
+			StarredURL        string `json:"starred_url"`
+			SubscriptionsURL  string `json:"subscriptions_url"`
+			OrganizationsURL  string `json:"organizations_url"`
+			ReposURL          string `json:"repos_url"`
+			EventsURL         string `json:"events_url"`
+			ReceivedEventsURL string `json:"received_events_url"`
+			Type              string `json:"type"`
+			UserViewType      string `json:"user_view_type"`
+			SiteAdmin         bool   `json:"site_admin"`
+		} `json:"uploader"`
+		ContentType        string `json:"content_type"`
+		State              string `json:"state"`
+		Size               int    `json:"size"`
+		Digest             string `json:"digest"`
+		DownloadCount      int    `json:"download_count"`
+		CreatedAt          string `json:"created_at"`
+		UpdatedAt          string `json:"updated_at"`
+		BrowserDownloadURL string `json:"browser_download_url"`
+	} `json:"assets"`
+	TarballURL string `json:"tarball_url"`
+	ZipballURL string `json:"zipball_url"`
+	Body       string `json:"body"`
+}
+
+// FetchRelease fetches a GitHub release by tag name and returns its details in Markdown format.
+func (g *GitHubTools) FetchRelease(repo string, tag string) (string, error) {
+	owner, repoName, err := parseGitHubRepoURL(repo)
+	if err != nil {
+		return "", fmt.Errorf("github_release_info: failed to parse repository URL: %w", err)
+	}
+
+	printer.ToolCall(printer.IconSearch, "github_release_info", "repo", repo, "tag", tag)
+
+	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	defer cancel()
+
+	// GitHub API uses /releases/tags/{tag} endpoint
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/releases/tags/%s", owner, repoName, tag)
+
+	resp, err := g.fetchWithHeaders(ctx, http.MethodGet, apiURL)
+	if err != nil {
+		return "", fmt.Errorf("github_release_info: failed to fetch release: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("github_release_info: release %s/%s tag %s returned status %d: %s", owner, repoName, tag, resp.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("github_release_info: failed to read response body: %w", err)
+	}
+
+	var releaseData Release
+	if err := json.Unmarshal(body, &releaseData); err != nil {
+		return "", fmt.Errorf("github_release_info: failed to parse response: %w", err)
+	}
+
+	return g.formatReleaseMarkdown(&releaseData), nil
+}
+
+// formatReleaseMarkdown formats release data as Markdown.
+func (g *GitHubTools) formatReleaseMarkdown(release *Release) string {
+	var sb strings.Builder
+
+	fmt.Fprintf(&sb, "# Release: %s\n\n", release.Name)
+	fmt.Fprintf(&sb, "**Tag:** %s\n\n", release.TagName)
+	fmt.Fprintf(&sb, "**Published:** %s\n\n", release.PublishedAt)
+	fmt.Fprintf(&sb, "**Author:** @%s\n\n", release.Author.Login)
+	fmt.Fprintf(&sb, "**URL:** %s\n\n", release.HTMLURL)
+	fmt.Fprintf(&sb, "**Prerelease:** %v\n\n", release.Prerelease)
+	fmt.Fprintf(&sb, "**Draft:** %v\n\n", release.Draft)
+
+	if release.Body != "" {
+		fmt.Fprintf(&sb, "## Changelog\n\n%s\n\n", release.Body)
+	}
+
+	// Assets
+	if len(release.Assets) > 0 {
+		fmt.Fprintf(&sb, "## Assets (%d)\n\n", len(release.Assets))
+		sb.WriteString("| Name | Size | Downloads | Uploaded |\n")
+		sb.WriteString("|------|------|-----------|----------|\n")
+		for _, asset := range release.Assets {
+			sizeStr := fmt.Sprintf("%d bytes", asset.Size)
+			if asset.Size > 1024*1024 {
+				sizeStr = fmt.Sprintf("%.2f MB", float64(asset.Size)/(1024*1024))
+			} else if asset.Size > 1024 {
+				sizeStr = fmt.Sprintf("%.2f KB", float64(asset.Size)/1024)
+			}
+			fmt.Fprintf(&sb, "| [%s](%s) | %s | %d | %s |\n", asset.Name, asset.BrowserDownloadURL, sizeStr, asset.DownloadCount, asset.CreatedAt)
+		}
+		sb.WriteString("\n")
+	}
+
+	return sb.String()
+}
+
+// DefinitionRelease returns the OpenAI tool schema for github_release_info.
+func (g *GitHubTools) DefinitionRelease() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "github_release_info",
+			Description: "Fetch a GitHub release by tag name and return its details in Markdown format",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"repo": map[string]any{
+						"type":        "string",
+						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
+					},
+					"tag": map[string]any{
+						"type":        "string",
+						"description": "Release tag name (e.g., 'v1.6.0')",
+					},
+				},
+				"required": []string{"repo", "tag"},
+			},
+		},
+	}
+}
+
+// StaticDefinitionRelease returns the OpenAI tool schema for github_release_info without
+// requiring an initialised GitHubTools instance.
+func StaticDefinitionRelease() openai.Tool {
+	return openai.Tool{
+		Type: openai.ToolTypeFunction,
+		Function: &openai.FunctionDefinition{
+			Name:        "github_release_info",
+			Description: "Fetch a GitHub release by tag name and return its details in Markdown format",
+			Parameters: map[string]any{
+				"type": "object",
+				"properties": map[string]any{
+					"repo": map[string]any{
+						"type":        "string",
+						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
+					},
+					"tag": map[string]any{
+						"type":        "string",
+						"description": "Release tag name (e.g., 'v1.6.0')",
+					},
+				},
+				"required": []string{"repo", "tag"},
 			},
 		},
 	}

@@ -80,3 +80,59 @@ func TestCalculateChanges(t *testing.T) {
 		t.Errorf("expected 2 changed files, got %d", changedFiles)
 	}
 }
+
+func TestReleaseToolDefinition(t *testing.T) {
+	t.Parallel()
+
+	tool := StaticDefinitionRelease()
+	if tool.Type != "function" {
+		t.Errorf("expected tool type 'function', got '%s'", tool.Type)
+	}
+
+	if tool.Function.Name != "github_release_info" {
+		t.Errorf("expected function name 'github_release_info', got '%s'", tool.Function.Name)
+	}
+
+	if tool.Function.Description == "" {
+		t.Error("function description should not be empty")
+	}
+
+	// Check required parameters
+	params := tool.Function.Parameters.(map[string]any)
+	required, ok := params["required"].([]string)
+	if !ok {
+		t.Fatalf("expected required to be []string")
+	}
+	if len(required) != 2 {
+		t.Error("expected 2 required parameters (repo, tag)")
+	}
+}
+
+func TestReleaseStruct(t *testing.T) {
+	t.Parallel()
+
+	release := Release{
+		Name:        "v1.6.0",
+		TagName:     "v1.6.0",
+		PublishedAt: "2026-10-18T06:20:20Z",
+		Prerelease:  false,
+		Draft:       false,
+		Body:        "Initial release",
+	}
+
+	if release.Name != "v1.6.0" {
+		t.Errorf("expected name 'v1.6.0', got '%s'", release.Name)
+	}
+
+	if release.TagName != "v1.6.0" {
+		t.Errorf("expected tag_name 'v1.6.0', got '%s'", release.TagName)
+	}
+
+	if release.Prerelease {
+		t.Errorf("expected prerelease false, got true")
+	}
+
+	if release.Draft {
+		t.Errorf("expected draft false, got true")
+	}
+}

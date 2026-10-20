@@ -1,6 +1,6 @@
 # web_fetch Tool
 
-The `web_fetch` tool fetches content from URLs and returns it in Markdown format. It supports standard web pages, Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories/issues/milestones.
+The `web_fetch` tool fetches content from URLs and returns it in Markdown format. It supports standard web pages, Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories/issues/milestones/releases.
 
 ## Overview
 
@@ -73,7 +73,12 @@ Fetches repository security advisories:
 - URL patterns: `https://github.com/owner/repo/security/advisories`, `https://github.com/owner/repo/advisories/GHSA-xxxx`
 - Returns advisory details, CVE IDs, severity, affected packages
 
-### 11. RSS Feeds
+### 11. GitHub Releases
+Fetches release information by tag:
+- URL pattern: `https://github.com/owner/repo/releases/tag/v1.6.0`
+- Returns release details, author, publish date, changelog, and assets (downloads, sizes, download URLs)
+
+### 12. RSS Feeds
 Detects and decodes RSS/Atom feeds:
 - Content-Type: `application/rss+xml`, `text/xml`, `application/xml`
 - Returns channel items as formatted text
@@ -146,6 +151,11 @@ web_fetch("https://github.com/golang/go/issues/12345")
 web_fetch("https://github.com/golang/go/milestone/123")
 ```
 
+### Fetch a GitHub release
+```go
+web_fetch("https://github.com/wmentor/go-magnetar/releases/tag/v1.6.0")
+```
+
 ### Fetch an RSS feed
 ```go
 web_fetch("https://example.com/feed.xml")
@@ -158,13 +168,13 @@ web_fetch("https://example.com/feed.xml")
   "type": "function",
   "function": {
     "name": "web_fetch",
-    "description": "Fetch a web page and return clean Markdown content. Supports Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories, issues, and milestones.",
+    "description": "Fetch a web page and return clean Markdown content. Supports Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories, issues, milestones, and releases.",
     "parameters": {
       "type": "object",
       "properties": {
         "url": {
           "type": "string",
-          "description": "URL of the web page, Confluence page, JIRA issue, GitLab merge request, or GitHub repository to fetch"
+          "description": "URL of the web page, Confluence page, JIRA issue, GitLab merge request, GitHub repository, or GitHub release to fetch"
         }
       },
       "required": ["url"]
@@ -201,3 +211,4 @@ Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like 
 - Some sites may block automated scraping
 - Very large files may be truncated
 - JavaScript-heavy pages may not render correctly
+- GitHub releases are fetched via API and require the GitHub API to be accessible

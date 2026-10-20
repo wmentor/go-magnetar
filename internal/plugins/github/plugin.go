@@ -81,6 +81,14 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		},
 	})
 
+	// Register github_release_info tool
+	hub.RegisterTool(plugin.LLMTool{
+		Definition: github.StaticDefinitionRelease,
+		Execute: func(_ context.Context, args string) (string, error) {
+			return tools.Dispatch("github_release_info", args), nil
+		},
+	})
+
 	return nil
 }
 

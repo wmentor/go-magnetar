@@ -528,7 +528,7 @@ func TestIsGitHubPullRequestURL(t *testing.T) {
 	}
 }
 
-func TestExtractGitHubPullRequestURL(t *testing.T) {
+func TestExtractGitHubReleaseURL(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -536,82 +536,71 @@ func TestExtractGitHubPullRequestURL(t *testing.T) {
 		input     string
 		wantOwner string
 		wantRepo  string
-		wantNum   string
+		wantTag   string
 		wantErr   bool
 	}{
 		{
-			name:      "basic pull request URL",
-			input:     "https://github.com/prometheus-community/pgbouncer_exporter/pull/309",
-			wantOwner: "prometheus-community",
-			wantRepo:  "pgbouncer_exporter",
-			wantNum:   "309",
+			name:      "basic release URL",
+			input:     "https://github.com/wmentor/go-magnetar/releases/tag/v1.6.0",
+			wantOwner: "wmentor",
+			wantRepo:  "go-magnetar",
+			wantTag:   "v1.6.0",
 			wantErr:   false,
 		},
 		{
-			name:      "pull request URL with trailing slash",
-			input:     "https://github.com/golang/go/pull/1234/",
-			wantOwner: "golang",
-			wantRepo:  "go",
-			wantNum:   "1234",
+			name:      "release URL with trailing slash",
+			input:     "https://github.com/wmentor/go-magnetar/releases/tag/v1.6.0/",
+			wantOwner: "wmentor",
+			wantRepo:  "go-magnetar",
+			wantTag:   "v1.6.0",
 			wantErr:   false,
 		},
 		{
-			name:      "pull request URL with /files path",
-			input:     "https://github.com/golang/go/pull/1234/files",
-			wantOwner: "golang",
-			wantRepo:  "go",
-			wantNum:   "1234",
+			name:      "release URL with query parameters",
+			input:     "https://github.com/wmentor/go-magnetar/releases/tag/v1.6.0?foo=bar",
+			wantOwner: "wmentor",
+			wantRepo:  "go-magnetar",
+			wantTag:   "v1.6.0",
 			wantErr:   false,
 		},
 		{
-			name:      "pull request URL with /commits path",
-			input:     "https://github.com/golang/go/pull/1234/commits",
-			wantOwner: "golang",
-			wantRepo:  "go",
-			wantNum:   "1234",
+			name:      "release URL with fragment",
+			input:     "https://github.com/wmentor/go-magnetar/releases/tag/v1.6.0#release-assets",
+			wantOwner: "wmentor",
+			wantRepo:  "go-magnetar",
+			wantTag:   "v1.6.0",
 			wantErr:   false,
 		},
 		{
-			name:      "pull request URL with query parameters",
-			input:     "https://github.com/golang/go/pull/1234?expand=1",
-			wantOwner: "golang",
-			wantRepo:  "go",
-			wantNum:   "1234",
-			wantErr:   false,
-		},
-		{
-			name:      "pull request URL with fragment",
-			input:     "https://github.com/golang/go/pull/1234#pullrequestreview-1",
-			wantOwner: "golang",
-			wantRepo:  "go",
-			wantNum:   "1234",
-			wantErr:   false,
-		},
-		{
-			name:    "pull request URL without number",
-			input:   "https://github.com/golang/go/pull",
+			name:    "release URL without tag",
+			input:   "https://github.com/wmentor/go-magnetar/releases/tag",
 			wantErr: true,
 		},
 		{
-			name:    "issues URL is not a pull request URL",
-			input:   "https://github.com/golang/go/issues/1234",
+			name:    "releases list URL is not matched",
+			input:   "https://github.com/wmentor/go-magnetar/releases",
 			wantErr: true,
 		},
 		{
-			name:      "pull request URL without scheme",
-			input:     "github.com/golang/go/pull/1234",
-			wantOwner: "golang",
-			wantRepo:  "go",
-			wantNum:   "1234",
+			name:    "issue URL is not a release URL",
+			input:   "https://github.com/wmentor/go-magnetar/issues/123",
+			wantErr: true,
+		},
+		{
+			name:      "release URL without scheme",
+			input:     "github.com/wmentor/go-magnetar/releases/tag/v1.6.0",
+			wantOwner: "wmentor",
+			wantRepo:  "go-magnetar",
+			wantTag:   "v1.6.0",
 		},
 		{
 			name:    "not a GitHub URL",
-			input:   "https://gitlab.com/golang/go/pull/1234",
+			input:   "https://gitlab.com/wmentor/go-magnetar/releases/tag/v1.6.0",
 			wantErr: true,
 		},
 		{
 			name:    "non-GitHub host containing github.com",
-			input:   "https://notgithub.com/golang/go/pull/1234",
+			input:   "https://notgithub.com/wmentor/go-magnetar/releases/tag/v1.6.0",
 			wantErr: true,
 		},
 		{
@@ -624,17 +613,17 @@ func TestExtractGitHubPullRequestURL(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			owner, repo, num, err := extractGitHubPullRequestURL(tt.input)
+			owner, repo, tag, err := extractGitHubReleaseURL(tt.input)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("extractGitHubPullRequestURL(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+				t.Errorf("extractGitHubReleaseURL(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
 				return
 			}
 			if tt.wantErr {
 				return
 			}
-			if owner != tt.wantOwner || repo != tt.wantRepo || num != tt.wantNum {
-				t.Errorf("extractGitHubPullRequestURL(%q) = (%q, %q, %q), want (%q, %q, %q)",
-					tt.input, owner, repo, num, tt.wantOwner, tt.wantRepo, tt.wantNum)
+			if owner != tt.wantOwner || repo != tt.wantRepo || tag != tt.wantTag {
+				t.Errorf("extractGitHubReleaseURL(%q) = (%q, %q, %q), want (%q, %q, %q)",
+					tt.input, owner, repo, tag, tt.wantOwner, tt.wantRepo, tt.wantTag)
 			}
 		})
 	}
