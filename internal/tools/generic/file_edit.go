@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/sashabaranov/go-openai"
+	"github.com/sergi/go-diff/diffmatchpatch"
 
 	"github.com/wmentor/go-magnetar/internal/agent/guard"
 	"github.com/wmentor/go-magnetar/internal/codec"
@@ -93,6 +94,8 @@ func (f *FileEditTools) FileEdit(filename string, oldText string, newText string
 		return fmt.Sprintf("error: old_text appears %d times in the file.", count), false
 	}
 
+	outputDiff(printer.GetDefault(), oldText, newText)
+
 	// Perform replacement (single occurrence)
 	newContent := strings.Replace(content, oldText, newText, 1)
 
@@ -140,12 +143,14 @@ func (f *FileEditTools) FileEditMultiple(filename string, edits []FileEditEdit, 
 			if strings.Contains(newContent, edit.OldText) {
 				newContent = strings.Replace(newContent, edit.OldText, edit.NewText, 1)
 				editsApplied++
+				outputDiff(printer.GetDefault(), edit.OldText, edit.NewText)
 			}
 		} else {
 			// Replace all occurrences (default behavior)
 			if strings.Contains(newContent, edit.OldText) {
 				newContent = strings.ReplaceAll(newContent, edit.OldText, edit.NewText)
 				editsApplied++
+				outputDiff(printer.GetDefault(), edit.OldText, edit.NewText)
 			}
 		}
 	}
@@ -445,4 +450,10 @@ func StaticDefinitionFileEditMultiple() openai.Tool {
 			},
 		},
 	}
+}
+
+func outputDiff(p printer.Printer, oldText string, newText string) {
+	dmp := diffmatchpatch.New()
+	diffs := dmp.DiffMain(oldText, newText, false)
+	p.PrintRaw(dmp.DiffPrettyText(diffs))
 }

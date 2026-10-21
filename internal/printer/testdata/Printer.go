@@ -350,6 +350,46 @@ func (_c *Printer_Print_Call) RunAndReturn(run func(typeIcon string, message str
 	return _c
 }
 
+// PrintRaw provides a mock function for the type Printer
+func (_mock *Printer) PrintRaw(data string) {
+	_mock.Called(data)
+	return
+}
+
+// Printer_PrintRaw_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PrintRaw'
+type Printer_PrintRaw_Call struct {
+	*mock.Call
+}
+
+// PrintRaw is a helper method to define mock.On call
+//   - data string
+func (_e *Printer_Expecter) PrintRaw(data any) *Printer_PrintRaw_Call {
+	return &Printer_PrintRaw_Call{Call: _e.mock.On("PrintRaw", data)}
+}
+
+func (_c *Printer_PrintRaw_Call) Run(run func(data string)) *Printer_PrintRaw_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *Printer_PrintRaw_Call) Return() *Printer_PrintRaw_Call {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *Printer_PrintRaw_Call) RunAndReturn(run func(data string)) *Printer_PrintRaw_Call {
+	_c.Run(run)
+	return _c
+}
+
 // ToolCall provides a mock function for the type Printer
 func (_mock *Printer) ToolCall(typeIcon string, message string, params ...any) {
 	var _ca []any

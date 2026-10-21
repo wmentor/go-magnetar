@@ -14,6 +14,7 @@ const (
 	IconAlert   = Icon("⚠️")
 	IconAsk     = Icon("❓")
 	IconBlocked = Icon("🚫")
+	IconClock   = Icon("⏰")
 	IconDone    = Icon("💫")
 	IconError   = Icon("❌")
 	IconFile    = Icon("📄")
@@ -35,6 +36,7 @@ type Printer interface {
 	Error(message string, params ...any)
 	ToolCall(typeIcon string, message string, params ...any)
 	Print(typeIcon string, message string, params ...any)
+	PrintRaw(data string)
 	Ask(question string) string
 	ToolEmptyLine()
 	EmptyLine()
@@ -177,4 +179,16 @@ func (p *printer) EmptyLine() {
 
 func (p *printer) Verbose(enable bool) {
 	p.verbose = enable
+}
+
+func (p *printer) PrintRaw(data string) {
+	if p.verbose {
+		p.EmptyLine()
+		fmt.Fprintln(p.out, " "+strings.ReplaceAll(data, "\n", "\n "))
+		p.EmptyLine()
+	}
+}
+
+func PrintRaw(data string) {
+	GetDefault().PrintRaw(data)
 }

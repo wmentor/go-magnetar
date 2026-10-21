@@ -492,6 +492,7 @@ func (g *GenericTools) SSHExec(command, stdin, addr, userParam, dirParam string)
 
 // SystemDate returns the current date in the "Mon Jan _2 15:04:05 MST 2006" format.
 func (g *GenericTools) SystemDate() string {
+	printer.ToolCall(printer.IconClock, "get system_date")
 	return time.Now().Format(time.UnixDate)
 }
 

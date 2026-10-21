@@ -491,3 +491,174 @@ func TestMultipleLines(t *testing.T) {
 		t.Errorf("Line 3 doesn't contain 'line3': %q", lines[2])
 	}
 }
+
+// TestPrintRaw tests the PrintRaw function with various inputs
+func TestPrintRaw_SimpleText(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	p := New(&buf, true)
+
+	p.PrintRaw("Hello World")
+	output := buf.String()
+
+	// When verbose=true, PrintRaw should add empty lines around the content
+	// and format the content with leading space
+	expected := "\n Hello World\n\n"
+	if output != expected {
+		t.Errorf("Expected %q, got %q", expected, output)
+	}
+}
+
+func TestPrintRaw_WithNewlines(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	p := New(&buf, true)
+
+	p.PrintRaw("line1\nline2\nline3")
+	output := buf.String()
+
+	// Newlines in the input should be replaced with "\n " for proper indentation
+	expected := "\n line1\n line2\n line3\n\n"
+	if output != expected {
+		t.Errorf("Expected %q, got %q", expected, output)
+	}
+}
+
+func TestPrintRaw_VerboseOff(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	p := New(&buf, false)
+
+	p.PrintRaw("Hello World")
+	output := buf.String()
+
+	// When verbose=false, PrintRaw should output nothing
+	if output != "" {
+		t.Errorf("Expected empty output when verbose=false, got %q", output)
+	}
+}
+
+func TestPrintRaw_MultilineWithEmptyLines(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	p := New(&buf, true)
+
+	p.PrintRaw("line1\n\nline3")
+	output := buf.String()
+
+	// Empty lines in the input should also be indented
+	expected := "\n line1\n \n line3\n\n"
+	if output != expected {
+		t.Errorf("Expected %q, got %q", expected, output)
+	}
+}
+
+func TestPrintRaw_StaticFunction(t *testing.T) {
+	t.Parallel()
+
+	// Save original default printer
+	original := defaultPrinter
+	defer func() { defaultPrinter = original }()
+
+	var buf bytes.Buffer
+	SetDefault(New(&buf, true))
+
+	PrintRaw("test static")
+	output := buf.String()
+
+	expected := "\n test static\n\n"
+	if output != expected {
+		t.Errorf("Expected %q, got %q", expected, output)
+	}
+}
+
+func TestPrintRaw_StaticFunction_VerboseOff(t *testing.T) {
+	t.Parallel()
+
+	// Save original default printer
+	original := defaultPrinter
+	defer func() { defaultPrinter = original }()
+
+	var buf bytes.Buffer
+	SetDefault(New(&buf, false))
+
+	PrintRaw("test static")
+	output := buf.String()
+
+	// When verbose=false, static PrintRaw should output nothing
+	if output != "" {
+		t.Errorf("Expected empty output when verbose=false, got %q", output)
+	}
+}
+
+func TestPrintRaw_SpecialCharacters(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	p := New(&buf, true)
+
+	p.PrintRaw("Tab\there\nNewline\there")
+	output := buf.String()
+
+	// Special characters should be preserved
+	expected := "\n Tab\there\n Newline\there\n\n"
+	if output != expected {
+		t.Errorf("Expected %q, got %q", expected, output)
+	}
+}
+
+func TestPrintRaw_LongText(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	p := New(&buf, true)
+
+	longText := strings.Repeat("a", 1000) + "\n" + strings.Repeat("b", 1000)
+	p.PrintRaw(longText)
+	output := buf.String()
+
+	// Should handle long text without issues
+	if !strings.Contains(output, " aaaa") {
+		t.Errorf("Output doesn't contain expected long text")
+	}
+}
+
+func TestPrintRaw_EmptyString(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	p := New(&buf, true)
+
+	p.PrintRaw("")
+	output := buf.String()
+
+	// Even empty string should get the empty line treatment
+	// PrintRaw with empty string: "\n" (empty line) + " " (space for empty data) + "\n" + "\n" (empty line)
+	// But the data is empty, so it's: "\n" + "\n" + "\n" = "\n\n\n"
+	// Actually, the code does: fmt.Fprintln(p.out, " " + "")
+	// So it outputs: "\n" (first empty line) + " \n" (space + data + newline) + "\n" (second empty line)
+	// = "\n \n\n"
+	expected := "\n \n\n"
+	if output != expected {
+		t.Errorf("Expected %q, got %q", expected, output)
+	}
+}
+
+func TestPrintRaw_Cyrillic(t *testing.T) {
+	t.Parallel()
+
+	var buf bytes.Buffer
+	p := New(&buf, true)
+
+	p.PrintRaw("Привет, мир!")
+	output := buf.String()
+
+	expected := "\n Привет, мир!\n\n"
+	if output != expected {
+		t.Errorf("Expected %q, got %q", expected, output)
+	}
+}
