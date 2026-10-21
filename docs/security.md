@@ -13,6 +13,26 @@ All commands executed via the `exec` tool are analyzed by a built-in security gu
 - **Untrusted script execution**: `curl ... | bash`, `wget ... | sh`
 - **Environment variable filtering**: Sensitive environment variables containing patterns like `PASS`, `SEC`, `CRED`, `TOKEN`, `KEY`, `AUTH`, `PWD`, `CERT`, `SIGN`, `SALT`, `BEARER`, `AMQP`, `CONNECT` are filtered out before command execution
 
+## Allowed utilities (white list)
+
+You can configure a white list of trusted utilities using the `guard.allow` parameter:
+
+```yaml
+guard:
+  enable: true
+  allow: ["ls", "pwd"]  # trusted utilities
+```
+
+When `guard.allow` is set, the guard agent will consider commands using only utilities from this list as safe, **provided they don't use dangerous patterns** (e.g., `ls | bash`, `pwd > /tmp/file`).
+
+**Important notes:**
+- Even allowed utilities become dangerous when combined with destructive patterns
+- The white list is passed to the guard agent's system prompt to inform its decision-making
+- If the white list is empty or not configured, all commands are evaluated based on the security criteria above
+- The white list does not bypass the guard check; it only helps the LLM identify safe commands more accurately
+
+See [Configuration > Guard](./configuration.md#guard-agent) for more details on the `guard.allow` parameter.
+
 When the system is in read-only mode, **NO modification operations are allowed** — all such commands are automatically rejected.
 
 ## Extra protection

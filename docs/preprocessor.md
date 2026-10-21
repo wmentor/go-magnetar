@@ -15,6 +15,14 @@ The built-in generic plugin provides the following placeholders that are automat
 | `{{file:filename}}` | Reads file content and replaces placeholder with the file contents. Supports `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`, and `.html` files, absolute paths and `~/` home directory prefix |
 | `{{env:VARIABLE}}` | Value of environment variable `VARIABLE` |
 
+## Guard agent placeholders
+
+The guard agent (see [Configuration > Guard](./configuration.md#guard-agent)) uses the following placeholder in its system prompt:
+
+| Placeholder | Description |
+|---|---|
+| `{{ALLOWED_UTILITIES}}` | List of trusted utilities configured via `guard.allow` parameter. Commands using only these utilities (without dangerous patterns like pipes to shell) are considered safe. |
+
 ## File content substitution
 
 The `{{file:filename}}` placeholder supports reading file contents. See [docs/file_codecs.md](./docs/file_codecs.md) for a complete list of supported file formats and codec implementation details.

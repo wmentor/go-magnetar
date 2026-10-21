@@ -131,6 +131,7 @@ All plugins are disabled by default. Enable a plugin by setting `enable: true`:
 |---|---|---|
 | `enable` | boolean | Enable guard agent for exec commands (default: `false`) |
 | `ask` | boolean | Ask user for confirmation when guard blocks a command (default: `false`) |
+| `allow` | array of strings | List of trusted utilities that are considered safe to execute (default: empty array). Example: `["ls", "pwd"]`. |
 
 #### SSH (`ssh`)
 

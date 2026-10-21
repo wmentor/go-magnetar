@@ -56,6 +56,7 @@ func Load(path string) (*Config, error) {
 		"github.enable":              false,                   // enable GitHub integration (default: false)
 		"guard.enable":               false,                   // enable guard agent for exec commands (default: false)
 		"guard.ask":                  false,                   // ask user for confirmation when guard blocks a command (default: false)
+		"guard.allow":                []string{},              // list of trusted utilities that are safe to execute (e.g., ["ls", "pwd"])
 		"ssh.enable":                 false,                   // enable SSH execution (default: false)
 		"ssh.user":                   "",                      // SSH username (optional, defaults to current user)
 		"ssh.key":                    "~/.ssh/id_rsa",         // SSH private key path (optional)
@@ -132,6 +133,11 @@ func (c *Config) Int(key string) int {
 // Float64 returns the float64 value for the given key.
 func (c *Config) Float64(key string) float64 {
 	return c.cfg.Float64(key)
+}
+
+// Strings returns the string slice value for the given key.
+func (c *Config) Strings(key string) []string {
+	return c.cfg.Strings(key)
 }
 
 // String returns the string value for the given key.
