@@ -668,10 +668,20 @@ func matchCommand(name string, cmd plugin.ChatCommand) bool {
 }
 
 // Run starts the interactive REPL loop.
-func (a *ChatAgent) Run(state *plugin.State) error {
+func (a *ChatAgent) Run(state *plugin.State, skillName string) error {
 	loadHistory()
 	for {
-		line, quit, err := readInput()
+		var line string
+		var quit bool
+		var err error
+
+		if skillName != "" {
+			line = "/skill " + skillName
+			skillName = ""
+		} else {
+			line, quit, err = readInput()
+		}
+
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				break

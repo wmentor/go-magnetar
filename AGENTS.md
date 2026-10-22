@@ -129,6 +129,18 @@ go-magnetar -p <profile_name>
 
 The `-p` flag overrides the profile specified in the configuration file. This allows switching between different configurations (e.g., `default`, `production`, `development`) without modifying the config file.
 
+### `--skill` — apply skill at startup
+
+```
+go-magnetar --skill <skill_name>
+go-magnetar --skill <skill_name> -f <input-file>
+go-magnetar -p <profile> --skill <skill_name> -f <input-file>
+```
+
+Applies a skill immediately when starting the agent. Loads and activates the specified skill before processing input. Skills are loaded from:
+- **User skills**: `~/.go-magnetar/skills/` — global skills
+- **Project skills**: `{current_dir}/.go-magnetar/skills/` — project-specific skills (takes priority)
+
 ### `-f/--file` — non-interactive mode
 
 ```

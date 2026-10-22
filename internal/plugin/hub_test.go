@@ -56,14 +56,12 @@ func TestHub_ConcurrentRegistrationsAreAllKept(t *testing.T) {
 	const n = 50
 	var wg sync.WaitGroup
 	for i := range n {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			h.RegisterChatCommand(ChatCommand{Name: fmt.Sprint(i)})
 			h.RegisterTool(LLMTool{})
 			h.RegisterPreprocessor(func(_ context.Context, s string) (string, error) { return s, nil })
 			h.Go(func(context.Context) {})
-		}()
+		})
 	}
 	wg.Wait()
 

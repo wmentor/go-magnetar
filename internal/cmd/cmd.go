@@ -15,6 +15,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/agent/chat"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
+	skillplugin "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/skill"
 	version "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/version"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/response"
@@ -25,6 +26,7 @@ import (
 type Globals struct {
 	File     string `short:"f" type:"path" help:"Input file"`
 	Profile  string `short:"p" help:"Profile name to use"`
+	Skill    string `help:"Skill name to apply at startup"`
 	Session  string `type:"path" help:"Load conversation session from file"`
 	ReadOnly bool   `long:"read-only" help:"Run in read-only mode"`
 	Timing   bool   `name:"enable-timing" help:"Show the execution time of every answer"`
@@ -116,6 +118,19 @@ func Execute() error {
 		printer.EmptyLine()
 	}
 
+	var skill *plugin.Skill
+
+	// Validate skill if specified
+	if root.Skill != "" {
+		skill, err = skillStore.Get(context.Background(), root.Skill)
+		if err != nil {
+			return fmt.Errorf("failed to load skill '%s': %w", root.Skill, err)
+		}
+		if !skill.Enable {
+			return fmt.Errorf("skill '%s' is not enabled", root.Skill)
+		}
+	}
+
 	if root.File != "" {
 		data, err := readFileInput(root.File, os.Stdin)
 		if err != nil {
@@ -123,6 +138,10 @@ func Execute() error {
 		}
 
 		txt := string(data)
+
+		if skill != nil {
+			txt = skillplugin.MakeApplySkillMessage(skill, txt)
+		}
 
 		for _, preprocessor := range plugin.Preprocessors() {
 			if str, err := preprocessor(context.Background(), txt); err == nil {
@@ -142,7 +161,7 @@ func Execute() error {
 		return nil
 	}
 
-	return agent.Run(state)
+	return agent.Run(state, root.Skill)
 }
 
 func readFileInput(filename string, stdin io.Reader) ([]byte, error) {

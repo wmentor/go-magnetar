@@ -45,7 +45,7 @@ func (p *Plugin) Init(state *plugin.State, hub plugin.Hub) error {
 			}
 
 			return &plugin.ChatCommandResponse{
-				Content: makeApplySkillMessage(skill, optionalText),
+				Content: MakeApplySkillMessage(skill, optionalText),
 				Stdout:  fmt.Sprintf("Loaded skill: %s\n\n", skillName),
 			}, nil
 		},
@@ -76,7 +76,9 @@ func listSkills(skillStore plugin.SkillStore) string {
 	return sb.String()
 }
 
-func makeApplySkillMessage(skill *plugin.Skill, optionalText string) string {
+// MakeApplySkillMessage creates a skill message that can be sent to the agent.
+// This is a public function that can be used by other packages.
+func MakeApplySkillMessage(skill *plugin.Skill, optionalText string) string {
 	var sb strings.Builder
 
 	sb.WriteString("# SKILL: ")

@@ -174,7 +174,7 @@ func TestMakeApplySkillMessage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
-			got := makeApplySkillMessage(tt.skill, tt.optionalText)
+			got := MakeApplySkillMessage(tt.skill, tt.optionalText)
 			assert.Equal(t, tt.want, got)
 		})
 	}

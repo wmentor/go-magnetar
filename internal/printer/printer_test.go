@@ -686,15 +686,13 @@ func TestPrinter_ConcurrentUse(t *testing.T) {
 	const workers, rounds = 8, 50
 	var wg sync.WaitGroup
 	for i := range workers {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		wg.Go(func() {
 			for range rounds {
 				p.Verbose(true)
 				p.PrintRaw("block")
 				p.Info("line", "worker", i)
 			}
-		}()
+		})
 	}
 	wg.Wait()
 
