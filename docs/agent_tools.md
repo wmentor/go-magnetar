@@ -14,7 +14,8 @@ go-magnetar provides the following tools for the chat agent:
 | `system_date` | `() -> string` | Returns the current date in the "Mon Jan _2 15:04:05 MST 2006" format |
 | `system_grep` | `(filename: string, pattern: string) -> string` | Executes system grep command with safe parameters: -n (always), -i (case-insensitive), -r (recursive), -E (extended regex) |
 | `web_fetch` | `(url: string) -> string` | Fetches a web page and returns Markdown content (also fetches Confluence pages, JIRA issues, GitHub repositories/Issues/milestones, GitLab merge requests, RSS feeds). See [tool_web_fetch.md](./tool_web_fetch.md) for complete documentation |
-| `search` | `(query: string) -> string` | Execute web and knowledge base search in parallel and return merged results |
+| `web_search` | `(query: string) -> string` | Execute web search and return results in Markdown format (e.g., for current events, news, popular topics) |
+| `rag_search` | `(query: string) -> string` | Search the knowledge base for relevant information (e.g., for domain-specific questions) |
 | `cve` | `(id: string) -> string` | Fetches vulnerability information from OSV database; supports all OSV database identifiers (CVE-, GO-, GHSA-, OSV-, GSD-, ALPINE-, and 50+ more). See [vulnerability_lookup.md](./vulnerability_lookup.md) for complete documentation |
 | `github_repo` | `(repo: string) -> string` | Fetches GitHub repository information and returns its details in Markdown format |
 | `github_file` | `(repo: string, branch: string, file: string) -> string` | Fetches a file from GitHub repository and returns its content |
@@ -76,12 +77,36 @@ See [chat_agent_ask.md](./chat_agent_ask.md) for details on tool execution categ
 4. Use `file_edit_multiple` with "first" for replacing only the first occurrence of multiple strings
 5. Use `file_write` when you need to create a new file or completely rewrite an existing one
 
-## Search strategy
+## Search Tools
 
-The agent calls the unified `search` tool, which executes `web_search` and `rag_search` in parallel and merges the results. When the `search` tool returns relevant results, the answer is formed exclusively based on those results. If the `search` tool provides no relevant results, the agent explicitly states this.
+go-magnetar provides two independent search tools: `web_search` and `rag_search`. Each tool can be called separately or together based on the query requirements.
 
-### Search tool call limit
+### web_search
 
-To prevent infinite loops, each user request is limited to a maximum number of search-related tool calls. The unified `search` tool counts as 1 search call (not 2 separate calls). By default, the limit is 20 calls per request. When the limit is exceeded, an error message is sent to the LLM and no more search tools are invoked for that request.
+Execute web search and return results in Markdown format. Use `web_search` for:
+- Time-sensitive queries (current events, news, popular topics)
+- General knowledge questions
+- Information not in the knowledge base
+
+### rag_search
+
+Search the knowledge base for relevant information. Use `rag_search` for:
+- Domain-specific questions
+- Questions about documents in the knowledge base
+- Historical or archived information
+
+### Search Strategy
+
+The agent can choose to call either `web_search`, `rag_search`, or both tools based on the query requirements:
+
+- For time-sensitive or general knowledge queries: use `web_search`
+- For domain-specific questions: use `rag_search`
+- For comprehensive answers: use both tools in parallel
+
+When results from either tool are relevant, the answer is formed exclusively based on those results. If both tools provide no relevant results, the agent explicitly states this.
+
+### Search Tool Call Limit
+
+To prevent infinite loops, each user request is limited to a maximum number of search-related tool calls. Each search tool (`web_search` and `rag_search`) counts as 1 search call independently. By default, the limit is 20 calls per request. When the limit is exceeded, an error message is sent to the LLM and no more search tools are invoked for that request.
 
 See [chat_agent_ask.md](./chat_agent_ask.md) for complete documentation on the Ask method, including tool categorization, protection mechanisms, and full algorithm description.

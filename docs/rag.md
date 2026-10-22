@@ -237,11 +237,23 @@ The agent automatically uses the unified `search` tool when answering questions.
 
 ## Search Strategy
 
-The agent calls the unified `search` tool, which executes both `web_search` and `rag_search` in parallel and merges the results:
+The agent can now choose to call either `web_search`, `rag_search`, or both tools based on the query requirements:
 
-1. **Unified search**: Single `search` tool calls both web and RAG search in parallel
-2. **Fallback**: If `search` returns no relevant results, the agent explicitly states this
-3. **No separate calls**: The agent does not call `web_fetch` or `web_search` directly
+1. **web_search**: Execute web search for time-sensitive or general knowledge queries
+2. **rag_search**: Search the knowledge base for domain-specific questions
+3. **Both tools**: For comprehensive answers, use both tools in parallel
+
+### When to Use Each Tool
+
+| Tool | Use Case | Example |
+|------|----------|---------|
+| `web_search` | Time-sensitive or general knowledge | "What's the latest news about AI?", "What is the current weather in Tokyo?" |
+| `rag_search` | Domain-specific or document-based questions | "What did the user say about project X?", "Find the API documentation for Y" |
+| Both | Comprehensive answers | "What's happening in the tech industry and how does it affect our project?" |
+
+### Search Tool Call Limit
+
+To prevent infinite loops, each user request is limited to a maximum number of search-related tool calls. Each search tool (`web_search` and `rag_search`) counts as 1 search call independently. By default, the limit is 20 calls per request. When the limit is exceeded, an error message is sent to the LLM and no more search tools are invoked for that request.
 
 ### Multi-Query Search (RAG only)
 

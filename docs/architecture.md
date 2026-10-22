@@ -13,9 +13,8 @@ internal/
     registry.go                  — global registry; Register, InitAll, Stop,
                                     LLMTools, ChatCommands, SetRoot, Reset
   plugins/
-    rag/plugin.go                — rag_save LLM tool (init → Register)
-    web/plugin.go                — web_fetch LLM tool (init → Register)
-    search/plugin.go             — search LLM tool (init → Register)
+    rag/plugin.go                — rag_save and rag_search LLM tools (init → Register)
+    web/plugin.go                — web_fetch and web_search LLM tools (init → Register)
     generic/plugin.go            — file_read/list/write/exists/system_grep/LLM tools (init → Register)
       indexcmd/plugin.go           — /index chat command plugin
     chatcmd/
@@ -283,6 +282,8 @@ go-magnetar uses a plugin architecture modelled after `database/sql` drivers.
 2. Call `plugin.Register("mytool", &Plugin{})` in `init()`
 3. Implement `Init(s plugin.State, hub plugin.Hub) error` — call `hub.RegisterTool(...)`
 4. Add a blank import in `cmd/go-magnetar/main.go`
+
+For search tools (`web_search`, `rag_search`), set `IsSearchTool: true` to enable search call limit tracking.
 
 ### Adding a new chat command
 

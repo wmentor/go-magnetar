@@ -12,10 +12,9 @@ func init() {
 	plugin.Register("web", &Plugin{})
 }
 
-// Plugin wraps the web tools and exposes web_fetch as an LLM tool.
+// Plugin wraps the web tools and exposes web_fetch and web_search as LLM tools.
 // The WebTools instance is created lazily on first use so that the
 // agent's working-directory Root (set via plugin.SetRoot) is available.
-// web_search tool is no longer exposed to LLM (replaced by unified search tool).
 type Plugin struct {
 	mu    sync.Mutex
 	state *plugin.State
@@ -26,15 +25,28 @@ type Plugin struct {
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	p.state = s
 
+	// Register web_fetch tool
 	hub.RegisterTool(plugin.LLMTool{
-		Definition:   web.StaticDefinition,
-		IsSearchTool: true,
+		Definition: web.StaticDefinition,
 		Execute: func(_ context.Context, args string) (string, error) {
 			t, err := p.get()
 			if err != nil {
 				return "", err
 			}
 			return t.Dispatch("web_fetch", args), nil
+		},
+	})
+
+	// Register web_search tool
+	hub.RegisterTool(plugin.LLMTool{
+		Definition:   web.StaticDefinitionSearch,
+		IsSearchTool: true,
+		Execute: func(_ context.Context, args string) (string, error) {
+			t, err := p.get()
+			if err != nil {
+				return "", err
+			}
+			return t.Dispatch("web_search", args), nil
 		},
 	})
 	return nil

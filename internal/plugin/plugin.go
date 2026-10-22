@@ -91,7 +91,7 @@ type LLMTool struct {
 	// args is the raw JSON arguments string.
 	Execute func(ctx context.Context, args string) (string, error)
 	// IsSearchTool marks tools that count toward the per-request search call
-	// limit (e.g. rag_search, web_fetch).
+	// limit (e.g. rag_search, web_search).
 	IsSearchTool bool
 	// Sequential marks tools that must NOT run concurrently with other tool
 	// calls in the same LLM response. All sequential tools in a batch are

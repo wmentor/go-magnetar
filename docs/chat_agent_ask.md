@@ -72,7 +72,7 @@ Send request to OpenAI with:
    - **Sequential tools** (`Sequential: true`): file-mutating tools — executed one at a time after all parallel tools finish.
 
 3. Execute **parallel** tools concurrently:
-    - **Search tools** (`IsSearchTool: true`, e.g. search, web_fetch):
+    - **Search tools** (`IsSearchTool: true`, e.g. web_search, rag_search, web_fetch, jira_task_search):
       - Check if `toolCallCount >= maxSearchToolCalls` (20)
       - **Limit reached**: Return error, do NOT execute
       - **Limit not reached**:
@@ -136,7 +136,8 @@ if atomic.LoadInt64(toolCallCount) >= maxSearchToolCalls {
 }
 ```
 
-- Tracks search tool calls (`search`, `web_fetch`, `jira_task_search`)
+- Tracks search tool calls (`web_search`, `rag_search`, `web_fetch`, `jira_task_search`)
+- Each search tool counts as 1 call independently
 - Returns error for additional calls (no execution)
 - `toolCallCount` is reset for each new user request (local variable in `Ask`)
 
@@ -174,7 +175,8 @@ Breaks after 50 iterations regardless of other conditions.
 
 ### Search Tools (`IsSearchTool: true`)
 These tools count toward the per-request search call limit and run in parallel.
-- `search`: Unified search tool (calls web_search and rag_search in parallel)
+- `web_search`: Execute web search and return results in Markdown format
+- `rag_search`: Search the knowledge base for relevant information
 - `web_fetch`: Fetch web pages (including Confluence, JIRA, GitHub)
 - `jira_task_search`: Search JIRA issues by JQL
 
