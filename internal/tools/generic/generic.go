@@ -648,7 +648,7 @@ func (g *GenericTools) DefinitionFileRead() openai.Tool {
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
 			Name:        "file_read",
-			Description: "Read the contents of a file by its path",
+			Description: "Read the contents of a file by its path. Supports transparent gzip decompression (no manual decompression needed).",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
@@ -948,7 +948,7 @@ func StaticDefinitionFileRead() openai.Tool {
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
 			Name:        "file_read",
-			Description: "Read the contents of a file by its path",
+			Description: "Read the contents of a file by its path. Supports transparent gzip decompression (no manual decompression needed).",
 			Parameters: map[string]any{
 				"type": "object",
 				"properties": map[string]any{
