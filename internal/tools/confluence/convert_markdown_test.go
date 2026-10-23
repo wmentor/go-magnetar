@@ -394,12 +394,44 @@ func TestConvertMarkdown_EdgeCases(t *testing.T) {
 </thead>
 <tbody>
 <tr>
-<td>Line 1<!-- raw HTML omitted -->Line 2</td>
+<td>Line 1<br/>Line 2</td>
 <td>Normal</td>
 </tr>
 </tbody>
 </table>
 `,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := confluence.ConvertMarkdown(tt.input)
+			if err != nil {
+				t.Errorf("ConvertMarkdown(%q) error = %v, want no error", tt.input, err)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("ConvertMarkdown(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestConvertMarkdown_ConfluenceTags(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name: "confluence toc macro",
+			input: `<p><ac:structured-macro ac:name="toc" ac:schema-version="1" ac:macro-id="fe23ba6a-261b-48db-9e05-697d35ac3ec1" /></p><hr/>
+
+Hello world	`,
+			want: "<p><ac:structured-macro ac:name=\"toc\" ac:schema-version=\"1\" ac:macro-id=\"fe23ba6a-261b-48db-9e05-697d35ac3ec1\" /></p><hr/>\n<p>Hello world</p>\n",
 		},
 	}
 

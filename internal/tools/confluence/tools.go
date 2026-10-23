@@ -17,6 +17,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/extension"
+	"github.com/yuin/goldmark/renderer/html"
 	"golang.org/x/net/html/charset"
 
 	"github.com/wmentor/go-magnetar/internal/config"
@@ -239,6 +240,9 @@ func ConvertMarkdown(markdownContent string) (string, error) {
 		goldmark.WithExtensions(
 			extension.GFM,
 			extension.Typographer,
+		),
+		goldmark.WithRendererOptions(
+			html.WithUnsafe(), // Allow raw HTML including Confluence tags
 		),
 	)
 	err := markdown.Convert([]byte(markdownContent), &buf)
