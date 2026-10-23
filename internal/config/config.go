@@ -187,3 +187,12 @@ func (c *Config) makeProfileKey(key string) string {
 	}
 	return fmt.Sprintf("profiles.%s.%s", c.profile, key)
 }
+
+// Copy creates a full copy of the current config.
+func (c *Config) Copy() *Config {
+	return &Config{
+		cfg:       c.cfg.Copy(),
+		profile:   c.profile,
+		configDir: c.configDir,
+	}
+}
