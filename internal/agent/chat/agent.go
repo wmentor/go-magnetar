@@ -754,7 +754,7 @@ func (a *ChatAgent) Run(state *plugin.State, skillName string) error {
 // printTiming prints how long an answer took when /timing or --enable-timing turned it on.
 func printTiming(state *plugin.State, elapsed time.Duration) {
 	if state.TimingEnabled.Load() {
-		fmt.Fprintf(os.Stdout, "— Execution time: %s\n\n", printDuration(elapsed))
+		fmt.Fprintf(os.Stdout, "  Execution time: %s\n\n", printDuration(elapsed))
 	}
 }
 
