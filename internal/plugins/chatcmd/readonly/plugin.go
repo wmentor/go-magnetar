@@ -2,8 +2,6 @@ package readonlyplugin
 
 import (
 	"context"
-	"fmt"
-	"os"
 
 	"github.com/wmentor/go-magnetar/internal/plugin"
 )
@@ -32,17 +30,24 @@ func (p *Plugin) execute(_ context.Context, params *plugin.ChatCommandInput) (*p
 	switch args {
 	case "on":
 		p.state.ReadOnly = true
-		fmt.Fprintln(os.Stdout, "Read-only mode enabled.")
+		return &plugin.ChatCommandResponse{
+			Stdout: "Read-only mode enabled.\n",
+		}, nil
 	case "off":
 		p.state.ReadOnly = false
-		fmt.Fprintln(os.Stdout, "Read-only mode disabled.")
+		return &plugin.ChatCommandResponse{
+			Stdout: "Read-only mode disabled.\n",
+		}, nil
+
 	default:
 		if p.state.ReadOnly {
-			fmt.Fprintln(os.Stdout, "Read-only mode is currently ON.")
+			return &plugin.ChatCommandResponse{
+				Stdout: "Read-only mode is currently ON.\n",
+			}, nil
 		} else {
-			fmt.Fprintln(os.Stdout, "Read-only mode is currently OFF.")
+			return &plugin.ChatCommandResponse{
+				Stdout: "Read-only mode is currently OFF.\n",
+			}, nil
 		}
-		return plugin.NopChatCommandResponse, nil
 	}
-	return plugin.NopChatCommandResponse, nil
 }
