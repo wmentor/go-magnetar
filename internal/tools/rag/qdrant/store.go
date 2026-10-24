@@ -11,6 +11,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
 )
@@ -46,11 +47,13 @@ func NewStore(cfg *config.Config) (*Store, error) {
 	// Build OpenAI embedding client.
 	embedCfg := openai.DefaultConfig(cfg.String("rag.llm.api_key"))
 	embedCfg.BaseURL = cfg.String("rag.llm.base_url")
+	embedCfg.HTTPClient = requester.Get()
 	embedClient := openai.NewClientWithConfig(embedCfg)
 
 	// Build LLM client for query expansion (reuses main LLM config).
 	llmCfg := openai.DefaultConfig(cfg.ProfileParamString("llm.api_key"))
 	llmCfg.BaseURL = cfg.ProfileParamString("llm.base_url")
+	llmCfg.HTTPClient = requester.Get()
 	llmClient := openai.NewClientWithConfig(llmCfg)
 
 	// Parse connstr to extract host and port for gRPC.

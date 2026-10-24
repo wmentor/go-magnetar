@@ -11,6 +11,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/printer"
 )
 
@@ -68,6 +69,7 @@ type Response struct {
 func New(cfg *config.Config) *Guard {
 	llmCfg := openai.DefaultConfig(cfg.ProfileParamString("llm.api_key"))
 	llmCfg.BaseURL = cfg.ProfileParamString("llm.base_url")
+	llmCfg.HTTPClient = requester.Get()
 	return &Guard{
 		cfg: cfg,
 		llm: openai.NewClientWithConfig(llmCfg),

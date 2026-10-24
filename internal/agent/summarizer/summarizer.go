@@ -9,6 +9,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/printer"
 )
 
@@ -28,6 +29,7 @@ type Summarizer struct {
 func New(cfg *config.Config) *Summarizer {
 	llmCfg := openai.DefaultConfig(cfg.ProfileParamString("llm.api_key"))
 	llmCfg.BaseURL = cfg.ProfileParamString("llm.base_url")
+	llmCfg.HTTPClient = requester.Get()
 	return &Summarizer{
 		cfg: cfg,
 		llm: openai.NewClientWithConfig(llmCfg),

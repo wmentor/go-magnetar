@@ -23,6 +23,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/agent/summarizer"
 	"github.com/wmentor/go-magnetar/internal/config"
 	hstore "github.com/wmentor/go-magnetar/internal/history"
+	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 )
@@ -126,6 +127,7 @@ type ChatAgent struct {
 func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
 	llmCfg := openai.DefaultConfig(cfg.ProfileParamString("llm.api_key"))
 	llmCfg.BaseURL = cfg.ProfileParamString("llm.base_url")
+	llmCfg.HTTPClient = requester.Get()
 	llmClient := openai.NewClientWithConfig(llmCfg)
 
 	renderer, err := glamour.NewTermRenderer(
@@ -164,6 +166,7 @@ func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
 func (a *ChatAgent) Reconfigure() {
 	llmCfg := openai.DefaultConfig(a.cfg.ProfileParamString("llm.api_key"))
 	llmCfg.BaseURL = a.cfg.ProfileParamString("llm.base_url")
+	llmCfg.HTTPClient = requester.Get()
 	a.llm = openai.NewClientWithConfig(llmCfg)
 }
 

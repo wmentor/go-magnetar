@@ -12,6 +12,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
 )
@@ -66,6 +67,7 @@ func NewStore(cfg *config.Config) (*Store, error) {
 	// Build OpenAI embedding client (reusing rag.Embed client)
 	embedCfg := openai.DefaultConfig(cfg.String("rag.llm.api_key"))
 	embedCfg.BaseURL = cfg.String("rag.llm.base_url")
+	embedCfg.HTTPClient = requester.Get()
 	embedClient := openai.NewClientWithConfig(embedCfg)
 
 	return &Store{
