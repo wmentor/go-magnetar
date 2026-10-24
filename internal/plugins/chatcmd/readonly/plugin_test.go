@@ -38,7 +38,6 @@ func TestExecute(t *testing.T) {
 	if resp.Stdout != "Read-only mode enabled.\n" {
 		t.Fatalf("Expected response stdout to be 'Read-only mode enabled.\n', got %v", resp.Stdout)
 	}
-
 }
 
 func TestExecuteOff(t *testing.T) {
@@ -72,7 +71,6 @@ func TestExecuteOff(t *testing.T) {
 	if resp.Stdout != "Read-only mode disabled.\n" {
 		t.Fatalf("Expected response stdout to be 'Read-only mode disabled.\n', got %v", resp.Stdout)
 	}
-
 }
 
 func TestExecuteStatusOn(t *testing.T) {
@@ -106,7 +104,6 @@ func TestExecuteStatusOn(t *testing.T) {
 	if resp.Stdout != "Read-only mode is currently ON.\n" {
 		t.Fatalf("Expected response stdout to be 'Read-only mode is currently ON.\n', got %v", resp.Stdout)
 	}
-
 }
 
 func TestExecuteStatusOff(t *testing.T) {
@@ -140,5 +137,4 @@ func TestExecuteStatusOff(t *testing.T) {
 	if resp.Stdout != "Read-only mode is currently OFF.\n" {
 		t.Fatalf("Expected response stdout to be 'Read-only mode is currently OFF.\n', got %v", resp.Stdout)
 	}
-
 }
