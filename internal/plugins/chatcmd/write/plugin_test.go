@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"os/user"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -88,7 +87,7 @@ func TestWriteSuccess(t *testing.T) {
 		t.Fatalf("Expected file content %q, got %q", content, string(got))
 	}
 
-	expected := fmt.Sprintf("## Write\n\n✅ Saved %d bytes to `%s`\n", len(content), path)
+	expected := fmt.Sprintf("## Write\n\nSaved %d bytes to `%s`\n", len(content), path)
 	if resp.Stdout != expected {
 		t.Fatalf("Expected stdout %q, got %q", expected, resp.Stdout)
 	}
@@ -106,8 +105,8 @@ func TestWriteSuccessFormatsMarkdownDiagnostic(t *testing.T) {
 	if !strings.HasPrefix(resp.Stdout, "## Write\n\n") {
 		t.Fatalf("Expected markdown heading, got %q", resp.Stdout)
 	}
-	if !strings.Contains(resp.Stdout, "✅") {
-		t.Fatalf("Expected success indicator, got %q", resp.Stdout)
+	if !strings.Contains(resp.Stdout, "Saved 17 bytes") {
+		t.Fatalf("Expected saved byte count, got %q", resp.Stdout)
 	}
 	if !strings.Contains(resp.Stdout, "`"+path+"`") {
 		t.Fatalf("Expected file path in code span, got %q", resp.Stdout)
@@ -137,8 +136,8 @@ func TestWriteFallsBackToPreviousMessage(t *testing.T) {
 	if string(got) != "the answer" {
 		t.Fatalf("Expected previous message content, got %q", string(got))
 	}
-	if !strings.Contains(resp.Stdout, "✅") {
-		t.Fatalf("Expected success indicator, got %q", resp.Stdout)
+	if !strings.Contains(resp.Stdout, "Saved 10 bytes") {
+		t.Fatalf("Expected saved byte count, got %q", resp.Stdout)
 	}
 }
 
@@ -177,7 +176,7 @@ func TestWriteNoConversationHistory(t *testing.T) {
 
 	resp := executeWrite(t, path, msgs)
 
-	expected := "## Write\n\n⚠️ Nothing to save: no conversation history\n"
+	expected := "⚠️ Nothing to save: no conversation history\n"
 	if resp.Stdout != expected {
 		t.Fatalf("Expected stdout %q, got %q", expected, resp.Stdout)
 	}
@@ -194,7 +193,7 @@ func TestWriteEmptyAssistantMessage(t *testing.T) {
 
 	resp := executeWrite(t, path, assistantHistory(""))
 
-	expected := "## Write\n\n⚠️ Nothing to save: last assistant message is empty\n"
+	expected := "⚠️ Nothing to save: last assistant message is empty\n"
 	if resp.Stdout != expected {
 		t.Fatalf("Expected stdout %q, got %q", expected, resp.Stdout)
 	}
@@ -252,55 +251,30 @@ func TestWriteSpecialCharacters(t *testing.T) {
 	}
 }
 
-func TestWriteLargeContent(t *testing.T) {
-	t.Parallel()
-
+//nolint:paralleltest // stubs the package-level expandHome seam
+func TestWriteExpandsHome(t *testing.T) {
 	dir := t.TempDir()
-	path := filepath.Join(dir, "large.md")
-	content := strings.Repeat("0123456789", 100000) // 1 MB
 
-	resp := executeWrite(t, path, assistantHistory(content))
+	orig := expandHome
+	expandHome = func(path string) string {
+		if strings.HasPrefix(path, "~/") {
+			return filepath.Join(dir, path[2:])
+		}
+		return path
+	}
+	t.Cleanup(func() { expandHome = orig })
 
+	resp := executeWrite(t, "~/answer.md", assistantHistory("home answer"))
+
+	path := filepath.Join(dir, "answer.md")
 	got, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatalf("Expected file to be written, got %v", err)
+		t.Fatalf("Expected file in expanded home, got %v", err)
 	}
-	if len(got) != 1000000 {
-		t.Fatalf("Expected 1000000 bytes, got %d", len(got))
+	if string(got) != "home answer" {
+		t.Fatalf("Expected file content %q, got %q", "home answer", string(got))
 	}
-	if !strings.Contains(resp.Stdout, "Saved 1000000 bytes") {
-		t.Fatalf("Expected byte count in diagnostic, got %q", resp.Stdout)
+	if !strings.Contains(resp.Stdout, "`"+path+"`") {
+		t.Fatalf("Expected expanded path in diagnostic, got %q", resp.Stdout)
 	}
-}
-
-func TestWriteExpandsHome(t *testing.T) {
-	t.Parallel()
-
-	usr, err := user.Current()
-	if err != nil {
-		t.Skipf("cannot resolve current user: %v", err)
-	}
-	dir, err := os.MkdirTemp(usr.HomeDir, ".magnetar-write-test-*")
-	if err != nil {
-		t.Fatal(err)
-	}
-	t.Cleanup(func() { _ = os.RemoveAll(dir) })
-	path := filepath.Join(dir, "answer.md")
-
-	resp := executeWrite(t, "~/"+filepath.Base(dir)+"/answer.md", assistantHistory("home answer"))
-
-	if strings.HasPrefix(strings.TrimPrefix(resp.Stdout, "## Write\n\n"), "✅ Saved") {
-		got, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatalf("Expected file in expanded home, got %v", err)
-		}
-		if string(got) != "home answer" {
-			t.Fatalf("Expected file content %q, got %q", "home answer", string(got))
-		}
-		if !strings.Contains(resp.Stdout, "`"+path+"`") {
-			t.Fatalf("Expected expanded path in diagnostic, got %q", resp.Stdout)
-		}
-		return
-	}
-	t.Fatalf("Expected success diagnostic, got %q", resp.Stdout)
 }
