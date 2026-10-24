@@ -431,6 +431,8 @@ See [docs/security.md](./docs/security.md) for complete security information.
 
 **IMPORTANT**: After adding new features, run the linter via `make check/lint` and fix all warnings.
 
+**IMPORTANT**: Use `any` instead of `interface{}` for modern Go style (Go 1.18+). They are equivalent, but `any` is more concise and readable.
+
 ## Unit tests
 
 **IMPORTANT**: All tests must start with `t.Parallel()` to enable concurrent test execution.
