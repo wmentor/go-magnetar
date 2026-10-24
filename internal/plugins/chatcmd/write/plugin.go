@@ -5,13 +5,16 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/wmentor/go-magnetar/internal/common"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 )
+
+// expandHome resolves "~" in user-supplied paths. It is a variable so tests
+// can redirect expansion into a temporary directory.
+var expandHome = common.ExpandHome
 
 func init() {
 	plugin.Register("chatcmd.write", &Plugin{})
@@ -36,7 +39,7 @@ func (p *Plugin) execute(_ context.Context, params *plugin.ChatCommandInput) (*p
 		return &plugin.ChatCommandResponse{Stdout: "Usage: `/write <filename>`\n"}, nil
 	}
 
-	filename := filepath.Clean(common.ExpandHome(args))
+	filename := filepath.Clean(expandHome(args))
 	msgs := params.AgentHandler.Messages()
 
 	content, reason := selectAnswer(msgs)
@@ -73,24 +76,15 @@ func selectAnswer(msgs []openai.ChatCompletionMessage) (string, string) {
 // formatSuccessDiagnostic renders the save confirmation as markdown so the
 // chat agent's standard rendering pipeline displays it like other commands.
 func formatSuccessDiagnostic(filename string, size int) string {
-	var sb strings.Builder
-	sb.WriteString("## Write\n\n")
-	fmt.Fprintf(&sb, "✅ Saved %d bytes to `%s`\n", size, filename)
-	return sb.String()
+	return fmt.Sprintf("## Write\n\nSaved %d bytes to `%s`\n", size, filename)
 }
 
 // formatEmptyDiagnostic reports that there was nothing to save.
 func formatEmptyDiagnostic(reason string) string {
-	var sb strings.Builder
-	sb.WriteString("## Write\n\n")
-	fmt.Fprintf(&sb, "⚠️ Nothing to save: %s\n", reason)
-	return sb.String()
+	return fmt.Sprintf("⚠️ Nothing to save: %s\n", reason)
 }
 
 // formatErrorDiagnostic reports a failed write.
 func formatErrorDiagnostic(filename string, err error) string {
-	var sb strings.Builder
-	sb.WriteString("## Write\n\n")
-	fmt.Fprintf(&sb, "❌ Failed to save to `%s`: %v\n", filename, err)
-	return sb.String()
+	return fmt.Sprintf("## Write\n\n❌ Failed to save to `%s`: %v\n", filename, err)
 }
