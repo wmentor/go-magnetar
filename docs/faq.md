@@ -18,3 +18,21 @@ llm:
 ```
 
 This allows you to use any compatible provider without code changes — just specify a different `base_url` in the configuration.
+
+## How to run downloaded binary on macOS?
+
+If macOS blocks the downloaded release binary with the error "cannot be opened because the developer cannot be verified", you need to remove the quarantine attribute.
+
+### Using Terminal (command line method)
+
+Remove the quarantine extended attribute using `xattr`:
+
+```bash
+xattr -d com.apple.quarantine go-magnetar
+```
+
+After running this command, the binary should execute normally:
+
+```bash
+./go-magnetar
+```
