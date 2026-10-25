@@ -74,6 +74,12 @@ git log --format="%ae" $COMMIT_RANGE 2>/dev/null \
 TMP_LOGIN_COUNTS=/tmp/go_magnetar_login_counts_$$
 : > "$TMP_LOGIN_COUNTS"
 
+# GITHUB_TOKEN must be exported by the caller for API lookups to work
+if [ -z "${GITHUB_TOKEN:-}" ]; then
+    echo "Warning: GITHUB_TOKEN is not set. Some email addresses may not be resolved."
+    echo "To enable API lookups, set GITHUB_TOKEN: export GITHUB_TOKEN=..."
+fi
+
 while read -r COUNT EMAIL; do
     LOGIN=""
 
@@ -111,7 +117,7 @@ while read -r COUNT EMAIL; do
             -H "Authorization: Bearer $GITHUB_TOKEN" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/commits?author=${ENCODED}&per_page=1" \
-            2>/dev/null | tr -d '\000-\010\013-\037' || echo "")
+            2>/dev/null | python3 -c "import sys,json; data=sys.stdin.read(); print(json.dumps(json.loads(data), separators=(',', ':')))" || echo "")
         LOGIN=$(echo "$API_RESP" | jq -r '.[0].author.login // empty' 2>/dev/null || echo "")
     fi
 
@@ -185,7 +191,7 @@ if [ "$LOGINS_COUNT" -gt 0 ]; then
     # Build the avatar row as a single line
     AVATAR_ROW=""
     while IFS= read -r LOGIN; do
-        AVATAR_ROW="${AVATAR_ROW}<a href=\"https://github.com/${LOGIN}\"><img src=\"https://avatars.githubusercontent.com/${LOGIN}?v=4&s=32\" width=\"32\" height=\"32\" alt=\"@${LOGIN}\" title=\"@${LOGIN}\" style=\"border-radius:50%\"></a> "
+        AVATAR_ROW="${AVATAR_ROW}<a href=\"https://github.com/${LOGIN}\" data-hovercard-type=\"user\" data-hovercard-url=\"/users/${LOGIN}/hovercard\" data-octo-click=\"hovercard-link-click\" data-octo-dimensions=\"link_type:self\" aria-keyshortcuts=\"Alt+ArrowUp\"><img src=\"https://avatars.githubusercontent.com/${LOGIN}?v=4&s=64\" width=\"32\" height=\"32\" data-view-component=\"true\" class=\"avatar-user\" alt=\"@${LOGIN}\" title=\"@${LOGIN}\" style=\"border-radius: 50% !important;\"></a> "
     done < "$TMP_LOGINS_SORTED"
 
     TMP_CHANGELOG=/tmp/go_magnetar_changelog_$$
