@@ -32,8 +32,8 @@ func TestExecute(t *testing.T) {
 		name      string
 		msgs      []openai.ChatCompletionMessage
 		args      string
-		wantIn    string   // substrings expected in Stdout
-		wantFile  string   // content expected in the file, if any
+		wantIn    string // substrings expected in Stdout
+		wantFile  string // content expected in the file, if any
 		wantNoLog bool
 	}{
 		{

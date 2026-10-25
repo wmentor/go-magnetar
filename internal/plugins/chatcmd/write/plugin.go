@@ -6,9 +6,10 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/sashabaranov/go-openai"
+
 	"github.com/wmentor/go-magnetar/internal/common"
 	"github.com/wmentor/go-magnetar/internal/plugin"
-	"github.com/sashabaranov/go-openai"
 )
 
 func init() {
