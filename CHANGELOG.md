@@ -1,12 +1,69 @@
 # CHANGELOG
 
+## [1.7.0] - 2026-10-25
+
+### 🚀 Features
+
+- *(chat)* Fallback to CLAUDE.md when AGENTS.md is not found
+- *(tools)* Add file_edit and file_edit_multiple tools
+- *(chat)* Add /exec command for shell command execution
+- *(tools)* Drop unused tool file_exists
+- *(chat)* Add /revert command to undo last conversation turn
+- *(tools)* Add last_response tool
+- *(github)* Add support for fetching GitHub releases
+- *(chat)* Command /copy now supports both LLM responses and chat command results
+- *(guard)* Add allow utilities configuration for security checks
+- *(chat)* Add /timing and --enable-timing to show execution time
+- *(cli)* Add --skill flag to apply skills at startup
+- *(tools)* Replace unified search tool with independent web_search and rag_search tools
+- *(tools)* Add transparent gzip decompression to file_read
+- *(web)* Add web.disable.fetch and web.disable.search settings
+- *(confluence)* Add support for Confluence macros and fix HTML handling
+
+### 🐛 Bug Fixes
+
+- *(help)* Return markdown through command output
+- *(chat)* Render command /profile output as markdown
+- *(tools)* Register system_date without requiring the date utility
+- *(build)* Correct gofmpt to gofumpt typo in Makefile
+- *(tools)* Validate file size before reading contents
+- *(config)* Update the profile key in SetProfile
+- *(printer)* Make the printer and the default printer safe for concurrent use
+- *(tools)* Added text about gzip support in file_read tool description
+- *(chat)* Return /readonly command output in chat response
+- *(network)* Fix OpenAI client memory leaks
+- *(chat)* Write returns diagnostics as markdown in ChatCommandResponse.Stdout, with tests
+
+### 📚 Documentation
+
+- Added CONTRIBUTING.md
+- Added faq.md
+
+### 🚜 Refactor
+
+- Add NoLog flag to ChatCommandResponse
+- *(tools)* Add output showing what file_edit changed
+- *(chat)* Command /stat outputs a Markdown table
+- Flexible types for tool calls
+- New tools storage prototype
+
+### 💼 Other
+
+- *(release)* Constrain GoReleaser to v2
+
+### 👥 Contributors
+
+<div align="left" style="padding-left: 20px;">
+<a href="https://github.com/wmentor" data-hovercard-type="user" data-hovercard-url="/users/wmentor/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/wmentor?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@wmentor" title="@wmentor" style="border-radius: 50% !important;"></a> <a href="https://github.com/bercedev" data-hovercard-type="user" data-hovercard-url="/users/bercedev/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/bercedev?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@bercedev" title="@bercedev" style="border-radius: 50% !important;"></a> <a href="https://github.com/Abhishek8841" data-hovercard-type="user" data-hovercard-url="/users/Abhishek8841/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/Abhishek8841?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@Abhishek8841" title="@Abhishek8841" style="border-radius: 50% !important;"></a> <a href="https://github.com/yuefdev" data-hovercard-type="user" data-hovercard-url="/users/yuefdev/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/yuefdev?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@yuefdev" title="@yuefdev" style="border-radius: 50% !important;"></a> <a href="https://github.com/rootsiemen" data-hovercard-type="user" data-hovercard-url="/users/rootsiemen/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/rootsiemen?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@rootsiemen" title="@rootsiemen" style="border-radius: 50% !important;"></a> <a href="https://github.com/montionugera" data-hovercard-type="user" data-hovercard-url="/users/montionugera/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/montionugera?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@montionugera" title="@montionugera" style="border-radius: 50% !important;"></a> <a href="https://github.com/masyarakatai" data-hovercard-type="user" data-hovercard-url="/users/masyarakatai/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/masyarakatai?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@masyarakatai" title="@masyarakatai" style="border-radius: 50% !important;"></a> <a href="https://github.com/LetMeSleep8h" data-hovercard-type="user" data-hovercard-url="/users/LetMeSleep8h/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/LetMeSleep8h?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@LetMeSleep8h" title="@LetMeSleep8h" style="border-radius: 50% !important;"></a> <a href="https://github.com/Jah-yee" data-hovercard-type="user" data-hovercard-url="/users/Jah-yee/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/Jah-yee?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@Jah-yee" title="@Jah-yee" style="border-radius: 50% !important;"></a> <a href="https://github.com/Doomguy-BFG9000" data-hovercard-type="user" data-hovercard-url="/users/Doomguy-BFG9000/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/Doomguy-BFG9000?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@Doomguy-BFG9000" title="@Doomguy-BFG9000" style="border-radius: 50% !important;"></a> <a href="https://github.com/bxanedot" data-hovercard-type="user" data-hovercard-url="/users/bxanedot/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/bxanedot?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@bxanedot" title="@bxanedot" style="border-radius: 50% !important;"></a> <a href="https://github.com/abdulmuhaimin-abualuruq" data-hovercard-type="user" data-hovercard-url="/users/abdulmuhaimin-abualuruq/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/abdulmuhaimin-abualuruq?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@abdulmuhaimin-abualuruq" title="@abdulmuhaimin-abualuruq" style="border-radius: 50% !important;"></a> 
+</div><br/><br/>
+
 ## [1.6.0] - 2026-10-18
 
 ### 🚀 Features
 
-- *(cli)* Support `-` as stdin input for --file / -f flag (#121)
+- *(cli)* Support `-` as stdin input for --file / -f flag
 - *(codec)* Add MIME type support for web fetch and document decoding
-- *(chat)* Allow /copy [index] to select a prior assistant answer (#124)
+- *(chat)* Allow /copy [index] to select a prior assistant answer
 - *(skill)* Add commit-message skill
 - *(jira)* Add Jira issue creation capability
 - *(gitlab)* Add support for GitLab repositories, files, and tree structures
@@ -26,14 +83,14 @@
 
 - *(chat)* Introduce ChatCommandInput struct for command execution
 - *(printer)* Convert Printer to interface and add ConsolePrinter implementation
-- *(tools)* Use time package in SystemDate instead of the date command (#138)
+- *(tools)* Use time package in SystemDate instead of the date command
 - *(build)* Reorganize Makefile targets and improve code formatting
 - *(chat)* Centralize answer printing and add stdout support
 
 ### 🧪 Testing
 
 - *(web)* Cover and simplify JIRA URL extraction
-- *(tools)* Add unit tests for processFiles (#141)
+- *(tools)* Add unit tests for processFiles
 - *(tools)* Cover unreadable files and empty names in processFiles
 
 ### ⚙️ Miscellaneous Tasks
@@ -49,7 +106,7 @@
 ### 👥 Contributors
 
 <div align="left" style="padding-left: 20px;">
-<a href="https://github.com/wmentor"><img src="https://avatars.githubusercontent.com/wmentor?v=4&s=32" width="32" height="32" alt="@wmentor" title="@wmentor" style="border-radius:50%"></a> <a href="https://github.com/spayder"><img src="https://avatars.githubusercontent.com/spayder?v=4&s=32" width="32" height="32" alt="@spayder" title="@spayder" style="border-radius:50%"></a> <a href="https://github.com/Detoy"><img src="https://avatars.githubusercontent.com/Detoy?v=4&s=32" width="32" height="32" alt="@Detoy" title="@Detoy" style="border-radius:50%"></a> <a href="https://github.com/pollychen-lab"><img src="https://avatars.githubusercontent.com/pollychen-lab?v=4&s=32" width="32" height="32" alt="@pollychen-lab" title="@pollychen-lab" style="border-radius:50%"></a> <a href="https://github.com/himanshu748"><img src="https://avatars.githubusercontent.com/himanshu748?v=4&s=32" width="32" height="32" alt="@himanshu748" title="@himanshu748" style="border-radius:50%"></a> 
+<a href="https://github.com/wmentor"><img src="https://avatars.githubusercontent.com/wmentor?v=4&s=64" width="32" height="32" alt="@wmentor" title="@wmentor" style="border-radius:50%"></a> <a href="https://github.com/spayder"><img src="https://avatars.githubusercontent.com/spayder?v=4&s=64" width="32" height="32" alt="@spayder" title="@spayder" style="border-radius:50%"></a> <a href="https://github.com/Detoy"><img src="https://avatars.githubusercontent.com/Detoy?v=4&s=64" width="32" height="32" alt="@Detoy" title="@Detoy" style="border-radius:50%"></a> <a href="https://github.com/pollychen-lab"><img src="https://avatars.githubusercontent.com/pollychen-lab?v=4&s=64" width="32" height="32" alt="@pollychen-lab" title="@pollychen-lab" style="border-radius:50%"></a> <a href="https://github.com/himanshu748"><img src="https://avatars.githubusercontent.com/himanshu748?v=4&s=64" width="32" height="32" alt="@himanshu748" title="@himanshu748" style="border-radius:50%"></a> 
 </div><br/><br/>
 
 ## [1.5.0] - 2026-10-11
