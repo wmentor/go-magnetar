@@ -13,7 +13,6 @@ import (
 	"os/user"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"time"
 
@@ -23,6 +22,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/agent/guard"
 	"github.com/wmentor/go-magnetar/internal/codec"
+	"github.com/wmentor/go-magnetar/internal/command/interceptor"
 	"github.com/wmentor/go-magnetar/internal/common"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
@@ -35,55 +35,7 @@ const (
 	maxDecompressedSize = 50 * 1024 * 1024 // 50MB limit to prevent decompression bomb DoS (gosec G110)
 )
 
-var blockList = []*regexp.Regexp{
-	regexp.MustCompile(`(?i)^\s*rm\s+(-[a-zA-Z]*f[a-zA-Z]*\s+)*(/\s*$|/\s+)`),
-	regexp.MustCompile(`(?i)\|\s*bash\b`),
-	regexp.MustCompile(`(?i)\|\s*sh\b`),
-	regexp.MustCompile(`(?i)\|\s*zsh\b`),
-	regexp.MustCompile(`(?i)^\s*sudo\b`),
-	regexp.MustCompile(`(?i)^\s*su\b`),
-	regexp.MustCompile(`(?i)^\s*mkfs\b`),
-	regexp.MustCompile(`(?i)^\s*chmod\b`),
-	regexp.MustCompile(`(?i)^\s*chown\b`),
-	regexp.MustCompile(`(?i)^\s*dscl\b`),
-	regexp.MustCompile(`(?i)^\s*fdisk\b`),
-	regexp.MustCompile(`(?i)^\s*format\b`),
-	regexp.MustCompile(`(?i)^\s*dseditgroup\b`),
-	regexp.MustCompile(`(?i)^\s*brew\b`),
-	regexp.MustCompile(`(?i)^\s*dpkg\b`),
-	regexp.MustCompile(`(?i)^\s*apt\b`),
-	regexp.MustCompile(`(?i)^\s*cargo\b`),
-	regexp.MustCompile(`(?i)^\s*rpm\b`),
-	regexp.MustCompile(`(?i)^\s*npm\b`),
-	regexp.MustCompile(`(?i)^\s*ssh\b`),
-	regexp.MustCompile(`(?i)^\s*apt\-get\b`),
-	regexp.MustCompile(`(?i)^\s*groupadd\b`),
-	regexp.MustCompile(`(?i)^\s*usermod\b`),
-	regexp.MustCompile(`(?i)^\s*gpasswd\b`),
-	regexp.MustCompile(`(?i)^\s*useradd\b`),
-	regexp.MustCompile(`(?i)^\s*adduser\b`),
-	regexp.MustCompile(`(?i)^\s*userdel\b`),
-	regexp.MustCompile(`(?i)^\s*deluser\b`),
-	regexp.MustCompile(`(?i)^\s*passwd\b`),
-	regexp.MustCompile(`(?i)^\s*systemctl\b`),
-	regexp.MustCompile(`(?i)^\s*sysadminctl\b`),
-	regexp.MustCompile(`(?i)^\s*dd\s+.*of=/dev/`),
-	regexp.MustCompile(`(?i)^\s*git\s+(commit|push|rebase|pull|cherry-pick|amend|reset|stash|clean|reflog|clone)`),
-}
-
 var envFilter = regexp.MustCompile(`(?i)(pass|secr|cred|token|key|auth|pwd|cert|sign|salt|bearer|amqp|connect)`)
-
-func init() {
-	// Dangerous commands requested in issue #205: rd, rmdir, reboot, shutdown, del, assoc.
-	// Case-insensitive on Windows (where these are native), case-sensitive on Unix.
-	prefix := ""
-	if runtime.GOOS == "windows" {
-		prefix = "(?i)"
-	}
-	for _, cmd := range []string{"rd", "rmdir", "reboot", "shutdown", "del", "assoc"} {
-		blockList = append(blockList, regexp.MustCompile(prefix+`^\s*`+cmd+`\b`))
-	}
-}
 
 type fixedSizeWriter struct {
 	data    []byte
@@ -123,13 +75,7 @@ func (w *fixedSizeWriter) Truncated() bool {
 }
 
 func (g *GenericTools) isCommandBlocked(command string) bool {
-	for _, re := range blockList {
-		if re.MatchString(command) {
-			return true
-		}
-	}
-
-	return false
+	return g.interceptor.IsBlocked(command)
 }
 
 // FileList filter parameter.
@@ -139,21 +85,23 @@ type FileListFilter struct {
 
 // GenericTools provides basic file system operations as LLM tools.
 type GenericTools struct {
-	cfg      *config.Config
-	root     *os.Root
-	state    *plugin.State
-	guard    *guard.Guard
-	fileEdit *FileEditTools
+	cfg         *config.Config
+	root        *os.Root
+	state       *plugin.State
+	guard       *guard.Guard
+	fileEdit    *FileEditTools
+	interceptor *interceptor.Interceptor
 }
 
 // New creates a new GenericTools instance.
 func New(cfg *config.Config, root *os.Root, state *plugin.State) *GenericTools {
 	return &GenericTools{
-		cfg:      cfg,
-		root:     root,
-		state:    state,
-		guard:    guard.New(cfg),
-		fileEdit: NewFileEditTools(cfg, root, state),
+		cfg:         cfg,
+		root:        root,
+		state:       state,
+		guard:       guard.New(cfg),
+		fileEdit:    NewFileEditTools(cfg, root, state),
+		interceptor: interceptor.New(),
 	}
 }
 

@@ -8,10 +8,9 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"regexp"
-	"runtime"
 	"strings"
 
+	"github.com/wmentor/go-magnetar/internal/command/interceptor"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 )
 
@@ -20,11 +19,13 @@ func init() {
 }
 
 type Plugin struct {
-	state *plugin.State
+	state       *plugin.State
+	interceptor *interceptor.Interceptor
 }
 
 func (p *Plugin) Init(state *plugin.State, hub plugin.Hub) error {
 	p.state = state
+	p.interceptor = interceptor.New()
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name:    "exec",
 		Aliases: []string{"e"},
@@ -42,7 +43,7 @@ func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (
 	}
 
 	// security: block dangerous patterns
-	if isDangerousCommand(args) {
+	if p.interceptor.IsDangerous(args) {
 		fmt.Fprintln(os.Stdout, "Error: command blocked by security policy")
 		return plugin.NopChatCommandResponse, nil
 	}
@@ -69,44 +70,4 @@ func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (
 	p.state.ResponseStore.Push(buffer.String())
 
 	return plugin.NopChatCommandResponse, nil
-}
-
-// isDangerousCommand checks if the command matches any dangerous pattern.
-func isDangerousCommand(cmd string) bool {
-	input := cmd
-	if runtime.GOOS == "windows" {
-		input = strings.ToLower(cmd)
-	}
-
-	// Block dangerous patterns using regex for more complex matching
-	dangerousPatterns := []*regexp.Regexp{
-		// Delete commands
-		regexp.MustCompile(`(?i)\brm\s+-rf\s+[/$]|^rm\s+-rf\s+\*`),
-		// Disk manipulation
-		regexp.MustCompile(`(?i)\bdd\b.*\bif=\s*`), // dd with if= parameter
-		regexp.MustCompile(`(?i)\bmkfs\b`),
-		regexp.MustCompile(`(?i)\bfdisk\b`),
-		// Shell execution
-		regexp.MustCompile(`(?i)\bbash\s+-c\b`),
-		regexp.MustCompile(`(?i)\bsh\s+-c\b`),
-		regexp.MustCompile(`(?i)\bzsh\s+-c\b`),
-		// Pipe to shell
-		regexp.MustCompile(`(?i)(curl|wget)\b.*\|\s*(bash|sh|zsh)\b`),
-		// Dangerous commands (issue #205): rd, rmdir, reboot, shutdown, del, assoc
-		// Case-insensitive on Windows (input lowercased above), case-sensitive on Unix.
-		regexp.MustCompile(`\brd\b`),
-		regexp.MustCompile(`\brmdir\b`),
-		regexp.MustCompile(`\breboot\b`),
-		regexp.MustCompile(`\bshutdown\b`),
-		regexp.MustCompile(`\bdel\b`),
-		regexp.MustCompile(`\bassoc\b`),
-	}
-
-	for _, pattern := range dangerousPatterns {
-		if pattern.MatchString(input) {
-			return true
-		}
-	}
-
-	return false
 }
