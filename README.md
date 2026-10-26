@@ -121,7 +121,7 @@ Beyond answering questions, the agent has access to tools it can call automatica
 | `file_list` | List files in the current directory by glob pattern |
 | `file_write` | Write content to a file |
 | `exec` | Run shell commands (with a built-in safety guard) |
-| `system_grep` | Search file contents with grep |
+| `system_grep` | Search file contents with rg (ripgrep) or grep (case-insensitive, recursive, line numbers) |
 | `web_fetch` | Fetch a URL and return its content as Markdown (transparently handles Confluence, JIRA, GitHub, GitLab, RSS feeds when corresponding plugins are enabled). See [docs/tool_web_fetch.md](./docs/tool_web_fetch.md) for complete documentation |
 | `search` | Execute web and knowledge base search in parallel and return merged results |
 | `ssh` | Execute commands on a remote server via SSH (when enabled) |

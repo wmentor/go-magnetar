@@ -23,7 +23,7 @@ func init() {
 }
 
 // Plugin wraps the generic file tools and exposes file_read, file_list,
-// file_write, and system_grep (if grep is available) as LLM tools.
+// file_write, and system_grep (if grep or rg is available) as LLM tools.
 // The GenericTools instance is created lazily on first use so that the
 // agent's working-directory Root (set via plugin.SetRoot) is available.
 type Plugin struct {
@@ -71,7 +71,16 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		Sequential: true,
 	})
 
-	if _, err := exec.LookPath("grep"); err == nil {
+	// Register system_grep if either rg (ripgrep) or grep is available
+	// rg is preferred over grep when available
+	if _, err := exec.LookPath("rg"); err == nil {
+		hub.RegisterTool(plugin.LLMTool{
+			Definition: generic.StaticDefinitionSystemGrep,
+			Execute: func(_ context.Context, args string) (string, error) {
+				return p.get().Dispatch("system_grep", args), nil
+			},
+		})
+	} else if _, err := exec.LookPath("grep"); err == nil {
 		hub.RegisterTool(plugin.LLMTool{
 			Definition: generic.StaticDefinitionSystemGrep,
 			Execute: func(_ context.Context, args string) (string, error) {

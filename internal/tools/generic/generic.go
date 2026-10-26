@@ -91,6 +91,7 @@ type GenericTools struct {
 	guard       *guard.Guard
 	fileEdit    *FileEditTools
 	interceptor *interceptor.Interceptor
+	useRg       bool // whether to use rg (ripgrep) instead of grep
 }
 
 // New creates a new GenericTools instance.
@@ -102,6 +103,7 @@ func New(cfg *config.Config, root *os.Root, state *plugin.State) *GenericTools {
 		guard:       guard.New(cfg),
 		fileEdit:    NewFileEditTools(cfg, root, state),
 		interceptor: interceptor.New(),
+		useRg:       isRgAvailable(),
 	}
 }
 
@@ -580,17 +582,38 @@ func (g *GenericTools) SystemDate() string {
 	return time.Now().Format(time.UnixDate)
 }
 
+// isRgAvailable checks whether rg (ripgrep) is installed and available in PATH.
+func isRgAvailable() bool {
+	_, err := exec.LookPath("rg")
+	return err == nil
+}
+
 // SystemGrep executes the system grep command with a limited set of safe arguments:
 // pattern (required), always uses -i (case-insensitive), -r (recursive), and -n (line numbers).
 func (g *GenericTools) SystemGrep(filename string, pattern string) string {
-	printer.ToolCall(printer.IconTool, "system_grep", "pattern", pattern)
+	extra := []any{"pattern", pattern}
+	if g.useRg {
+		extra = append(extra, "ripgrep", "on")
+	}
 
-	cmd := []string{"grep", "-n", "-i", "-r", "-E", pattern, filename}
+	printer.ToolCall(printer.IconTool, "system_grep", extra...)
+
+	var cmd []string
+	if g.useRg {
+		// Use rg (ripgrep) with same flags as grep: -n (line numbers), -i (case-insensitive)
+		// rg is recursive by default and uses extended regex by default
+		cmd = []string{"rg", "-n", "-i", pattern, filename}
+	} else {
+		// Use grep with -n (line numbers), -i (case-insensitive), -r (recursive), and -E (extended regex)
+		cmd = []string{"grep", "-n", "-i", "-r", "-E", pattern, filename}
+	}
 
 	output, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput() //nolint:gosec // it's ok.
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
+			// grep returns exit code 1 when no match is found
+			// rg returns exit code 1 when no match is found
 			if code := exitErr.ExitCode(); code == 1 {
 				return "No match found"
 			}
