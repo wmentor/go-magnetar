@@ -10,7 +10,7 @@ An AI chat agent with an integrated knowledge base and customizable skills. A si
 - **Skills** — customize agent behavior with reusable skill files for specialized tasks
 - **Integrations** — Confluence, JIRA, GitHub, GitLab (all optional, disabled by default)
 
-Supported file formats: `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`, `.html`
+Supported file formats: `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`, `.html`, `.eml`.
 
 ## Requirements
 

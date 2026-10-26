@@ -1,0 +1,19 @@
+From: Newsletter <newsletter@example.com>
+To: Subscriber <subscriber@example.com>
+Subject: Weekly Newsletter
+Date: Mon, 26 Oct 2026 08:00:00 +0000
+Content-Type: text/html; charset="utf-8"
+
+<!DOCTYPE html>
+<html>
+<head><title>Weekly Newsletter</title></head>
+<body>
+<h1>Weekly Newsletter</h1>
+<p>Welcome to this week's newsletter!</p>
+<h2>Top Stories</h2>
+<ul>
+<li>Story 1</li>
+<li>Story 2</li>
+</ul>
+</body>
+</html>

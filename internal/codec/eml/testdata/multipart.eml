@@ -1,0 +1,20 @@
+From: Multiple Recipients <sender@example.com>
+To: user1@example.com, user2@example.com
+Cc: cc@example.com
+Bcc: bcc@example.com
+Subject: Email with Multiple Recipients and Attachments
+Date: Tue, 27 Oct 2026 10:30:00 +0000
+Message-ID: <12345@example.com>
+Content-Type: multipart/mixed; boundary="boundary123"
+
+--boundary123
+Content-Type: text/plain; charset="utf-8"
+
+This is the text part of the email.
+
+--boundary123
+Content-Type: text/plain; name="attachment.txt"
+Content-Disposition: attachment; filename="attachment.txt"
+
+This is an attachment.
+--boundary123--

@@ -14,6 +14,7 @@ go-magnetar supports reading multiple file formats through a unified codec inter
 | `.odt` | `odt.Codec` | OpenOffice Writer documents |
 | `.pptx` | `pptx.Codec` | PowerPoint presentations |
 | `.xlsx` | `excel.Codec` | Excel files |
+| `.eml` | `eml.Codec` | EML files |
 
 ## Codec Interface
 
