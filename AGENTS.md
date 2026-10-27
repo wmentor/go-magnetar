@@ -321,6 +321,419 @@ To prevent infinite loops, each user request is limited to a maximum number of s
 
 See [docs/agent_tools.md](./docs/agent_tools.md) for a complete list of available tools, search strategy, and search tool call limits.
 
+## Tool Architecture
+
+**IMPORTANT**: Tools must be added using the plugin registration pattern described below. Direct modifications to core agent code are not acceptable.
+
+### Overview
+
+The tool system in go-magnetar follows a two-layer architecture:
+
+1. **Tool package** (`internal/tools/<name>/`) — contains the tool logic and implementation
+2. **Plugin package** (`internal/plugins/<name>/`) — registers tools with the agent
+
+### Adding a New Tool
+
+To add a new tool to go-magnetar, you must create two packages:
+
+#### 1. Tool Package (`internal/tools/<toolname>`)
+
+Tool packages are organized based on the tool name:
+
+- **Simple tool names** (e.g., `cve`, `web_search`): `internal/tools/<toolname>/`
+- **Compound tool names** (e.g., `file_read`): `internal/tools/file/read/`
+
+Create a new directory with the appropriate structure:
+
+- `<tool_name>.go` — Single tool implementation with `Fetch*` method for this tool
+- `<tool_name>_test.go` — Unit tests for this tool
+- `types.go` — Shared parameter structs and response types (optional, if multiple tools share types)
+
+**IMPORTANT**: Each tool must be in its own file named `<tool_name>.go`. For example:
+- `cve.go` — Contains `FetchVulnerability` method for `cve` tool (package: `cve`)
+- `github_repo.go` — Contains `FetchRepository` method for `github_repo` tool (package: `github_repo`)
+- `read.go` — Contains `Exec` method for `file_read` tool (package: `read`)
+
+This separation ensures:
+- Clear organization and discoverability of tools
+- Independent testing for each tool
+- Easier code maintenance and reviews
+- Follows Go conventions for single-responsibility files
+
+**Requirements for tool packages:**
+
+- Must define a `Params` struct with JSON tags for OpenAI-compatible schema
+  - **IMPORTANT**: Use `jsonschema_description` tag for parameter descriptions to provide clear guidance to the LLM
+  - Example: `ID string \`json:"id" jsonschema_description:"Vulnerability identifier with any valid OSV database prefix (e.g., CVE-, GO-, etc.)"\``
+- Must implement a `Fetch*` method that takes `context.Context` and `*Params` and returns `(any, error)`
+- Must return a `tools.Response` struct with `Status` and `Result` fields
+- Must use `printer.ToolCall` for logging tool invocations
+- **IMPORTANT**: Each tool receives a `printer.Printer` interface via `NewTool(cfg, p printer.Printer, clientFactory)`. **Never use global functions** from the `printer` package (e.g., `printer.ToolCall()`). Always use the injected `Printer` interface instance to ensure proper testability and dependency injection.
+- Must use `errors.Wrap` or `fmt.Errorf` with context for error handling
+- Must use `*strings.Builder` with `fmt.Fprintf` for efficient string building
+- **HTTP client usage**: Never create `http.Client` directly. Always use `requester.ClientFactory` from `plugin.State.RequesterFactory`:
+  - Get client: `client := s.RequesterFactory.Get()`
+  - Use client: `resp, err := client.Do(request)`
+  - Return client: `defer s.RequesterFactory.Put(client)`
+
+**Example tool implementation (`internal/tools/cve/fetch.go`):**
+
+```go
+package cve
+
+import (
+    "context"
+    "errors"
+    "fmt"
+    "io"
+    "net/http"
+    "strings"
+    "time"
+
+    "github.com/wmentor/go-magnetar/internal/config"
+    "github.com/wmentor/go-magnetar/internal/http/requester"
+    "github.com/wmentor/go-magnetar/internal/printer"
+    "github.com/wmentor/go-magnetar/internal/tools"
+)
+
+const cveDefaultTimeout = 30 * time.Second
+
+type Tool struct {
+    cfg           *config.Config
+    printer       printer.Printer
+    clientFactory requester.ClientFactory
+}
+
+func NewTool(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory) *Tool {
+    return &Tool{
+        cfg:           cfg,
+        printer:       p,
+        clientFactory: clientFactory,
+    }
+}
+
+type Params struct {
+    ID string `json:"id" jsonschema_description:"Vulnerability identifier with any valid OSV database prefix (e.g., CVE-, GO-, etc.)"`
+}
+
+func (t *Tool) Name() string {
+    return "cve"
+}
+
+func (t *Tool) Description() string {
+    return "Lookup vulnerability information from OSV database using any valid OSV database identifier (CVE-, " +
+        "GO-, GHSA-, OSV-, GSD-, ALPINE-, and many more)"
+}
+
+func (t *Tool) FetchVulnerability(ctx context.Context, params *Params) (any, error) {
+    ctx, cancel := context.WithTimeout(ctx, cveDefaultTimeout)
+    defer cancel()
+
+    if params == nil {
+        return nil, errors.New("invalid params")
+    }
+
+    t.printer.ToolCall(printer.IconSearch, "cve", "id", params.ID)
+
+    parsedID, err := parseCVEID(params.ID)
+    if err != nil {
+        return nil, fmt.Errorf("cve: failed to parse identifier: %w", err)
+    }
+
+    apiURL := fmt.Sprintf("https://api.osv.dev/v1/vulns/%s", parsedID)
+
+    client := t.clientFactory.Get()
+    defer t.clientFactory.Put(client)
+
+    request, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, http.NoBody)
+    if err != nil {
+        return nil, fmt.Errorf("cve: create http request error: %w", err)
+    }
+
+    resp, err := client.Do(request)
+    if err != nil {
+        return nil, fmt.Errorf("cve: failed to fetch vulnerability %s: %w", parsedID, err)
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        body, _ := io.ReadAll(resp.Body)
+        return nil, fmt.Errorf("cve: vulnerability %s returned status %d: %s", parsedID, resp.StatusCode, string(body))
+    }
+
+    body, err := io.ReadAll(resp.Body)
+    if err != nil {
+        return nil, fmt.Errorf("cve: failed to read response body: %w", err)
+    }
+
+    var vulnData Vulnerability
+    if err := json.Unmarshal(body, &vulnData); err != nil {
+        return nil, fmt.Errorf("cve: failed to parse response: %w", err)
+    }
+
+    return &tools.Response{
+        Status: tools.StatusOK,
+        Result: formatVulnerabilityMarkdown(&vulnData),
+    }, nil
+}
+
+func formatVulnerabilityMarkdown(vuln *Vulnerability) string {
+    if vuln == nil {
+        return ""
+    }
+
+    var sb strings.Builder
+    fmt.Fprintf(&sb, "# %s\n\n", vuln.ID)
+    // ... format other fields
+    return sb.String()
+}
+```
+
+#### 2. Plugin Package (`internal/plugins/<toolname>`)
+
+Create a new directory `internal/plugins/<toolname>` with `plugin.go`:
+
+**IMPORTANT**: Use `s.ToolStore.Register()` in the plugin's `Init()` method to register tools. This is the **only** way to add tools to go-magnetar.
+
+```go
+package cveplugin
+
+import (
+    "github.com/wmentor/go-magnetar/internal/plugin"
+    "github.com/wmentor/go-magnetar/internal/tools/cve"
+)
+
+func init() {
+    plugin.Register("cve", &Plugin{})
+}
+
+type Plugin struct {
+    state *plugin.State
+    tool  *cve.Tool
+}
+
+func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
+    p.state = s
+    // Pass Printer and RequesterFactory to the tool for proper dependency injection
+    // Printer is used for logging tool calls and other messages
+    // RequesterFactory is used for HTTP client management
+    p.tool = cve.NewTool(s.Config, s.Printer, s.RequesterFactory)
+    s.ToolStore.Register(p.tool.Name(), p.tool.Description(), p.tool.FetchVulnerability)
+    return nil
+}
+```
+
+**IMPORTANT**: Use `s.ToolStore.Register()` with the following parameters:
+- `name` — Tool name (returned by `Name()` method)
+- `description` — Tool description (returned by `Description()` method)
+- `execFunc` — The `Fetch*` method that executes the tool (e.g., `FetchVulnerability`)
+
+**HTTP Client Management**: When the tool needs to perform HTTP requests:
+1. Get client: `client := t.clientFactory.Get()`
+2. Use client: `resp, err := client.Do(request)`
+3. Return client: `defer t.clientFactory.Put(client)`
+
+**Example file structure (`internal/tools/cve/`):**
+```
+internal/tools/cve/
+  fetch.go                # Contains FetchVulnerability method
+  parse_cveid.go          # Helper functions
+  types.go                # Vulnerability types (optional)
+  fetch_test.go           # Unit tests
+  parse_cveid_test.go     # Helper function tests
+internal/plugins/cve/
+  plugin.go               # Registers the tool
+```
+
+**Example file structure (`internal/tools/file/read/`):**
+```
+internal/tools/file/read/
+  read.go                 # Contains Exec method
+  read_test.go            # Unit tests
+internal/plugins/file/
+  plugin.go               # Registers the file_read tool via tools.Store.Register
+```
+
+### Tool Naming Conventions
+
+- Tool name: lowercase, underscore-separated (e.g., `file_read`, `web_search`, `cve`)
+- **Plugin package naming**: For compound tools (e.g., `file_read`), the plugin is named after the **first segment** (`fileplugin`), not the full tool name. This plugin registers **all** tools starting with that segment.
+- Tool struct: `Tool` (in tool package)
+- Plugin struct: `Plugin`
+- File names: `<tool_name>.go` for implementation, `<tool_name>_test.go` for tests
+
+### Testing
+
+- All tests must start with `t.Parallel()`
+- All helper functions must be marked with `t.Helper()`
+- Test files must be named `<tool_name>_test.go`
+- Each tool's tests must be in the same package as the tool implementation
+- **Table-driven tests are mandatory** for all test cases. Use the following pattern:
+
+```go
+func TestExample(t *testing.T) {
+    t.Parallel()
+
+    tests := []struct {
+        name    string
+        input   string
+        want    string
+        wantErr bool
+    }{
+        {
+            name:    "valid input",
+            input:   "valid-value",
+            want:    "expected-output",
+            wantErr: false,
+        },
+        {
+            name:    "invalid input",
+            input:   "",
+            want:    "",
+            wantErr: true,
+        },
+        // Add more test cases...
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            t.Helper()
+            // Test logic here
+        })
+    }
+}
+```
+
+- Run tests with `make test`
+
+### Parameter Descriptions
+
+**IMPORTANT**: Each parameter in the `Params` struct must have a `jsonschema_description` tag that clearly describes what the parameter does and any constraints.
+
+**Example:**
+```go
+type Params struct {
+    ID string `json:"id" jsonschema_description:"Vulnerability identifier with any valid OSV database prefix (e.g., CVE-, GO-, etc.)"`
+    Repo string `json:"repo" jsonschema_description:"GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')"`
+    Query string `json:"query" jsonschema_description:"Search query for the knowledge base"`
+}
+```
+
+The `jsonschema_description` is used by OpenAI's tool calling API to provide context to the LLM about what each parameter does.
+
+### HTTP Client Usage
+
+**IMPORTANT**: When your tool needs to make HTTP requests, you must use the `requester.ClientFactory` pattern:
+
+```go
+// Get client from factory
+client := t.clientFactory.Get()
+defer t.clientFactory.Put(client)
+
+// Use the client for HTTP requests
+request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, http.NoBody)
+if err != nil {
+    return nil, fmt.Errorf("request creation error: %w", err)
+}
+
+resp, err := client.Do(request)
+if err != nil {
+    return nil, fmt.Errorf("HTTP request error: %w", err)
+}
+defer resp.Body.Close()
+```
+
+This pattern ensures proper client pooling and resource management.
+
+### Error Handling
+
+**IMPORTANT**: Tools must use proper error handling with context wrapping using `fmt.Errorf` with `%w` verb. **DO NOT** use `t.printer.Error()` with error values and return `tools.Response` with error strings — this is an anti-pattern inherited from the old `generic` tools.
+
+**CORRECT pattern (using error wrapping):**
+```go
+func (t *Tool) Exec(ctx context.Context, params *Params) (any, error) {
+    if params == nil {
+        return nil, errors.New("invalid params")
+    }
+
+    t.printer.ToolCall(printer.IconTool, "my_tool", "param", params.Value)
+
+    result, err := doSomething(params.Value)
+    if err != nil {
+        t.printer.Error("my_tool: failed to do something", "param", params.Value, "err", err)
+        return nil, fmt.Errorf("my_tool: failed to do something: %w", err)
+    }
+
+    return &tools.Response{
+        Status: tools.StatusOK,
+        Result: result,
+    }, nil
+}
+```
+
+**INCORRECT pattern (DO NOT USE):**
+```go
+// WRONG: Using t.printer.Error with returned tools.Response for errors
+func Exec() {
+    if err != nil {
+        t.printer.Error("my_tool: failed", "err", err)
+        return &tools.Response{
+            Status: tools.StatusOK,
+            Result: fmt.Sprintf("error: %v", err),
+        }, nil  // This is wrong!
+    }
+}
+```
+
+**Why this matters:**
+- Error wrapping with `%w` preserves the error chain for debugging
+- The tool store automatically converts errors to the correct response format
+- Consistent error handling across all tools
+- Proper error propagation through the call stack
+
+### Printer Usage
+
+**IMPORTANT**: Each tool receives a `printer.Printer` interface instance via the `NewTool()` constructor. **Never use global functions** from the `printer` package (e.g., `printer.ToolCall()`, `printer.Info()`, `printer.Error()`).
+
+**Correct pattern:**
+```go
+type Tool struct {
+    cfg     *config.Config
+    printer printer.Printer
+}
+
+func (t *Tool) FetchSomething(ctx context.Context, params *Params) (any, error) {
+    t.printer.ToolCall(printer.IconSearch, "my_tool", "param", params.Value)
+    t.printer.Info("Processing request")
+    t.printer.Error("An error occurred")
+    // ...
+}
+```
+
+**Incorrect pattern (DO NOT USE):**
+```go
+// WRONG: Using global function instead of interface
+func FetchSomething() {
+    printer.ToolCall(printer.IconSearch, "my_tool", "param", value)
+    // ...
+}
+```
+
+Using the `Printer` interface ensures:
+- Proper dependency injection for testability
+- Correct behavior in concurrent scenarios
+- Consistent logging across all tools
+- Ability to mock printer in unit tests
+
+### Documentation
+
+Each tool must have corresponding documentation in `docs/`:
+- `tool_<toolname>.md` — Detailed tool documentation
+- Update `docs/agent_tools.md` to include the new tool
+- Update this section (`AGENTS.md`) with the new tool architecture
+
+See [docs/agent_tools.md](./docs/agent_tools.md) for a complete list of available tools and their documentation.
+
 ## Security restrictions
 
 See [docs/security.md](./docs/security.md) for complete security information.

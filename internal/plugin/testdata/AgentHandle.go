@@ -48,10 +48,13 @@ func (_m *AgentHandle) EXPECT() *AgentHandle_Expecter {
 
 // Compact provides a mock function for the type AgentHandle
 func (_mock *AgentHandle) Compact(mode ...string) error {
-	var _ca []any
-	for _, _a := range mode {
-		_ca = append(_ca, _a)
+	// string
+	_va := make([]any, len(mode))
+	for _i := range mode {
+		_va[_i] = mode[_i]
 	}
+	var _ca []any
+	_ca = append(_ca, _va...)
 	ret := _mock.Called(_ca...)
 
 	if len(ret) == 0 {
@@ -73,17 +76,25 @@ type AgentHandle_Compact_Call struct {
 }
 
 // Compact is a helper method to define mock.On call
+//   - mode ...string
 func (_e *AgentHandle_Expecter) Compact(mode ...any) *AgentHandle_Compact_Call {
-	return &AgentHandle_Compact_Call{Call: _e.mock.On("Compact", mode...)}
+	return &AgentHandle_Compact_Call{Call: _e.mock.On("Compact",
+		append([]any{}, mode...)...)}
 }
 
 func (_c *AgentHandle_Compact_Call) Run(run func(mode ...string)) *AgentHandle_Compact_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var variadicArgs []string
-		for _, a := range args {
-			variadicArgs = append(variadicArgs, a.(string))
+		var arg0 []string
+		variadicArgs := make([]string, len(args)-0)
+		for i, a := range args[0:] {
+			if a != nil {
+				variadicArgs[i] = a.(string)
+			}
 		}
-		run(variadicArgs...)
+		arg0 = variadicArgs
+		run(
+			arg0...,
+		)
 	})
 	return _c
 }

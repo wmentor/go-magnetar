@@ -4,10 +4,8 @@ import (
 	"context"
 	"io"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,99 +13,22 @@ import (
 	"github.com/wmentor/go-magnetar/internal/codec"
 	"github.com/wmentor/go-magnetar/internal/common"
 	"github.com/wmentor/go-magnetar/internal/plugin"
-	"github.com/wmentor/go-magnetar/internal/tools/generic"
 )
 
 func init() {
 	plugin.Register("generic", &Plugin{})
 }
 
-// Plugin wraps the generic file tools and exposes file_read, file_list,
-// file_write, and system_grep (if grep or rg is available) as LLM tools.
+// Plugin wraps the generic file tools and exposes file_list,
+// file_write, and system_grep (if grep is available) as LLM tools.
 // The GenericTools instance is created lazily on first use so that the
 // agent's working-directory Root (set via plugin.SetRoot) is available.
 type Plugin struct {
-	mu    sync.Mutex
 	state *plugin.State
-	tools *generic.GenericTools
 }
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	p.state = s
-
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: generic.StaticDefinitionFileRead,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return p.get().Dispatch("file_read", args), nil
-		},
-	})
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: generic.StaticDefinitionFileList,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return p.get().Dispatch("file_list", args), nil
-		},
-	})
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: generic.StaticDefinitionFileWrite,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return p.get().Dispatch("file_write", args), nil
-		},
-		Sequential: true,
-	})
-
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: generic.StaticDefinitionFileEdit,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return p.get().Dispatch("file_edit", args), nil
-		},
-		Sequential: true,
-	})
-
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: generic.StaticDefinitionFileEditMultiple,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return p.get().Dispatch("file_edit_multiple", args), nil
-		},
-		Sequential: true,
-	})
-
-	// Register system_grep if either rg (ripgrep) or grep is available
-	// rg is preferred over grep when available
-	if _, err := exec.LookPath("rg"); err == nil {
-		hub.RegisterTool(plugin.LLMTool{
-			Definition: generic.StaticDefinitionSystemGrep,
-			Execute: func(_ context.Context, args string) (string, error) {
-				return p.get().Dispatch("system_grep", args), nil
-			},
-		})
-	} else if _, err := exec.LookPath("grep"); err == nil {
-		hub.RegisterTool(plugin.LLMTool{
-			Definition: generic.StaticDefinitionSystemGrep,
-			Execute: func(_ context.Context, args string) (string, error) {
-				return p.get().Dispatch("system_grep", args), nil
-			},
-		})
-	}
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: generic.StaticDefinitionExec,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return p.get().Dispatch("exec", args), nil
-		},
-	})
-	if p.state.Config.Bool("ssh.enable") {
-		hub.RegisterTool(plugin.LLMTool{
-			Definition: generic.StaticDefinitionSSH,
-			Execute: func(_ context.Context, args string) (string, error) {
-				return p.get().Dispatch("ssh", args), nil
-			},
-		})
-	}
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: generic.StaticDefinitionSystemDate,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return p.get().Dispatch("system_date", args), nil
-		},
-	})
 	p.registerPreprocessor(hub)
 	return nil
 }
@@ -242,14 +163,4 @@ func readFile(filename string) string {
 	}
 
 	return string(data)
-}
-
-func (p *Plugin) get() *generic.GenericTools {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	root := plugin.GetRoot()
-	if p.tools == nil || p.tools.Root() != root {
-		p.tools = generic.New(p.state.Config, root, p.state)
-	}
-	return p.tools
 }

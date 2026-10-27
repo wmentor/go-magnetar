@@ -14,6 +14,10 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
+const (
+	StatusOK = "OK"
+)
+
 var ErrToolNotFound = errors.New("tool not found")
 
 type Response struct {
@@ -27,7 +31,7 @@ type Validatable interface {
 	Validate() error
 }
 
-type ToolFn func(ctx context.Context, rawJSON []byte) string
+type ToolFunc func(ctx context.Context, rawJSON []byte) string
 
 type Store struct {
 	tools map[string]Tool

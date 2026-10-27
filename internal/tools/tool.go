@@ -12,7 +12,7 @@ type Tool struct {
 	Definition func() openai.Tool
 	// Execute is called when the LLM invokes this tool.
 	// args is the raw JSON arguments string.
-	Execute ToolFn
+	Execute ToolFunc
 	// IsSearchTool marks tools that count toward the per-request search call
 	// limit (e.g. rag_search, web_search).
 	IsSearchTool bool

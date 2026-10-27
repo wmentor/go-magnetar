@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"sync"
+
+	"github.com/wmentor/go-magnetar/internal/tools"
 )
 
 // entry holds a registered plugin with its name.
@@ -21,6 +23,7 @@ type hub struct {
 	tools         []LLMTool
 	commands      []ChatCommand
 	preprocessors []PreprocessorFunc
+	toolStore     *tools.Store
 
 	goroutines  []func(ctx context.Context)
 	initialised bool
@@ -140,6 +143,7 @@ func InitAll(s *State) error {
 		panic("plugin: InitAll called more than once")
 	}
 	globalHub.initialised = true
+	globalHub.toolStore = s.ToolStore
 	entries := make([]entry, len(registry))
 	copy(entries, registry)
 	registryMu.Unlock()

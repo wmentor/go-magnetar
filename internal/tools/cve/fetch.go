@@ -1,29 +1,100 @@
 package cve
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"strings"
 	"time"
 
-	"github.com/sashabaranov/go-openai"
-
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/printer"
+	"github.com/wmentor/go-magnetar/internal/tools"
 )
 
 const cveDefaultTimeout = 30 * time.Second
 
-// CVETools provides CVE lookup via OSV API.
-type CVETools struct {
-	cfg *config.Config
+type Tool struct {
+	cfg           *config.Config
+	printer       printer.Printer
+	clientFactory requester.ClientFactory
 }
 
-// New creates a new CVETools instance.
-func New(cfg *config.Config) *CVETools {
-	return &CVETools{cfg: cfg}
+func NewTool(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory) *Tool {
+	return &Tool{
+		cfg:           cfg,
+		printer:       p,
+		clientFactory: clientFactory,
+	}
+}
+
+type Params struct {
+	ID string `json:"id" jsonschema_description:"Vulnerability identifier with any valid OSV database prefix (e.g., CVE-, GO-, etc.)"`
+}
+
+func (t *Tool) Name() string {
+	return "cve"
+}
+
+func (t *Tool) Description() string {
+	return "Lookup vulnerability information from OSV database using any valid OSV database identifier (CVE-, " +
+		"GO-, GHSA-, OSV-, GSD-, ALPINE-, and many more)"
+}
+
+func (t *Tool) FetchVulnerability(ctx context.Context, params *Params) (any, error) {
+	ctx, cancel := context.WithTimeout(ctx, cveDefaultTimeout)
+	defer cancel()
+
+	if params == nil {
+		return nil, errors.New("invalid params")
+	}
+
+	t.printer.ToolCall(printer.IconSearch, "cve", "id", params.ID)
+
+	parsedID, err := parseCVEID(params.ID)
+	if err != nil {
+		return nil, fmt.Errorf("cve: failed to parse identifier: %w", err)
+	}
+
+	apiURL := fmt.Sprintf("https://api.osv.dev/v1/vulns/%s", parsedID)
+
+	client := t.clientFactory.Get()
+	defer t.clientFactory.Put(client)
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, http.NoBody)
+	if err != nil {
+		return nil, fmt.Errorf("cve: create http request error: %w", err)
+	}
+
+	resp, err := client.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("cve: failed to fetch vulnerability %s: %w", parsedID, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("cve: vulnerability %s returned status %d: %s", parsedID, resp.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("cve: failed to read response body: %w", err)
+	}
+
+	var vulnData Vulnerability
+	if err := json.Unmarshal(body, &vulnData); err != nil {
+		return nil, fmt.Errorf("cve: failed to parse response: %w", err)
+	}
+
+	return &tools.Response{
+		Status: tools.StatusOK,
+		Result: formatVulnerabilityMarkdown(&vulnData),
+	}, nil
 }
 
 // parseCVEID extracts the vulnerability identifier from various OSV database formats.
@@ -55,42 +126,6 @@ func parseCVEID(id string) (string, error) {
 	}
 
 	return "", fmt.Errorf("invalid identifier format: %s (must start with a valid OSV database prefix)", id)
-}
-
-// FetchVulnerability fetches vulnerability information from OSV API and returns Markdown content.
-func (c *CVETools) FetchVulnerability(id string) (string, error) {
-	parsedID, err := parseCVEID(id)
-	if err != nil {
-		return "", fmt.Errorf("cve: failed to parse identifier: %w", err)
-	}
-
-	printer.ToolCall(printer.IconSearch, "cve", "id", parsedID)
-
-	apiURL := fmt.Sprintf("https://api.osv.dev/v1/vulns/%s", parsedID)
-
-	client := &http.Client{Timeout: cveDefaultTimeout}
-	resp, err := client.Get(apiURL)
-	if err != nil {
-		return "", fmt.Errorf("cve: failed to fetch vulnerability %s: %w", parsedID, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("cve: vulnerability %s returned status %d: %s", parsedID, resp.StatusCode, string(body))
-	}
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return "", fmt.Errorf("cve: failed to read response body: %w", err)
-	}
-
-	var vulnData Vulnerability
-	if err := json.Unmarshal(body, &vulnData); err != nil {
-		return "", fmt.Errorf("cve: failed to parse response: %w", err)
-	}
-
-	return c.formatVulnerabilityMarkdown(&vulnData), nil
 }
 
 type Vulnerability struct {
@@ -135,7 +170,7 @@ type RangeEvent struct {
 	Limit      string `json:"limit,omitempty"`
 }
 
-func (c *CVETools) formatVulnerabilityMarkdown(vuln *Vulnerability) string {
+func formatVulnerabilityMarkdown(vuln *Vulnerability) string {
 	if vuln == nil {
 		return ""
 	}
@@ -169,14 +204,14 @@ func (c *CVETools) formatVulnerabilityMarkdown(vuln *Vulnerability) string {
 	if len(vuln.Affected) > 0 {
 		fmt.Fprintf(&sb, "## Affected Packages\n\n")
 		for _, pkg := range vuln.Affected {
-			c.formatAffectedPackage(&sb, pkg)
+			formatAffectedPackage(&sb, pkg)
 		}
 	}
 
 	return sb.String()
 }
 
-func (c *CVETools) formatAffectedPackage(sb *strings.Builder, pkg AffectedPackage) {
+func formatAffectedPackage(sb *strings.Builder, pkg AffectedPackage) {
 	if pkg.Package.Name != "" {
 		fmt.Fprintf(sb, "### %s (%s)\n\n", pkg.Package.Name, pkg.Package.Ecosystem)
 	} else {
@@ -190,13 +225,13 @@ func (c *CVETools) formatAffectedPackage(sb *strings.Builder, pkg AffectedPackag
 	if len(pkg.Ranges) > 0 {
 		sb.WriteString("## Version Ranges\n\n")
 		for _, r := range pkg.Ranges {
-			c.formatRange(sb, r)
+			formatRange(sb, r)
 		}
 		sb.WriteString("\n")
 	}
 }
 
-func (c *CVETools) formatRange(sb *strings.Builder, r Range) {
+func formatRange(sb *strings.Builder, r Range) {
 	fmt.Fprintf(sb, "- **Type:** %s\n", r.Type)
 	if r.Repo != "" {
 		fmt.Fprintf(sb, "  - **Repo:** %s\n", r.Repo)
@@ -217,67 +252,4 @@ func (c *CVETools) formatRange(sb *strings.Builder, r Range) {
 		}
 	}
 	sb.WriteString("\n")
-}
-
-func (c *CVETools) Definition() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name: "cve",
-			Description: "Lookup vulnerability information from OSV database using any valid OSV database identifier (CVE-, GO-, " +
-				"GHSA-, OSV-, GSD-, ALPINE-, and many more)",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"id": map[string]any{
-						"type": "string",
-						"description": "Vulnerability identifier with any valid OSV database prefix (e.g., CVE-, GO-, " +
-							"GHSA-, OSV-, GSD-, ALPINE-, etc.)",
-					},
-				},
-				"required": []string{"id"},
-			},
-		},
-	}
-}
-
-func StaticDefinition() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name: "cve",
-			Description: "Lookup vulnerability information from OSV database using any valid OSV database identifier (CVE-, " +
-				"GO-, GHSA-, OSV-, GSD-, ALPINE-, and many more)",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"id": map[string]any{
-						"type": "string",
-						"description": "Vulnerability identifier with any valid OSV database prefix (e.g., CVE-, GO-, GHSA-, OSV-, " +
-							"GSD-, ALPINE-, etc.)",
-					},
-				},
-				"required": []string{"id"},
-			},
-		},
-	}
-}
-
-func (c *CVETools) Dispatch(name string, args string) string {
-	switch name {
-	case "cve":
-		var params struct {
-			ID string `json:"id"`
-		}
-		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			return "error: failed to parse arguments"
-		}
-		content, err := c.FetchVulnerability(params.ID)
-		if err != nil {
-			return fmt.Sprintf("error: %v", err)
-		}
-		return content
-	default:
-		return "error: unknown tool " + name
-	}
 }

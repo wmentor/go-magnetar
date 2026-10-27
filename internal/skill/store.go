@@ -82,6 +82,7 @@ func (st *Store) loadSkill(filename string) {
 
 	if err := yaml.Unmarshal([]byte(texts[1]), &metadata); err != nil {
 		printer.Debug("parse skill %q metadata error: %v", filename, err)
+		return
 	}
 
 	if metadata.Name != "" {

@@ -26,6 +26,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
+	"github.com/wmentor/go-magnetar/internal/tools"
 )
 
 const systemPromptTemplate = `You are a helpful assistant that answers questions strictly based on the knowledge base.
@@ -121,10 +122,11 @@ type ChatAgent struct {
 	renderer   *glamour.TermRenderer
 	messages   []openai.ChatCompletionMessage
 	root       *os.Root
+	toolStore  *tools.Store
 }
 
 // New creates a new ChatAgent instance.
-func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
+func New(cfg *config.Config, root *os.Root, toolStore *tools.Store) (*ChatAgent, error) {
 	llmCfg := openai.DefaultConfig(cfg.ProfileParamString("llm.api_key"))
 	llmCfg.BaseURL = cfg.ProfileParamString("llm.base_url")
 	llmCfg.HTTPClient = requester.Get()
@@ -160,6 +162,7 @@ func New(cfg *config.Config, root *os.Root) (*ChatAgent, error) {
 		renderer:   renderer,
 		messages:   messages,
 		root:       root,
+		toolStore:  toolStore,
 	}, nil
 }
 
@@ -295,7 +298,7 @@ type toolRecord struct {
 }
 
 // ask sends the user input to the LLM, handles tool calls, and returns the final answer.
-func (a *ChatAgent) Ask(userInput string) (string, error) {
+func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
 	a.messages = append(a.messages, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleUser,
 		Content: userInput,
@@ -311,6 +314,11 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 		def := t.Definition()
 		tools = append(tools, def)
 		toolMap[def.Function.Name] = t
+	}
+
+	for _, t := range state.ToolStore.Tools() {
+		def := t.Definition()
+		tools = append(tools, def)
 	}
 
 	toolCallCount := new(int64)
@@ -381,7 +389,23 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 				var result string
 				t, ok := toolMap[name]
 				if !ok {
-					result = "error: unknown tool " + name
+					if tool, err := state.ToolStore.GetTool(name); err == nil {
+						if tool.IsSearchTool {
+							if atomic.LoadInt64(toolCallCount) >= maxSearchToolCalls {
+								result = "error: reached maximum number of search tool calls, no further searches allowed"
+								txt := fmt.Sprintf("LLM requested tool call %s but maximum search tool calls (%d) has been reached",
+									toolKey.Name, maxSearchToolCalls)
+								printer.Warn(txt, toolKey.Name, toolKey.Args)
+							} else {
+								atomic.AddInt64(toolCallCount, 1)
+								result = tool.Execute(context.Background(), []byte(args))
+							}
+						} else {
+							result = tool.Execute(context.Background(), []byte(args))
+						}
+					} else {
+						result = "error: unknown tool " + name
+					}
 				} else {
 					if t.IsSearchTool {
 						if atomic.LoadInt64(toolCallCount) >= maxSearchToolCalls {
@@ -432,11 +456,19 @@ func (a *ChatAgent) Ask(userInput string) (string, error) {
 					atomic.AddInt64(allInterationRealToolCall, 1)
 				}
 
-				t, ok := toolMap[toolCall.Function.Name]
-				if ok && t.Sequential {
-					sequentialCalls = append(sequentialCalls, toolCall)
+				if t, ok := toolMap[toolCall.Function.Name]; ok {
+					if t.Sequential {
+						sequentialCalls = append(sequentialCalls, toolCall)
+					} else {
+						parallelCalls = append(parallelCalls, toolCall)
+					}
 				} else {
-					parallelCalls = append(parallelCalls, toolCall)
+					newTool, err := state.ToolStore.GetTool(toolCall.Function.Name)
+					if err == nil && newTool.Sequential {
+						sequentialCalls = append(sequentialCalls, toolCall)
+					} else {
+						parallelCalls = append(parallelCalls, toolCall)
+					}
 				}
 			}
 
@@ -739,7 +771,7 @@ func (a *ChatAgent) Run(state *plugin.State, skillName string) error {
 
 		// Measured from before the chat command, so a command that hands its
 		// content to the model is counted in the answer's time.
-		answer, err := a.Ask(line)
+		answer, err := a.Ask(state, line)
 		elapsed = time.Since(start)
 		if err != nil {
 			printer.Error("chat: failed to get answer", "err", err)

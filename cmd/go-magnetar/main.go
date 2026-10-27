@@ -26,6 +26,7 @@ import (
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/write"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/confluence"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/cve"
+	_ "github.com/wmentor/go-magnetar/internal/plugins/file"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/generic"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/github"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/gitlab"
@@ -33,6 +34,7 @@ import (
 	_ "github.com/wmentor/go-magnetar/internal/plugins/jira"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/last_response"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/rag"
+	_ "github.com/wmentor/go-magnetar/internal/plugins/system"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/web"
 )
 

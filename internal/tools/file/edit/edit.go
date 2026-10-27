@@ -1,6 +1,7 @@
-package generic
+package edit
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -8,180 +9,214 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/sashabaranov/go-openai"
 	"github.com/sergi/go-diff/diffmatchpatch"
 
-	"github.com/wmentor/go-magnetar/internal/agent/guard"
 	"github.com/wmentor/go-magnetar/internal/codec"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
+	"github.com/wmentor/go-magnetar/internal/tools"
 )
 
 // FileEditParams represents parameters for the file_edit tool.
 type FileEditParams struct {
-	Filename string `json:"filename"`
-	OldText  string `json:"old_text"`
-	NewText  string `json:"new_text"`
+	Filename string `json:"filename" jsonschema_description:"Path to the file to edit"`
+	OldText  string `json:"old_text" jsonschema_description:"Text to search for and replace (case-sensitive, must appear exactly once)"`
+	NewText  string `json:"new_text" jsonschema_description:"Text to replace with"`
 }
 
 // FileEditEdit represents a single edit operation.
 type FileEditEdit struct {
-	OldText string `json:"old_text"`
-	NewText string `json:"new_text"`
+	OldText string `json:"old_text" jsonschema_description:"Text to search for and replace (case-sensitive, must match exactly)"`
+	NewText string `json:"new_text" jsonschema_description:"Text to replace with"`
 }
 
 // FileEditParamsMultiple represents parameters for editing multiple places in a file.
 type FileEditParamsMultiple struct {
-	Filename string         `json:"filename"`
-	Edits    []FileEditEdit `json:"edits"`
-	Strategy string         `json:"strategy,omitempty"` // "first" or "all"
+	Filename string         `json:"filename" jsonschema_description:"Path to the file to edit"`
+	Edits    []FileEditEdit `json:"edits" jsonschema_description:"Array of edit operations (case-sensitive search)"`
+	Strategy string         `json:"strategy,omitempty" jsonschema_description:"Replacement strategy: 'first' or 'all'"`
 }
 
-// FileEditTools provides file editing operations as LLM tools.
-type FileEditTools struct {
-	cfg   *config.Config
-	root  *os.Root
-	state *plugin.State
-	guard *guard.Guard
+// Tool provides file editing operations as LLM tools.
+type Tool struct {
+	cfg     *config.Config
+	printer printer.Printer
+	root    *os.Root
+	state   *plugin.State
 }
 
-// NewFileEditTools creates a new FileEditTools instance.
-func NewFileEditTools(cfg *config.Config, root *os.Root, state *plugin.State) *FileEditTools {
-	return &FileEditTools{
-		cfg:   cfg,
-		root:  root,
-		state: state,
-		guard: guard.New(cfg),
+// NewTool creates a new Tool instance.
+func NewTool(cfg *config.Config, p printer.Printer, _ any, root *os.Root, state *plugin.State) *Tool {
+	return &Tool{
+		cfg:     cfg,
+		root:    root,
+		state:   state,
+		printer: p,
 	}
+}
+
+// Name returns the tool name.
+func (t *Tool) Name() string {
+	return "file_edit"
+}
+
+// Description returns the tool description.
+func (t *Tool) Description() string {
+	return "Edit a plain-text file by replacing text. " +
+		"Requires old_text to appear EXACTLY ONCE in the file. CASE-SENSITIVE search. " +
+		"NOT supported for binary/structured formats: .docx, .pdf, .odt, .xlsx, .pptx — " +
+		"use file_write or a dedicated tool for those."
 }
 
 // FileEdit reads a file, replaces occurrences of oldText with newText, and writes the result back.
-// Returns true if successful, false otherwise.
+// Returns a tools.Response with the result string and success flag.
 // Note: Uses exact string replacement.
 // If oldText appears multiple times, returns an error to force user to use file_edit_multiple.
-func (f *FileEditTools) FileEdit(filename string, oldText string, newText string) (string, bool) {
-	printer.ToolCall(printer.IconTool, "file_edit", "file", filename, "replacements", 1)
+func (t *Tool) FileEdit(ctx context.Context, params *FileEditParams) (any, error) {
+	if params == nil {
+		return nil, errors.New("invalid params")
+	}
 
-	if f.state.ReadOnly {
-		printer.Error("file_edit: blocked by read-only mode", "file", filename)
-		return "error: file_edit is disabled in read-only mode", false
+	t.printer.ToolCall(printer.IconTool, "file_edit", "file", params.Filename, "replacements", 1)
+
+	if t.state.ReadOnly {
+		t.printer.Error("file_edit: blocked by read-only mode", "file", params.Filename)
+		return nil, errors.New("file_edit is disabled in read-only mode")
 	}
 
 	// Check security
-	if !f.isSafePath(filename) {
-		printer.Error("file_edit: blocked unsafe path", "file", filename)
-		return "error: file path is not allowed", false
+	if !t.isSafePath(params.Filename) {
+		t.printer.Error("file_edit: blocked unsafe path", "file", params.Filename)
+		return nil, errors.New("file path is not allowed")
 	}
 
 	// Read the file
-	content, err := f.readFileContent(filename)
+	content, err := t.readFileContent(params.Filename)
 	if err != nil {
-		printer.Error("file_edit: failed to read file", "file", filename, "err", err)
-		return "error: failed to read file: " + err.Error(), false
+		t.printer.Error("file_edit: failed to read file", "file", params.Filename, "err", err)
+		return nil, err
 	}
 
 	// Check if oldText exists
-	if !strings.Contains(content, oldText) {
-		printer.Print(printer.IconTool, "file_edit: old_text not found in file", "file", filename)
-		return "warning: old_text not found in file, no changes made", true
+	if !strings.Contains(content, params.OldText) {
+		t.printer.Print(printer.IconTool, "file_edit: old_text not found in file", "file", params.Filename)
+		return &tools.Response{
+			Status: tools.StatusOK,
+			Result: "warning: old_text not found in file, no changes made",
+		}, nil
 	}
 
 	// Count occurrences - requires exact match and unique occurrence
-	count := strings.Count(content, oldText)
+	count := strings.Count(content, params.OldText)
 	if count > 1 {
-		printer.Error("file_edit: old_text appears multiple times", "file", filename, "count", count)
-		return fmt.Sprintf("error: old_text appears %d times in the file.", count), false
+		t.printer.Error("file_edit: old_text appears multiple times", "file", params.Filename, "count", count)
+		return nil, fmt.Errorf("file_edit: old_text appears %d times in the file", count)
 	}
 
-	outputDiff(printer.GetDefault(), oldText, newText)
+	t.outputDiff(params.OldText, params.NewText)
 
 	// Perform replacement (single occurrence)
-	newContent := strings.Replace(content, oldText, newText, 1)
+	newContent := strings.Replace(content, params.OldText, params.NewText, 1)
 
 	// Write the file back
-	err = f.writeFileContent(filename, newContent)
+	err = t.writeFileContent(params.Filename, newContent)
 	if err != nil {
-		printer.Error("file_edit: failed to write file", "file", filename, "err", err)
-		return "error: failed to write file: " + err.Error(), false
+		t.printer.Error("file_edit: failed to write file", "file", params.Filename, "err", err)
+		return nil, fmt.Errorf("file_edit: failed to write file: %w", err)
 	}
 
-	printer.ToolCall(printer.IconDone, "file_edit: file edited successfully", "file", filename)
-	return "File edited successfully. Changes have been saved.", true
+	t.printer.ToolCall(printer.IconDone, "file_edit: file edited successfully", "file", params.Filename)
+	return &tools.Response{
+		Status: tools.StatusOK,
+		Result: "File edited successfully. Changes have been saved.",
+	}, nil
 }
 
 // FileEditMultiple reads a file, applies multiple edits, and writes the result back.
-// Returns true if successful, false otherwise.
+// Returns a tools.Response with the result string and success flag.
 // Note: Each edit in the array will replace ALL occurrences of its old_text by default.
-func (f *FileEditTools) FileEditMultiple(filename string, edits []FileEditEdit, strategy string) (string, bool) {
-	printer.ToolCall(printer.IconTool, "file_edit_multiple", "file", filename, "edits_count", len(edits))
+func (t *Tool) FileEditMultiple(ctx context.Context, params *FileEditParamsMultiple) (any, error) {
+	if params == nil {
+		return nil, errors.New("invalid params")
+	}
 
-	if f.state.ReadOnly {
-		printer.Error("file_edit_multiple: blocked by read-only mode", "file", filename)
-		return "error: file_edit_multiple is disabled in read-only mode", false
+	t.printer.ToolCall(printer.IconTool, "file_edit_multiple", "file", params.Filename, "edits_count", len(params.Edits))
+
+	if t.state.ReadOnly {
+		t.printer.Error("file_edit_multiple: blocked by read-only mode", "file", params.Filename)
+		return nil, errors.New("file_edit_multiple is disabled in read-only mode")
 	}
 
 	// Check security
-	if !f.isSafePath(filename) {
-		printer.Error("file_edit_multiple: blocked unsafe path", "file", filename)
-		return "error: file path is not allowed", false
+	if !t.isSafePath(params.Filename) {
+		t.printer.Error("file_edit_multiple: blocked unsafe path", "file", params.Filename)
+		return nil, errors.New("file path is not allowed")
 	}
 
 	// Read the file
-	content, err := f.readFileContent(filename)
+	content, err := t.readFileContent(params.Filename)
 	if err != nil {
-		printer.Error("file_edit_multiple: failed to read file", "file", filename, "err", err)
-		return "error: failed to read file: " + err.Error(), false
+		t.printer.Error("file_edit_multiple: failed to read file", "file", params.Filename, "err", err)
+		return nil, err
 	}
 
 	newContent := content
 	editsApplied := 0
 
-	for _, edit := range edits {
-		if strategy == "first" {
+	for _, edit := range params.Edits {
+		if params.Strategy == "first" {
 			// Replace only the first occurrence
 			if strings.Contains(newContent, edit.OldText) {
 				newContent = strings.Replace(newContent, edit.OldText, edit.NewText, 1)
 				editsApplied++
-				outputDiff(printer.GetDefault(), edit.OldText, edit.NewText)
+				t.outputDiff(edit.OldText, edit.NewText)
 			}
 		} else {
 			// Replace all occurrences (default behavior)
 			if strings.Contains(newContent, edit.OldText) {
 				newContent = strings.ReplaceAll(newContent, edit.OldText, edit.NewText)
 				editsApplied++
-				outputDiff(printer.GetDefault(), edit.OldText, edit.NewText)
+				t.outputDiff(edit.OldText, edit.NewText)
 			}
 		}
 	}
 
 	// Check if any edits were actually applied
 	if editsApplied == 0 {
-		printer.Print(printer.IconTool, "file_edit_multiple: no edits applied", "file", filename)
-		return "warning: no changes were applied (old_text not found in file)", true
+		t.printer.Print(printer.IconTool, "file_edit_multiple: no edits applied", "file", params.Filename)
+		return &tools.Response{
+			Status: tools.StatusOK,
+			Result: "warning: no changes were applied (old_text not found in file)",
+		}, nil
 	}
 
 	// Write the file back
-	err = f.writeFileContent(filename, newContent)
+	err = t.writeFileContent(params.Filename, newContent)
 	if err != nil {
-		printer.Error("file_edit_multiple: failed to write file", "file", filename, "err", err)
-		return "error: failed to write file: " + err.Error(), false
+		t.printer.Error("file_edit_multiple: failed to write file", "file", params.Filename, "err", err)
+		return nil, fmt.Errorf("file_edit_multiple: failed to write file: %w", err)
 	}
 
-	printer.ToolCall(printer.IconDone, "file_edit_multiple: file edited successfully", "file", filename, "edits_applied", editsApplied)
-	return "File edited successfully. " + strconv.Itoa(editsApplied) + " changes have been saved.", true
+	t.printer.ToolCall(printer.IconDone, "file_edit_multiple: file edited successfully", "file", params.Filename, "edits_applied", editsApplied)
+	return &tools.Response{
+		Status: tools.StatusOK,
+		Result: "File edited successfully. " + strconv.Itoa(editsApplied) + " changes have been saved.",
+	}, nil
 }
 
 // isSafePath checks if the file path is safe to edit.
-func (f *FileEditTools) isSafePath(filename string) bool {
+func (t *Tool) isSafePath(filename string) bool {
 	// Prevent editing files outside the root directory
 	// First, try to get the absolute path from the root
 	var absPath string
 	var err error
 
-	if f.root != nil {
+	if t.root != nil {
 		// Resolve relative to root
-		rootName := f.root.Name()
+		rootName := t.root.Name()
 		if filepath.IsAbs(filename) {
 			absPath, err = filepath.Abs(filename)
 		} else {
@@ -196,11 +231,11 @@ func (f *FileEditTools) isSafePath(filename string) bool {
 		return false
 	}
 
-	if f.root == nil {
+	if t.root == nil {
 		return false
 	}
 
-	rootPath := f.root.Name()
+	rootPath := t.root.Name()
 	relPath, err := filepath.Rel(rootPath, absPath)
 	if err != nil {
 		return false
@@ -234,7 +269,7 @@ func (f *FileEditTools) isSafePath(filename string) bool {
 // Returns an error for formats handled by a codec (.docx, .pdf, .odt, .xlsx, .pptx, .csv, .tsv, .html, .htm)
 // because those are binary or structured formats that cannot be round-tripped through text replacement.
 // Use file_write or a dedicated tool for such formats.
-func (f *FileEditTools) readFileContent(filename string) (string, error) {
+func (t *Tool) readFileContent(filename string) (string, error) {
 	ext := strings.ToLower(filepath.Ext(filename))
 	if _, err := codec.GetCodec(ext); err == nil {
 		return "", fmt.Errorf(
@@ -242,7 +277,7 @@ func (f *FileEditTools) readFileContent(filename string) (string, error) {
 		)
 	}
 
-	data, err := f.root.ReadFile(filename)
+	data, err := t.root.ReadFile(filename)
 	if err != nil {
 		return "", err
 	}
@@ -250,18 +285,18 @@ func (f *FileEditTools) readFileContent(filename string) (string, error) {
 }
 
 // writeFileContent writes content to file.
-func (f *FileEditTools) writeFileContent(filename string, content string) error {
+func (t *Tool) writeFileContent(filename string, content string) error {
 	// Create directories if they don't exist
 	dir := filepath.Dir(filename)
-	if err := f.root.MkdirAll(dir, 0o755); err != nil {
+	if err := t.root.MkdirAll(dir, 0o755); err != nil {
 		return err
 	}
 
-	return f.root.WriteFile(filename, []byte(content), 0o644)
+	return t.root.WriteFile(filename, []byte(content), 0o644)
 }
 
 // DefinitionFileEdit returns the OpenAI tool schema for file_edit.
-func (f *FileEditTools) DefinitionFileEdit() openai.Tool {
+func (t *Tool) DefinitionFileEdit() openai.Tool {
 	return openai.Tool{
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
@@ -293,7 +328,7 @@ func (f *FileEditTools) DefinitionFileEdit() openai.Tool {
 }
 
 // DefinitionFileEditMultiple returns the OpenAI tool schema for file_edit_multiple.
-func (f *FileEditTools) DefinitionFileEditMultiple() openai.Tool {
+func (t *Tool) DefinitionFileEditMultiple() openai.Tool {
 	return openai.Tool{
 		Type: openai.ToolTypeFunction,
 		Function: &openai.FunctionDefinition{
@@ -339,35 +374,41 @@ func (f *FileEditTools) DefinitionFileEditMultiple() openai.Tool {
 }
 
 // Dispatch handles a tool call by name, parsing JSON args and returning the result as a string.
-func (f *FileEditTools) Dispatch(name string, args string) string {
+func (t *Tool) Dispatch(name string, args string) string {
 	switch name {
 	case "file_edit":
 		var params FileEditParams
 		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			printer.Error("file_edit: failed to parse args", "args", args, "err", err)
+			t.printer.Error("file_edit: failed to parse args", "args", args, "err", err)
 			return "error: failed to parse arguments"
 		}
-		result, ok := f.FileEdit(params.Filename, params.OldText, params.NewText)
-		if !ok {
-			return result // error message
+		result, err := t.FileEdit(context.Background(), &params)
+		if err != nil {
+			return err.Error()
 		}
-		return result
+		if resp, ok := result.(*tools.Response); ok {
+			return resp.Result
+		}
+		return fmt.Sprintf("%v", result)
 
 	case "file_edit_multiple":
 		var params FileEditParamsMultiple
 		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			printer.Error("file_edit_multiple: failed to parse args", "args", args, "err", err)
+			t.printer.Error("file_edit_multiple: failed to parse args", "args", args, "err", err)
 			return "error: failed to parse arguments"
 		}
 		// Default strategy to "all" if not specified
 		if params.Strategy == "" {
 			params.Strategy = "all"
 		}
-		result, ok := f.FileEditMultiple(params.Filename, params.Edits, params.Strategy)
-		if !ok {
-			return result // error message
+		result, err := t.FileEditMultiple(context.Background(), &params)
+		if err != nil {
+			return err.Error()
 		}
-		return result
+		if resp, ok := result.(*tools.Response); ok {
+			return resp.Result
+		}
+		return fmt.Sprintf("%v", result)
 
 	default:
 		return "error: unknown tool " + name
@@ -452,8 +493,8 @@ func StaticDefinitionFileEditMultiple() openai.Tool {
 	}
 }
 
-func outputDiff(p printer.Printer, oldText string, newText string) {
+func (t *Tool) outputDiff(oldText string, newText string) {
 	dmp := diffmatchpatch.New()
 	diffs := dmp.DiffMain(oldText, newText, false)
-	p.PrintRaw(dmp.DiffPrettyText(diffs))
+	t.printer.PrintRaw(dmp.DiffPrettyText(diffs))
 }

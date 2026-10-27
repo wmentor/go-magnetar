@@ -14,6 +14,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/agent/chat"
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	skillplugin "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/skill"
 	version "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/version"
@@ -21,6 +22,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/response"
 	"github.com/wmentor/go-magnetar/internal/skill"
 	"github.com/wmentor/go-magnetar/internal/template"
+	"github.com/wmentor/go-magnetar/internal/tools"
 )
 
 type Globals struct {
@@ -84,15 +86,6 @@ func Execute() error {
 
 	responseStore := response.New(plugin.DefaultResponseStoreSize) // circular buffer with capacity DefaultResponseStoreSize
 
-	state := &plugin.State{Config: cfg, ReadOnly: root.ReadOnly, SkillStore: skillStore, ResponseStore: responseStore}
-	state.TimingEnabled.Store(root.Timing)
-
-	if err := plugin.InitAll(state); err != nil {
-		return err
-	}
-
-	defer plugin.Stop()
-
 	rootFS, err := os.OpenRoot(workDir)
 	if err != nil {
 		return fmt.Errorf("open work dir error: %w", err)
@@ -105,7 +98,26 @@ func Execute() error {
 
 	printer.Verbose(cfg.Bool("verbose") && root.File == "")
 
-	agent, err := chat.New(cfg, rootFS)
+	toolStore := tools.NewStore()
+
+	state := &plugin.State{
+		Config:           cfg,
+		ReadOnly:         root.ReadOnly,
+		SkillStore:       skillStore,
+		ResponseStore:    responseStore,
+		ToolStore:        toolStore,
+		RequesterFactory: requester.NewFactory(),
+		Printer:          printer.GetDefault(),
+	}
+	state.TimingEnabled.Store(root.Timing)
+
+	if err := plugin.InitAll(state); err != nil {
+		return err
+	}
+
+	defer plugin.Stop()
+
+	agent, err := chat.New(cfg, rootFS, toolStore)
 	if err != nil {
 		return err
 	}
@@ -151,7 +163,7 @@ func Execute() error {
 			}
 		}
 
-		answer, err := agent.Ask(txt)
+		answer, err := agent.Ask(state, txt)
 		if err != nil {
 			return errors.Wrap(err, "agent error")
 		}
