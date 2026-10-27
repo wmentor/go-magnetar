@@ -111,6 +111,24 @@ Paris is the capital of France.
 > ^D   ← Ctrl+D or /exit to quit
 ```
 
+### Project Context (AGENTS.md / CLAUDE.md)
+
+If a file named `AGENTS.md` or `CLAUDE.md` exists in the current directory, its content is automatically loaded into the agent's system prompt. This allows you to define project-specific instructions, conventions, and context.
+
+- **Priority**: `AGENTS.md` takes precedence over `CLAUDE.md`. If both files exist, only `AGENTS.md` is loaded.
+- **Use cases**: Custom instructions, coding standards, project-specific guidelines, API documentation, etc.
+
+Example `AGENTS.md`:
+
+```markdown
+You are an expert developer working on my-project. Follow these rules:
+- Always write unit tests for new code
+- Use Go 1.27+ features when appropriate
+- Follow the project's coding style as documented in docs/style.md
+```
+
+The content is appended to the system prompt as a section titled "Project context". See [docs/agent_tools.md](./docs/agent_tools.md) for more information.
+
 ## What the agent can do
 
 Beyond answering questions, the agent has access to tools it can call automatically:
@@ -120,10 +138,12 @@ Beyond answering questions, the agent has access to tools it can call automatica
 | `file_read` | Read local files (`.md`, `.txt`, `.pdf`, `.docx`, `.xlsx`, and more) |
 | `file_list` | List files in the current directory by glob pattern |
 | `file_write` | Write content to a file |
+| `file_edit` | Edit a plain-text file by replacing text (case-sensitive, exact match required) |
 | `exec` | Run shell commands (with a built-in safety guard) |
 | `system_grep` | Search file contents with rg (ripgrep) or grep (case-insensitive, recursive, line numbers) |
 | `web_fetch` | Fetch a URL and return its content as Markdown (transparently handles Confluence, JIRA, GitHub, GitLab, RSS feeds when corresponding plugins are enabled). See [docs/tool_web_fetch.md](./docs/tool_web_fetch.md) for complete documentation |
-| `search` | Execute web and knowledge base search in parallel and return merged results |
+| `web_search` | Execute web search and return results in Markdown format |
+| `rag_search` | Search knowledge base for relevant documents |
 | `ssh` | Execute commands on a remote server via SSH (when enabled) |
 | `cve` | Look up vulnerability info from the OSV database |
 | `github_*` | Read GitHub repos, files, issues, milestones |
