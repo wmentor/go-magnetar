@@ -10,13 +10,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/wmentor/go-magnetar/internal/adapter/nist"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
 )
 
-const cveDefaultTimeout = 30 * time.Second
+const cveDefaultTimeout = 2 * time.Minute
 
 type Tool struct {
 	cfg           *config.Config
@@ -60,10 +61,28 @@ func (t *Tool) FetchVulnerability(ctx context.Context, params *Params) (any, err
 		return nil, fmt.Errorf("cve: failed to parse identifier: %w", err)
 	}
 
-	apiURL := fmt.Sprintf("https://api.osv.dev/v1/vulns/%s", parsedID)
-
 	client := t.clientFactory.Get()
 	defer t.clientFactory.Put(client)
+
+	if strings.HasPrefix(params.ID, "CVE-") {
+		// Use NIST adapter for CVE identifiers
+		nistAdapter := nist.NewAdapter(client)
+		cveData, err := nistAdapter.Get(ctx, parsedID)
+		if err != nil {
+			return nil, fmt.Errorf("cve: failed to fetch from NIST: %w", err)
+		}
+
+		// Map NIST CVE data to Vulnerability struct
+		t.printer.ToolCall(printer.IconDone, "information about the vulnerability was received", "vuln", params.ID)
+		vulnData := mapNISTToVulnerability(cveData)
+		return &tools.Response{
+			Status: tools.StatusOK,
+			Result: formatVulnerabilityMarkdown(&vulnData),
+		}, nil
+	}
+
+	// Use OSV API for non-CVE identifiers
+	apiURL := fmt.Sprintf("https://api.osv.dev/v1/vulns/%s", parsedID)
 
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, http.NoBody)
 	if err != nil {
@@ -91,6 +110,7 @@ func (t *Tool) FetchVulnerability(ctx context.Context, params *Params) (any, err
 		return nil, fmt.Errorf("cve: failed to parse response: %w", err)
 	}
 
+	t.printer.ToolCall(printer.IconDone, "information about the vulnerability was received", "vuln", params.ID)
 	return &tools.Response{
 		Status: tools.StatusOK,
 		Result: formatVulnerabilityMarkdown(&vulnData),
@@ -138,6 +158,9 @@ type Vulnerability struct {
 	References    []Reference       `json:"references,omitempty"`
 	Affected      []AffectedPackage `json:"affected,omitempty"`
 	SchemaVersion string            `json:"schema_version,omitempty"`
+	// NIST-specific fields
+	BaseScore    float64 `json:"base_score,omitempty"`
+	BaseSeverity string  `json:"base_severity,omitempty"`
 }
 
 type Reference struct {
@@ -170,6 +193,27 @@ type RangeEvent struct {
 	Limit      string `json:"limit,omitempty"`
 }
 
+// mapNISTToVulnerability maps NIST CVE data to the Vulnerability struct.
+func mapNISTToVulnerability(cveData *nist.CVE) Vulnerability {
+	vuln := Vulnerability{
+		ID:           cveData.ID,
+		Summary:      cveData.Description,
+		Published:    cveData.Published,
+		References:   make([]Reference, len(cveData.References)),
+		BaseScore:    cveData.BaseScore,
+		BaseSeverity: cveData.BaseSeverity,
+	}
+
+	// Map references
+	for i, ref := range cveData.References {
+		vuln.References[i] = Reference{
+			URL: ref.URL,
+		}
+	}
+
+	return vuln
+}
+
 func formatVulnerabilityMarkdown(vuln *Vulnerability) string {
 	if vuln == nil {
 		return ""
@@ -187,6 +231,11 @@ func formatVulnerabilityMarkdown(vuln *Vulnerability) string {
 	fmt.Fprintf(&sb, "**Modified:** %s\n\n", vuln.Modified)
 	if vuln.Removed != "" {
 		fmt.Fprintf(&sb, "**Removed:** %s\n\n", vuln.Removed)
+	}
+
+	// Add CVSS score if available
+	if vuln.BaseScore != 0 {
+		fmt.Fprintf(&sb, "**CVSS Score:** %.1f %s\n\n", vuln.BaseScore, vuln.BaseSeverity)
 	}
 
 	if vuln.Details != "" {
