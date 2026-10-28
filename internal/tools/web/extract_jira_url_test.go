@@ -1,6 +1,8 @@
 package web
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestExtractIssueKeyFromJIRAURL(t *testing.T) {
 	t.Parallel()
@@ -94,16 +96,16 @@ func TestExtractIssueKeyFromJIRAURL(t *testing.T) {
 					t.Parallel()
 
 					input := prefix + path + tt.suffix
-					got, err := extractIssueKeyFromJIRAURL(input)
+					got, err := ExtractIssueKeyFromJIRAURL(input)
 					if tt.wantErr != "" {
 						if err == nil || err.Error() != tt.wantErr {
-							t.Fatalf("extractIssueKeyFromJIRAURL(%q) error = %v, want %q", input, err, tt.wantErr)
+							t.Fatalf("ExtractIssueKeyFromJIRAURL(%q) error = %v, want %q", input, err, tt.wantErr)
 						}
 					} else if err != nil {
-						t.Fatalf("extractIssueKeyFromJIRAURL(%q) unexpected error: %v", input, err)
+						t.Fatalf("ExtractIssueKeyFromJIRAURL(%q) unexpected error: %v", input, err)
 					}
 					if got != tt.wantKey {
-						t.Errorf("extractIssueKeyFromJIRAURL(%q) = %q, want %q", input, got, tt.wantKey)
+						t.Errorf("ExtractIssueKeyFromJIRAURL(%q) = %q, want %q", input, got, tt.wantKey)
 					}
 				})
 			}
@@ -128,12 +130,12 @@ func TestExtractIssueKeyFromJIRAURLInvalidInput(t *testing.T) {
 		t.Run(input, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := extractIssueKeyFromJIRAURL(input)
+			got, err := ExtractIssueKeyFromJIRAURL(input)
 			if err == nil || err.Error() != "not a JIRA issue URL" {
-				t.Fatalf("extractIssueKeyFromJIRAURL(%q) error = %v, want not a JIRA issue URL", input, err)
+				t.Fatalf("ExtractIssueKeyFromJIRAURL(%q) error = %v, want not a JIRA issue URL", input, err)
 			}
 			if got != "" {
-				t.Errorf("extractIssueKeyFromJIRAURL(%q) = %q, want an empty key", input, got)
+				t.Errorf("ExtractIssueKeyFromJIRAURL(%q) = %q, want an empty key", input, got)
 			}
 		})
 	}
@@ -151,12 +153,12 @@ func TestExtractIssueKeyFromJIRAURLPatternPrecedence(t *testing.T) {
 		t.Run(input, func(t *testing.T) {
 			t.Parallel()
 
-			got, err := extractIssueKeyFromJIRAURL(input)
+			got, err := ExtractIssueKeyFromJIRAURL(input)
 			if err != nil {
-				t.Fatalf("extractIssueKeyFromJIRAURL(%q) unexpected error: %v", input, err)
+				t.Fatalf("ExtractIssueKeyFromJIRAURL(%q) unexpected error: %v", input, err)
 			}
 			if got != "GOARCH-60" {
-				t.Errorf("extractIssueKeyFromJIRAURL(%q) = %q, want GOARCH-60", input, got)
+				t.Errorf("ExtractIssueKeyFromJIRAURL(%q) = %q, want GOARCH-60", input, got)
 			}
 		})
 	}
@@ -165,12 +167,12 @@ func TestExtractIssueKeyFromJIRAURLPatternPrecedence(t *testing.T) {
 		t.Parallel()
 
 		input := "https://jira.example.com/issues/OTHER-1/browse/"
-		got, err := extractIssueKeyFromJIRAURL(input)
+		got, err := ExtractIssueKeyFromJIRAURL(input)
 		if err == nil || err.Error() != "issue key is empty" {
-			t.Fatalf("extractIssueKeyFromJIRAURL(%q) error = %v, want issue key is empty", input, err)
+			t.Fatalf("ExtractIssueKeyFromJIRAURL(%q) error = %v, want issue key is empty", input, err)
 		}
 		if got != "" {
-			t.Errorf("extractIssueKeyFromJIRAURL(%q) = %q, want an empty key", input, got)
+			t.Errorf("ExtractIssueKeyFromJIRAURL(%q) = %q, want an empty key", input, got)
 		}
 	})
 }

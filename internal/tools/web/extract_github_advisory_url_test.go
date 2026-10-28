@@ -71,13 +71,13 @@ func TestExtractGitHubAdvisoryURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := extractGitHubAdvisoryURL(tt.input)
+			got, err := ExtractGitHubAdvisoryURL(tt.input)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("extractGitHubAdvisoryURL(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+				t.Errorf("ExtractGitHubAdvisoryURL(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
 				return
 			}
 			if got != tt.want {
-				t.Errorf("extractGitHubAdvisoryURL(%q) = %q, want %q", tt.input, got, tt.want)
+				t.Errorf("ExtractGitHubAdvisoryURL(%q) = %q, want %q", tt.input, got, tt.want)
 			}
 		})
 	}

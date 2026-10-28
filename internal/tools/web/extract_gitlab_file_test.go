@@ -115,29 +115,24 @@ func TestExtractGitLabFileURL(t *testing.T) {
 			input:   "",
 			wantErr: true,
 		},
-		{
-			name:    "empty input",
-			input:   "",
-			wantErr: true,
-		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			gotProject, gotBranch, gotFile, err := extractGitLabFileURL(tt.input)
+			gotProject, gotBranch, gotFile, err := ExtractGitLabFileURL(tt.input)
 			if tt.wantErr {
 				if err == nil {
-					t.Fatalf("extractGitLabFileURL(%q) = (%q, %q, %q, nil), want an error", tt.input, gotProject, gotBranch, gotFile)
+					t.Fatalf("ExtractGitLabFileURL(%q) = (%q, %q, %q, nil), want an error", tt.input, gotProject, gotBranch, gotFile)
 				}
 				if gotProject != "" || gotBranch != "" || gotFile != "" {
-					t.Errorf("extractGitLabFileURL(%q) = (%q, %q, %q), want empty values with the error", tt.input, gotProject, gotBranch, gotFile)
+					t.Errorf("ExtractGitLabFileURL(%q) = (%q, %q, %q), want empty values with the error", tt.input, gotProject, gotBranch, gotFile)
 				}
 				return
 			}
 			if err != nil {
-				t.Fatalf("extractGitLabFileURL(%q) unexpected error: %v", tt.input, err)
+				t.Fatalf("ExtractGitLabFileURL(%q) unexpected error: %v", tt.input, err)
 			}
 			if gotProject != tt.want.project {
 				t.Errorf("project = %q, want %q", gotProject, tt.want.project)
