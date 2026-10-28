@@ -10,7 +10,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/plugin"
+	"github.com/wmentor/go-magnetar/internal/printer"
+	"github.com/wmentor/go-magnetar/internal/tools"
 )
 
 type mockHub struct {
@@ -49,12 +52,19 @@ func TestInitRegistersWebToolsUnlessDisabled(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+			cfg := loadConfig(t, tt.yaml)
 			hub := &mockHub{}
-			err := (&Plugin{}).Init(&plugin.State{Config: loadConfig(t, tt.yaml)}, hub)
+			state := &plugin.State{
+				Config:           cfg,
+				ToolStore:        tools.NewStore(),
+				RequesterFactory: requester.NewFactory(),
+				Printer:          printer.GetDefault(),
+			}
+			err := (&Plugin{}).Init(state, hub)
 			require.NoError(t, err)
 			var names []string
-			for _, tool := range hub.tools {
-				names = append(names, tool.Definition().Function.Name)
+			for _, tool := range state.ToolStore.Tools() {
+				names = append(names, tool.Name)
 			}
 			assert.Equal(t, tt.tools, names)
 		})

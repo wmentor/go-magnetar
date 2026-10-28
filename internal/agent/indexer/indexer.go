@@ -1,10 +1,12 @@
 package indexer
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/wmentor/go-magnetar/internal/chunk"
 	"github.com/wmentor/go-magnetar/internal/codec"
@@ -13,14 +15,14 @@ import (
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/store"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
-	"github.com/wmentor/go-magnetar/internal/tools/web"
+	"github.com/wmentor/go-magnetar/internal/tools/web/webfetch"
 )
 
 // Indexer chunks content into overlapping segments and stores them in the RAG knowledge base.
 type Indexer struct {
-	cfg *config.Config
-	rag *rag.RAGTools
-	web *web.WebTools
+	cfg   *config.Config
+	rag   *rag.RAGTools
+	fetch *webfetch.Tool
 }
 
 // New creates a new Indexer instance.
@@ -35,15 +37,12 @@ func New(cfg *config.Config, root *os.Root, state *plugin.State) (*Indexer, erro
 		return nil, fmt.Errorf("indexer: failed to initialise RAG tools: %w", err)
 	}
 
-	webTools, err := web.New(cfg, root, state)
-	if err != nil {
-		return nil, fmt.Errorf("indexer: failed to initialise web tools: %w", err)
-	}
+	fetchTool := webfetch.NewTool(cfg, state.Printer, state.RequesterFactory, state)
 
 	return &Indexer{
-		cfg: cfg,
-		rag: ragTools,
-		web: webTools,
+		cfg:   cfg,
+		rag:   ragTools,
+		fetch: fetchTool,
 	}, nil
 }
 
@@ -76,7 +75,10 @@ func (idx *Indexer) IndexFile(filename string, msg string) error {
 func (idx *Indexer) IndexURL(rawURL string, msg string) error {
 	printer.Print(printer.IconURL, "indexer: indexing URL", "url", rawURL)
 
-	content, err := idx.web.WebFetch(rawURL)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
+	defer cancel()
+
+	content, err := idx.fetch.WebFetchEngine(ctx, rawURL, false)
 	if err != nil {
 		return fmt.Errorf("indexer: failed to fetch URL %q: %w", rawURL, err)
 	}

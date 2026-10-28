@@ -33,9 +33,9 @@ var (
 	githubPRPathRe = regexp.MustCompile(`^/([^/]+)/([^/]+)/pull/(\d+)(?:/(files|commits))?$`)
 )
 
-// isGitHubPullRequestURL checks if the URL is likely a GitHub PR URL.
+// IsGitHubPullRequestURL checks if the URL is likely a GitHub PR URL.
 // Returns true only if the URL matches the expected PR pattern.
-func isGitHubPullRequestURL(rawURL string) bool {
+func IsGitHubPullRequestURL(rawURL string) bool {
 	if !strings.Contains(rawURL, "github.com/") {
 		return false
 	}
@@ -113,9 +113,9 @@ func githubURLPath(rawURL string) (string, error) {
 	return strings.TrimRight(u.EscapedPath(), "/"), nil
 }
 
-// extractGitHubTreeURL extracts owner, repo, branch, and path from GitHub tree URL.
+// ExtractGitHubTreeURL extracts owner, repo, branch, and path from GitHub tree URL.
 // Pattern: https://github.com/owner/repo/tree/branch/path or https://github.com/owner/repo/commits/branch
-func extractGitHubTreeURL(rawURL string) (string, string, string, string, error) {
+func ExtractGitHubTreeURL(rawURL string) (string, string, string, string, error) {
 	path, err := githubURLPath(rawURL)
 	if err != nil {
 		return "", "", "", "", err
@@ -130,9 +130,9 @@ func extractGitHubTreeURL(rawURL string) (string, string, string, string, error)
 	return "", "", "", "", errNotGitHubTreeURL
 }
 
-// extractGitHubFileURL extracts owner, repo, branch, and file path from GitHub blob URL.
+// ExtractGitHubFileURL extracts owner, repo, branch, and file path from GitHub blob URL.
 // Pattern: https://github.com/owner/repo/blob/branch/path/to/file
-func extractGitHubFileURL(rawURL string) (string, string, string, string, error) {
+func ExtractGitHubFileURL(rawURL string) (string, string, string, string, error) {
 	path, err := githubURLPath(rawURL)
 	if err != nil {
 		return "", "", "", "", err
@@ -150,7 +150,7 @@ func extractGitHubFileURL(rawURL string) (string, string, string, string, error)
 	return "", "", "", "", errNotGitHubBlobURL
 }
 
-func extractGitHubIssueURL(rawURL string) (string, string, string, error) {
+func ExtractGitHubIssueURL(rawURL string) (string, string, string, error) {
 	path, err := githubURLPath(rawURL)
 	if err != nil {
 		return "", "", "", err
@@ -163,7 +163,7 @@ func extractGitHubIssueURL(rawURL string) (string, string, string, error) {
 	return "", "", "", errNotGitHubIssueURL
 }
 
-func extractGitHubMilestoneURL(rawURL string) (string, string, string, error) {
+func ExtractGitHubMilestoneURL(rawURL string) (string, string, string, error) {
 	path, err := githubURLPath(rawURL)
 	if err != nil {
 		return "", "", "", err
@@ -176,7 +176,7 @@ func extractGitHubMilestoneURL(rawURL string) (string, string, string, error) {
 	return "", "", "", errNotGitHubMilestoneURL
 }
 
-func extractGitHubPullRequestURL(rawURL string) (string, string, string, error) {
+func ExtractGitHubPullRequestURL(rawURL string) (string, string, string, error) {
 	path, err := githubURLPath(rawURL)
 	if err != nil {
 		return "", "", "", err
@@ -190,7 +190,7 @@ func extractGitHubPullRequestURL(rawURL string) (string, string, string, error) 
 	return "", "", "", errNotGitHubPRURL
 }
 
-func extractGitHubAdvisoryURL(url string) (string, error) {
+func ExtractGitHubAdvisoryURL(url string) (string, error) {
 	if strings.Contains(url, "/advisories/") {
 		parts := strings.Split(url, "/advisories/")
 		if len(parts) > 1 {
@@ -214,9 +214,9 @@ func extractGitHubAdvisoryURL(url string) (string, error) {
 	return "", fmt.Errorf("not a GitHub advisory URL")
 }
 
-// extractGitHubReleaseURL extracts owner, repo, and tag from GitHub release URL.
+// ExtractGitHubReleaseURL extracts owner, repo, and tag from GitHub release URL.
 // Pattern: https://github.com/owner/repo/releases/tag/{tag}
-func extractGitHubReleaseURL(rawURL string) (string, string, string, error) {
+func ExtractGitHubReleaseURL(rawURL string) (string, string, string, error) {
 	path, err := githubURLPath(rawURL)
 	if err != nil {
 		return "", "", "", err
@@ -264,4 +264,45 @@ func extractGitHubReleaseURL(rawURL string) (string, string, string, error) {
 	}
 
 	return owner, repo, tag, nil
+}
+
+// ExtractIssueKeyFromJIRAURL extracts the issue key (e.g., GOARCH-60) from a JIRA URL.
+func ExtractIssueKeyFromJIRAURL(url string) (string, error) {
+	for _, path := range []string{"/browse/", "/issues/"} {
+		_, idPart, ok := strings.Cut(url, path)
+		if !ok {
+			continue
+		}
+		if idx := strings.IndexAny(idPart, "/?#"); idx != -1 {
+			idPart = idPart[:idx]
+		}
+		if idPart == "" {
+			return "", fmt.Errorf("issue key is empty")
+		}
+		return idPart, nil
+	}
+
+	return "", fmt.Errorf("not a JIRA issue URL")
+}
+
+// ExtractGitHubRepoURL extracts owner and repo from GitHub repository URL.
+func ExtractGitHubRepoURL(url string) (string, string, error) {
+	// Remove protocol prefix if present
+	url = strings.TrimPrefix(url, "https://github.com/")
+	url = strings.TrimPrefix(url, "http://github.com/")
+	url = strings.TrimPrefix(url, "github.com/")
+
+	// Split into owner and repo
+	parts := strings.Split(strings.Trim(url, "/"), "/")
+	if len(parts) < 2 {
+		return "", "", fmt.Errorf("invalid GitHub repository URL format")
+	}
+
+	owner := parts[0]
+	repo := parts[1]
+
+	// Remove .git suffix if present
+	repo = strings.TrimSuffix(repo, ".git")
+
+	return owner, repo, nil
 }

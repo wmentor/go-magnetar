@@ -6,8 +6,8 @@ import (
 	"strings"
 )
 
-// extractGitLabRepoURL extracts the project path from a GitLab repository URL.
-func extractGitLabRepoURL(rawURL string) (string, error) {
+// ExtractGitLabRepoURL extracts the project path from a GitLab repository URL.
+func ExtractGitLabRepoURL(rawURL string) (string, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return "", fmt.Errorf("invalid URL: %w", err)
@@ -27,8 +27,8 @@ func extractGitLabRepoURL(rawURL string) (string, error) {
 	return path, nil
 }
 
-// extractGitLabFileURL extracts project path, branch, and file from a GitLab file URL.
-func extractGitLabFileURL(rawURL string) (string, string, string, error) {
+// ExtractGitLabFileURL extracts project path, branch, and file from a GitLab file URL.
+func ExtractGitLabFileURL(rawURL string) (string, string, string, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return "", "", "", fmt.Errorf("invalid URL: %w", err)
@@ -74,8 +74,8 @@ func extractGitLabFileURL(rawURL string) (string, string, string, error) {
 	return projectPath, branch, file, nil
 }
 
-// extractGitLabTreeURL extracts project path, branch, and path from a GitLab tree URL.
-func extractGitLabTreeURL(rawURL string) (string, string, string, error) {
+// ExtractGitLabTreeURL extracts project path, branch, and path from a GitLab tree URL.
+func ExtractGitLabTreeURL(rawURL string) (string, string, string, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
 		return "", "", "", fmt.Errorf("invalid URL: %w", err)
@@ -122,4 +122,47 @@ func extractGitLabTreeURL(rawURL string) (string, string, string, error) {
 	}
 
 	return projectPath, branch, treePath, nil
+}
+
+// ExtractProjectAndMergeRequestFromGitLabURL extracts the project path and merge request ID from a GitLab URL.
+func ExtractProjectAndMergeRequestFromGitLabURL(rawURL string) (string, string, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", "", fmt.Errorf("invalid URL: %w", err)
+	}
+
+	// Handle URLs with /-/merge_requests/ and the short /-/mr/ form
+	for _, marker := range []string{"/-/merge_requests/", "/-/mr/"} {
+		if !strings.Contains(u.Path, marker) {
+			continue
+		}
+
+		// Split path at marker
+		parts := strings.SplitN(u.Path, marker, 2)
+		if len(parts) < 2 {
+			continue
+		}
+
+		// Extract project path (before marker)
+		projectPath := strings.TrimPrefix(parts[0], "/")
+
+		// Extract MR ID (after marker)
+		idPart := parts[1]
+		if idx2 := strings.Index(idPart, "/"); idx2 != -1 {
+			idPart = idPart[:idx2]
+		}
+		if idx2 := strings.Index(idPart, "?"); idx2 != -1 {
+			idPart = idPart[:idx2]
+		}
+		if idx2 := strings.Index(idPart, "#"); idx2 != -1 {
+			idPart = idPart[:idx2]
+		}
+		if idPart == "" {
+			return "", "", fmt.Errorf("merge request ID is empty")
+		}
+
+		return projectPath, idPart, nil
+	}
+
+	return "", "", fmt.Errorf("not a GitLab merge request URL")
 }

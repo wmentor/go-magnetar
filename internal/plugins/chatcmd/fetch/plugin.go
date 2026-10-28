@@ -8,27 +8,27 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/wmentor/go-magnetar/internal/common"
 	"github.com/wmentor/go-magnetar/internal/plugin"
-	"github.com/wmentor/go-magnetar/internal/tools/web"
+	"github.com/wmentor/go-magnetar/internal/tools/web/webfetch"
 )
 
 func init() {
 	plugin.Register("chatcmd.fetch", &Plugin{})
 }
 
+const (
+	timeout = time.Second * 30
+)
+
 type Plugin struct {
-	tools *web.WebTools
+	tool *webfetch.Tool
 }
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
-	webTools, err := web.New(s.Config, s.Root, s)
-	if err != nil {
-		return fmt.Errorf("indexer: failed to initialise web tools: %w", err)
-	}
-
-	p.tools = webTools
+	p.tool = webfetch.NewTool(s.Config, s.Printer, s.RequesterFactory, s)
 
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name:    "fetch",
@@ -40,7 +40,10 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	return nil
 }
 
-func (p *Plugin) execute(_ context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
+func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
 	args := params.Args
 	if args == "" {
 		fmt.Fprintln(os.Stdout, "Usage: /fetch <url> [file]")
@@ -59,7 +62,7 @@ func (p *Plugin) execute(_ context.Context, params *plugin.ChatCommandInput) (*p
 		filename = outputPath(parts[1])
 	}
 
-	content, err := p.tools.WebFetch(url)
+	content, err := p.tool.WebFetchEngine(ctx, url, true)
 	if err != nil {
 		fmt.Fprintf(os.Stdout, "Error fetching URL: %v\n", err)
 		return plugin.NopChatCommandResponse, nil
