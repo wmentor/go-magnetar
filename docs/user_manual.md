@@ -73,7 +73,7 @@ See [docs/skill.md](./skill.md) for complete skill documentation.
 
 ## Requirements
 
-- Go 1.27.2
+- Go 1.27.3
 - API key for any OpenAI-compatible provider (for LLM, embedding model, and optionally for web content cleaning)
 
 **Note:** Qdrant is **no longer required**. The default vector store is **Chromem** (built-in, in-memory with optional persistence). Qdrant is available as an optional external store for production deployments.
