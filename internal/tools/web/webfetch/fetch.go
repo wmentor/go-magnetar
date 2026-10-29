@@ -24,7 +24,10 @@ import (
 	"github.com/wmentor/go-magnetar/internal/tools"
 	"github.com/wmentor/go-magnetar/internal/tools/confluence"
 	"github.com/wmentor/go-magnetar/internal/tools/github"
-	"github.com/wmentor/go-magnetar/internal/tools/gitlab"
+	gitlabfile "github.com/wmentor/go-magnetar/internal/tools/gitlab/file"
+	"github.com/wmentor/go-magnetar/internal/tools/gitlab/mr"
+	"github.com/wmentor/go-magnetar/internal/tools/gitlab/repo"
+	"github.com/wmentor/go-magnetar/internal/tools/gitlab/tree"
 	"github.com/wmentor/go-magnetar/internal/tools/jira"
 	"github.com/wmentor/go-magnetar/internal/tools/rss"
 	"github.com/wmentor/go-magnetar/internal/tools/web"
@@ -353,25 +356,70 @@ func (t *Tool) mimeCodecWork(myCodec codec.Codec, content []byte) (string, error
 // fetchGitLabMergeRequest fetches a GitLab merge request and returns its content.
 func (t *Tool) fetchGitLabMergeRequest(projectPath string, mrID string) (string, error) {
 	t.printer.ToolCall(printer.IconSearch, "web_fetch: fetch GitLab merge request", "project_path", projectPath, "mr_id", mrID)
-	return gitlab.New(t.cfg).FetchMergeRequest(projectPath, mrID)
+	tool := mr.New(t.cfg, t.printer, t.clientFactory)
+	result, err := tool.Exec(context.Background(), &mr.GitLabMRParams{
+		ProjectPath: projectPath,
+		MRID:        mrID,
+	})
+	if err != nil {
+		return "", err
+	}
+	if resp, ok := result.(*tools.Response); ok {
+		return resp.Result, nil
+	}
+	return fmt.Sprintf("%v", result), nil
 }
 
 // fetchGitLabRepository fetches a GitLab repository and returns its content.
 func (t *Tool) fetchGitLabRepository(projectPath string) (string, error) {
 	t.printer.ToolCall(printer.IconSearch, "web_fetch: fetch GitLab repository", "project_path", projectPath)
-	return gitlab.New(t.cfg).FetchRepository(projectPath)
+	tool := repo.New(t.cfg, t.printer, t.clientFactory)
+	result, err := tool.Exec(context.Background(), &repo.GitLabRepoParams{
+		ProjectPath: projectPath,
+	})
+	if err != nil {
+		return "", err
+	}
+	if resp, ok := result.(*tools.Response); ok {
+		return resp.Result, nil
+	}
+	return fmt.Sprintf("%v", result), nil
 }
 
 // fetchGitLabFile fetches a GitLab file and returns its content.
 func (t *Tool) fetchGitLabFile(projectPath string, branch string, file string) (string, error) {
 	t.printer.ToolCall(printer.IconSearch, "web_fetch: fetch GitLab file", "project_path", projectPath, "branch", branch, "file", file)
-	return gitlab.New(t.cfg).FetchFile(projectPath, branch, file)
+	tool := gitlabfile.New(t.cfg, t.printer, t.clientFactory)
+	result, err := tool.Exec(context.Background(), &gitlabfile.GitLabFileParams{
+		ProjectPath: projectPath,
+		Branch:      branch,
+		File:        file,
+	})
+	if err != nil {
+		return "", err
+	}
+	if resp, ok := result.(*tools.Response); ok {
+		return resp.Result, nil
+	}
+	return fmt.Sprintf("%v", result), nil
 }
 
 // fetchGitLabTree fetches a GitLab directory tree and returns its content.
 func (t *Tool) fetchGitLabTree(projectPath string, branch string, path string) (string, error) {
 	t.printer.ToolCall(printer.IconSearch, "web_fetch: fetch GitLab tree", "project_path", projectPath, "branch", branch, "path", path)
-	return gitlab.New(t.cfg).FetchTree(projectPath, branch, path)
+	tool := tree.New(t.cfg, t.printer, t.clientFactory)
+	result, err := tool.Exec(context.Background(), &tree.GitLabTreeParams{
+		ProjectPath: projectPath,
+		Branch:      branch,
+		Path:        path,
+	})
+	if err != nil {
+		return "", err
+	}
+	if resp, ok := result.(*tools.Response); ok {
+		return resp.Result, nil
+	}
+	return fmt.Sprintf("%v", result), nil
 }
 
 // StaticDefinition returns the OpenAI tool schema for web_fetch without
