@@ -17,12 +17,13 @@ func init() {
 }
 
 type Plugin struct {
-	tools *confluence.ConfluenceTools
+	state *plugin.State
+	tool  *confluence.EditTool
 }
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
-	tools := confluence.New(s.Config, s)
-	p.tools = tools
+	p.state = s
+	p.tool = confluence.NewEditTool(s.Config, nil, nil, s)
 
 	if s.Config.Bool("confluence.enable") && s.Config.String("confluence.base_url") != "" {
 		hub.RegisterChatCommand(plugin.ChatCommand{
@@ -74,9 +75,14 @@ func (p *Plugin) execute(_ context.Context, params *plugin.ChatCommandInput) (*p
 		return plugin.NopChatCommandResponse, nil
 	}
 
-	if _, err = p.tools.EditPage(pageID, string(markdownContent)); err != nil {
+	result, err := p.tool.EditPage(context.Background(), &confluence.EditPageParams{
+		PageID:   pageID,
+		Markdown: string(markdownContent),
+	})
+	if err != nil {
 		return nil, errors.Wrap(err, "edit page")
 	}
+	_ = result // ignore return value
 
 	return plugin.NopChatCommandResponse, nil
 }

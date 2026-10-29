@@ -102,8 +102,20 @@ func (t *Tool) WebFetchEngine(ctx context.Context, urlStr string, isFetch bool) 
 			pageID, err := confluence.ExtractPageIDURL(urlStr)
 			if err == nil && pageID != "" {
 				isShortID := strings.Contains(urlStr, "/x/") || strings.Contains(urlStr, "/p/")
-				confluencePlugin := confluence.New(t.cfg, t.state)
-				return confluencePlugin.FetchPage(pageID, isShortID)
+				// Use FetchTool directly
+				fetchTool := confluence.NewFetchTool(t.cfg, t.printer, t.clientFactory)
+				result, err := fetchTool.FetchPage(context.Background(), &confluence.FetchPageParams{
+					PageID:  pageID,
+					IsShort: isShortID,
+				})
+				if err != nil {
+					t.printer.Error("confluence_page_fetch: failed to fetch page", "url", urlStr, "err", err)
+					return "", fmt.Errorf("confluence_page_fetch: failed to fetch page %q: %w", urlStr, err)
+				}
+				if resp, ok := result.(*tools.Response); ok {
+					return resp.Result, nil
+				}
+				return "", fmt.Errorf("confluence_page_fetch: unexpected result type: %T", result)
 			}
 		}
 	}
