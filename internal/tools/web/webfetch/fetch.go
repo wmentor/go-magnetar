@@ -180,14 +180,16 @@ func (t *Tool) WebFetchEngine(ctx context.Context, urlStr string, isFetch bool) 
 			if strings.Contains(urlStr, "/blob/") {
 				owner, repo, branch, file, err := web.ExtractGitHubFileURL(urlStr)
 				if err == nil && owner != "" && repo != "" && file != "" {
-					return github.New(t.cfg).FetchFile(owner+"/"+repo, branch, file)
+					ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+					return ghTools.FetchFile(owner+"/"+repo, branch, file)
 				}
 			}
 			// Check for pull request before tree/commits to avoid conflicts with /pull/123/commits
 			if web.IsGitHubPullRequestURL(urlStr) {
 				owner, repo, prNum, err := web.ExtractGitHubPullRequestURL(urlStr)
 				if err == nil && owner != "" && repo != "" && prNum != "" {
-					return github.New(t.cfg).FetchPullRequest(owner+"/"+repo, prNum)
+					ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+					return ghTools.FetchPullRequest(owner+"/"+repo, prNum)
 				}
 			}
 			if strings.Contains(urlStr, "/tree/") || strings.Contains(urlStr, "/commits/") || strings.HasSuffix(urlStr, "/") {
@@ -196,43 +198,50 @@ func (t *Tool) WebFetchEngine(ctx context.Context, urlStr string, isFetch bool) 
 					if branch == "" {
 						branch = "main"
 					}
-					return github.New(t.cfg).FetchTree(owner+"/"+repo, branch, path)
+					ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+					return ghTools.FetchTree(owner+"/"+repo, branch, path)
 				}
 			}
 			if strings.Contains(urlStr, "/issues/") {
 				owner, repo, issueNum, err := web.ExtractGitHubIssueURL(urlStr)
 				if err == nil && owner != "" && repo != "" && issueNum != "" {
-					return github.New(t.cfg).FetchIssue(owner+"/"+repo, issueNum)
+					ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+					return ghTools.FetchIssue(owner+"/"+repo, issueNum)
 				}
 			}
 			if strings.Contains(urlStr, "/milestone/") {
 				owner, repo, milestoneNum, err := web.ExtractGitHubMilestoneURL(urlStr)
 				if err == nil && owner != "" && repo != "" && milestoneNum != "" {
-					return github.New(t.cfg).FetchMilestone(owner+"/"+repo, milestoneNum)
+					ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+					return ghTools.FetchMilestone(owner+"/"+repo, milestoneNum)
 				}
 			}
 			if strings.Contains(urlStr, "/advisories/") || strings.Contains(urlStr, "/security/advisories") {
 				if strings.Contains(urlStr, "/security/advisories") && !strings.Contains(urlStr, "/advisories/GHSA-") {
 					owner, repo, err := web.ExtractGitHubRepoURL(urlStr)
 					if err == nil && owner != "" && repo != "" {
-						return github.New(t.cfg).FetchRepoAdvisories(owner + "/" + repo)
+						ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+						return ghTools.FetchRepoAdvisories(owner + "/" + repo)
 					}
 				} else {
 					advisoryID, err := web.ExtractGitHubAdvisoryURL(urlStr)
 					if err == nil && advisoryID != "" {
-						return github.New(t.cfg).FetchAdvisory(advisoryID)
+						ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+						return ghTools.FetchAdvisory(advisoryID)
 					}
 				}
 			}
 			if strings.Contains(urlStr, "/releases/tag/") {
 				owner, repo, tag, err := web.ExtractGitHubReleaseURL(urlStr)
 				if err == nil && owner != "" && repo != "" && tag != "" {
-					return github.New(t.cfg).FetchRelease(owner+"/"+repo, tag)
+					ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+					return ghTools.FetchRelease(owner+"/"+repo, tag)
 				}
 			}
 			owner, repo, err := web.ExtractGitHubRepoURL(urlStr)
 			if err == nil && owner != "" && repo != "" {
-				return github.New(t.cfg).FetchRepository(owner + "/" + repo)
+				ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+				return ghTools.FetchRepository(owner + "/" + repo)
 			}
 		}
 	}

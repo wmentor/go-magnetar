@@ -2,7 +2,6 @@ package github
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -12,22 +11,83 @@ import (
 	"strings"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/sashabaranov/go-openai"
 
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 )
 
 const githubDefaultTimeout = time.Minute
 
+// RepositoryParams represents parameters for the github_repo tool.
+type RepositoryParams struct {
+	Repo string `json:"repo" jsonschema_description:"GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')"`
+}
+
+// FileParams represents parameters for the github_file tool.
+type FileParams struct {
+	Repo   string `json:"repo" jsonschema_description:"GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')"`
+	Branch string `json:"branch" jsonschema_description:"Branch name (default: 'master')"`
+	File   string `json:"file" jsonschema_description:"Path to the file in the repository"`
+}
+
+// TreeParams represents parameters for the github_tree tool.
+type TreeParams struct {
+	Repo   string `json:"repo" jsonschema_description:"GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')"`
+	Branch string `json:"branch" jsonschema_description:"Branch name (default: 'master')"`
+	Path   string `json:"path" jsonschema_description:"Path to directory (default: '' for root)"`
+}
+
+// IssueParams represents parameters for the github_issue tool.
+type IssueParams struct {
+	Repo  string `json:"repo" jsonschema_description:"GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')"`
+	Issue string `json:"issue" jsonschema_description:"Issue number (e.g., '7') or GitHub Security Advisory ID (e.g., 'GHSA-xxxx-xxxx-xxxx')"`
+}
+
+// MilestoneParams represents parameters for the github_milestone tool.
+type MilestoneParams struct {
+	Repo      string `json:"repo" jsonschema_description:"GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')"`
+	Milestone string `json:"milestone" jsonschema_description:"Milestone number (e.g., '278')"`
+}
+
+// PullRequestParams represents parameters for the github_pull_request tool.
+type PullRequestParams struct {
+	Repo string `json:"repo" jsonschema_description:"GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')"`
+	PR   string `json:"pr" jsonschema_description:"Pull request number (e.g., '7')"`
+}
+
+// ReleaseParams represents parameters for the github_release_info tool.
+type ReleaseParams struct {
+	Repo string `json:"repo" jsonschema_description:"GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')"`
+	Tag  string `json:"tag" jsonschema_description:"Release tag name (e.g., 'v1.6.0')"`
+}
+
 // GitHubTools provides GitHub repository fetching as an LLM tool.
 type GitHubTools struct {
-	cfg *config.Config
+	cfg           *config.Config
+	printer       printer.Printer
+	clientFactory requester.ClientFactory
+	state         *plugin.State
+	enabled       bool
 }
 
 // New creates a new GitHubTools instance.
-func New(cfg *config.Config) *GitHubTools {
-	return &GitHubTools{cfg: cfg}
+func New(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory, state *plugin.State) *GitHubTools {
+	return &GitHubTools{
+		cfg:           cfg,
+		printer:       p,
+		clientFactory: clientFactory,
+		state:         state,
+		enabled:       cfg.Bool("github.enable") && cfg.String("github.base_url") != "",
+	}
+}
+
+// Enabled returns whether the GitHub tools are enabled.
+func (g *GitHubTools) Enabled() bool {
+	return g.enabled
 }
 
 // parseGitHubRepoURL extracts owner and repo from GitHub repository URL.
@@ -54,12 +114,16 @@ func parseGitHubRepoURL(repoURL string) (string, string, error) {
 
 // FetchRepository fetches GitHub repository information and returns Markdown content.
 func (g *GitHubTools) FetchRepository(repo string) (string, error) {
+	if !g.enabled {
+		return "", errors.New("github tool is disabled")
+	}
+
 	owner, repoName, err := parseGitHubRepoURL(repo)
 	if err != nil {
 		return "", fmt.Errorf("github_repo: failed to parse repository URL: %w", err)
 	}
 
-	printer.ToolCall(printer.IconSearch, "github_repo", "repo", repo)
+	g.printer.ToolCall(printer.IconSearch, "github_repo", "repo", repo)
 
 	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
 	defer cancel()
@@ -107,7 +171,7 @@ func (g *GitHubTools) FetchRepository(repo string) (string, error) {
 	// Fetch README
 	readmeContent, err := g.fetchReadme(owner, repoName)
 	if err != nil {
-		printer.ToolCall(printer.IconError, "github_repo: failed to fetch README", "repo", repo, "err", err)
+		g.printer.ToolCall(printer.IconError, "github_repo: failed to fetch README", "repo", repo, "err", err)
 		// Continue without README
 	}
 
@@ -218,7 +282,11 @@ type SecurityAdvisory struct {
 }
 
 func (g *GitHubTools) FetchAdvisory(advisoryID string) (string, error) {
-	printer.ToolCall(printer.IconSearch, "github_advisory", "advisory", advisoryID)
+	if !g.enabled {
+		return "", errors.New("github tool is disabled")
+	}
+
+	g.printer.ToolCall(printer.IconSearch, "github_advisory", "advisory", advisoryID)
 
 	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
 	defer cancel()
@@ -304,12 +372,16 @@ func (g *GitHubTools) formatAdvisoryMarkdown(advisory *SecurityAdvisory) string 
 }
 
 func (g *GitHubTools) FetchRepoAdvisories(repo string) (string, error) {
+	if !g.enabled {
+		return "", errors.New("github tool is disabled")
+	}
+
 	owner, repoName, err := parseGitHubRepoURL(repo)
 	if err != nil {
 		return "", fmt.Errorf("github_repo_advisories: failed to parse repository URL: %w", err)
 	}
 
-	printer.ToolCall(printer.IconSearch, "github_repo_advisories", "repo", repo)
+	g.printer.ToolCall(printer.IconSearch, "github_repo_advisories", "repo", repo)
 
 	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
 	defer cancel()
@@ -449,6 +521,10 @@ func (g *GitHubTools) fetchReadme(owner string, repo string) (string, error) {
 
 // FetchFile fetches a file from GitHub repository.
 func (g *GitHubTools) FetchFile(repo string, branch string, file string) (string, error) {
+	if !g.enabled {
+		return "", errors.New("github tool is disabled")
+	}
+
 	owner, repoName, err := parseGitHubRepoURL(repo)
 	if err != nil {
 		return "", fmt.Errorf("github_file: failed to parse repository URL: %w", err)
@@ -458,7 +534,7 @@ func (g *GitHubTools) FetchFile(repo string, branch string, file string) (string
 		branch = "master"
 	}
 
-	printer.ToolCall(printer.IconSearch, "github_file", "repo", repo, "branch", branch, "file", file)
+	g.printer.ToolCall(printer.IconSearch, "github_file", "repo", repo, "branch", branch, "file", file)
 
 	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
 	defer cancel()
@@ -526,6 +602,10 @@ func (g *GitHubTools) FetchFile(repo string, branch string, file string) (string
 
 // FetchTree lists repository contents at the root or specified path.
 func (g *GitHubTools) FetchTree(repo string, branch string, path string) (string, error) {
+	if !g.enabled {
+		return "", errors.New("github tool is disabled")
+	}
+
 	owner, repoName, err := parseGitHubRepoURL(repo)
 	if err != nil {
 		return "", fmt.Errorf("github_tree: failed to parse repository URL: %w", err)
@@ -535,7 +615,7 @@ func (g *GitHubTools) FetchTree(repo string, branch string, path string) (string
 		branch = "master"
 	}
 
-	printer.ToolCall(printer.IconSearch, "github_tree", "repo", repo, "branch", branch, "path", path)
+	g.printer.ToolCall(printer.IconSearch, "github_tree", "repo", repo, "branch", branch, "path", path)
 
 	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
 	defer cancel()
@@ -634,16 +714,6 @@ func (g *GitHubTools) formatTreeMarkdown(files []struct {
 
 // fetchWithHeaders performs an HTTP request with GitHub API headers.
 func (g *GitHubTools) fetchWithHeaders(ctx context.Context, method string, apiURL string) (*http.Response, error) { //nolint:unparam // ok.
-	tr := &http.Transport{
-		TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
-		DisableKeepAlives: true,
-	}
-
-	client := &http.Client{
-		Timeout:   githubDefaultTimeout,
-		Transport: tr,
-	}
-
 	req, err := http.NewRequestWithContext(ctx, method, apiURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("github: failed to create request for %q: %w", apiURL, err)
@@ -657,6 +727,9 @@ func (g *GitHubTools) fetchWithHeaders(ctx context.Context, method string, apiUR
 		apiURL = strings.Replace(apiURL, "https://api.github.com", g.cfg.String("github.base_url"), 1)
 	}
 
+	client := g.clientFactory.Get()
+	defer g.clientFactory.Put(client)
+
 	resp, err := client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("github: failed to fetch %q: %w", apiURL, err)
@@ -665,193 +738,11 @@ func (g *GitHubTools) fetchWithHeaders(ctx context.Context, method string, apiUR
 	return resp, nil
 }
 
-// Definition returns the OpenAI tool schema for github_repo.
-func (g *GitHubTools) Definition() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "github_repo",
-			Description: "Fetch GitHub repository information and return its details in Markdown format",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"repo": map[string]any{
-						"type":        "string",
-						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
-					},
-				},
-				"required": []string{"repo"},
-			},
-		},
-	}
-}
-
-// DefinitionFile returns the OpenAI tool schema for github_file.
-func (g *GitHubTools) DefinitionFile() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "github_file",
-			Description: "Fetch a file from GitHub repository and return its content",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"repo": map[string]any{
-						"type":        "string",
-						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
-					},
-					"branch": map[string]any{
-						"type":        "string",
-						"description": "Branch name (default: 'master')",
-					},
-					"file": map[string]any{
-						"type":        "string",
-						"description": "Path to the file in the repository",
-					},
-				},
-				"required": []string{"repo", "file"},
-			},
-		},
-	}
-}
-
-// DefinitionTree returns the OpenAI tool schema for github_tree.
-func (g *GitHubTools) DefinitionTree() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "github_tree",
-			Description: "List repository contents at root or specified path",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"repo": map[string]any{
-						"type":        "string",
-						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
-					},
-					"branch": map[string]any{
-						"type":        "string",
-						"description": "Branch name (default: 'master')",
-					},
-					"path": map[string]any{
-						"type":        "string",
-						"description": "Path to directory (default: '' for root)",
-					},
-				},
-				"required": []string{"repo"},
-			},
-		},
-	}
-}
-
-// Dispatch handles a tool call by name, parsing JSON args and returning the result as a string.
-func (g *GitHubTools) Dispatch(name string, args string) string {
-	switch name {
-	case "github_repo":
-		var params struct {
-			Repo string `json:"repo"`
-		}
-		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			return "error: failed to parse arguments"
-		}
-		content, err := g.FetchRepository(params.Repo)
-		if err != nil {
-			return fmt.Sprintf("error: %v", err)
-		}
-		return content
-
-	case "github_file":
-		var params struct {
-			Repo   string `json:"repo"`
-			Branch string `json:"branch"`
-			File   string `json:"file"`
-		}
-		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			return "error: failed to parse arguments"
-		}
-		content, err := g.FetchFile(params.Repo, params.Branch, params.File)
-		if err != nil {
-			return fmt.Sprintf("error: %v", err)
-		}
-		return content
-
-	case "github_tree":
-		var params struct {
-			Repo   string `json:"repo"`
-			Branch string `json:"branch"`
-			Path   string `json:"path"`
-		}
-		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			return "error: failed to parse arguments"
-		}
-		content, err := g.FetchTree(params.Repo, params.Branch, params.Path)
-		if err != nil {
-			return fmt.Sprintf("error: %v", err)
-		}
-		return content
-
-	case "github_issue":
-		var params struct {
-			Repo  string `json:"repo"`
-			Issue string `json:"issue"`
-		}
-		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			return "error: failed to parse arguments"
-		}
-		content, err := g.FetchIssue(params.Repo, params.Issue)
-		if err != nil {
-			return fmt.Sprintf("error: %v", err)
-		}
-		return content
-
-	case "github_milestone":
-		var params struct {
-			Repo      string `json:"repo"`
-			Milestone string `json:"milestone"`
-		}
-		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			return "error: failed to parse arguments"
-		}
-		content, err := g.FetchMilestone(params.Repo, params.Milestone)
-		if err != nil {
-			return fmt.Sprintf("error: %v", err)
-		}
-		return content
-
-	case "github_pull_request":
-		var params struct {
-			Repo string `json:"repo"`
-			PR   string `json:"pr"`
-		}
-		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			return "error: failed to parse arguments"
-		}
-		content, err := g.FetchPullRequest(params.Repo, params.PR)
-		if err != nil {
-			return fmt.Sprintf("error: %v", err)
-		}
-		return content
-
-	case "github_release_info":
-		var params struct {
-			Repo string `json:"repo"`
-			Tag  string `json:"tag"`
-		}
-		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			return "error: failed to parse arguments"
-		}
-		content, err := g.FetchRelease(params.Repo, params.Tag)
-		if err != nil {
-			return fmt.Sprintf("error: %v", err)
-		}
-		return content
-
-	default:
-		return "error: unknown tool " + name
-	}
-}
-
 func (g *GitHubTools) FetchIssue(repo string, issueNum string) (string, error) {
+	if !g.enabled {
+		return "", errors.New("github tool is disabled")
+	}
+
 	owner, repoName, err := parseGitHubRepoURL(repo)
 	if err != nil {
 		return "", fmt.Errorf("github_issue: failed to parse repository URL: %w", err)
@@ -861,7 +752,7 @@ func (g *GitHubTools) FetchIssue(repo string, issueNum string) (string, error) {
 		return g.FetchAdvisory(issueNum)
 	}
 
-	printer.ToolCall(printer.IconSearch, "github_issue", "repo", repo, "issue", issueNum)
+	g.printer.ToolCall(printer.IconSearch, "github_issue", "repo", repo, "issue", issueNum)
 
 	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
 	defer cancel()
@@ -921,7 +812,7 @@ func (g *GitHubTools) FetchIssue(repo string, issueNum string) (string, error) {
 	if issueData.CommentCount > 0 {
 		comments, err = g.fetchIssueComments(owner, repoName, issueNum)
 		if err != nil {
-			printer.ToolCall(printer.IconError, "github_issue: failed to fetch comments", "repo", repo, "issue", issueNum, "err", err)
+			g.printer.ToolCall(printer.IconError, "github_issue: failed to fetch comments", "repo", repo, "issue", issueNum, "err", err)
 		}
 	}
 
@@ -1051,87 +942,17 @@ func (g *GitHubTools) formatIssueMarkdown(issueData *struct {
 	return sb.String()
 }
 
-func (g *GitHubTools) DefinitionIssue() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "github_issue",
-			Description: "Fetch a GitHub issue and its comments, returns issue details in Markdown format",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"repo": map[string]any{
-						"type":        "string",
-						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
-					},
-					"issue": map[string]any{
-						"type":        "string",
-						"description": "Issue number (e.g., '7')",
-					},
-				},
-				"required": []string{"repo", "issue"},
-			},
-		},
-	}
-}
-
-func (g *GitHubTools) StaticDefinitionIssue() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "github_issue",
-			Description: "Fetch a GitHub issue and its comments, returns issue details in Markdown format",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"repo": map[string]any{
-						"type":        "string",
-						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
-					},
-					"issue": map[string]any{
-						"type":        "string",
-						"description": "Issue number (e.g., '7')",
-					},
-				},
-				"required": []string{"repo", "issue"},
-			},
-		},
-	}
-}
-
-// StaticDefinitionIssue returns the OpenAI tool schema for github_issue without
-// requiring an initialised GitHubTools instance.
-func StaticDefinitionIssue() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "github_issue",
-			Description: "Fetch a GitHub issue and its comments, returns issue details in Markdown format",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"repo": map[string]any{
-						"type":        "string",
-						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
-					},
-					"issue": map[string]any{
-						"type":        "string",
-						"description": "Issue number (e.g., '7')",
-					},
-				},
-				"required": []string{"repo", "issue"},
-			},
-		},
-	}
-}
-
 func (g *GitHubTools) FetchMilestone(repo string, milestoneNum string) (string, error) {
+	if !g.enabled {
+		return "", errors.New("github tool is disabled")
+	}
+
 	owner, repoName, err := parseGitHubRepoURL(repo)
 	if err != nil {
 		return "", fmt.Errorf("github_milestone: failed to parse repository URL: %w", err)
 	}
 
-	printer.ToolCall(printer.IconSearch, "github_milestone", "repo", repo, "milestone", milestoneNum)
+	g.printer.ToolCall(printer.IconSearch, "github_milestone", "repo", repo, "milestone", milestoneNum)
 
 	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
 	defer cancel()
@@ -1202,21 +1023,21 @@ func (g *GitHubTools) FetchMilestone(repo string, milestoneNum string) (string, 
 	issuesURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues?state=all&milestone=%s", owner, repoName, milestoneNum)
 	respIssues, err := g.fetchWithHeaders(ctx, http.MethodGet, issuesURL)
 	if err != nil {
-		printer.ToolCall(printer.IconError, "github_milestone: failed to fetch issues", "err", err)
+		g.printer.ToolCall(printer.IconError, "github_milestone: failed to fetch issues", "err", err)
 	} else if respIssues.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(respIssues.Body)
-		printer.ToolCall(printer.IconError, "github_milestone: issues endpoint returned error", "status", respIssues.StatusCode, "body", string(body))
+		g.printer.ToolCall(printer.IconError, "github_milestone: issues endpoint returned error", "status", respIssues.StatusCode, "body", string(body))
 		respIssues.Body.Close()
 	} else {
 		defer respIssues.Body.Close()
 		issuesBody, err := io.ReadAll(respIssues.Body)
 		if err != nil {
-			printer.ToolCall(printer.IconError, "github_milestone: failed to read issues response", "err", err)
+			g.printer.ToolCall(printer.IconError, "github_milestone: failed to read issues response", "err", err)
 		} else {
 			if err := json.Unmarshal(issuesBody, &issues); err != nil {
-				printer.ToolCall(printer.IconError, "github_milestone: failed to parse issues response", "err", err)
+				g.printer.ToolCall(printer.IconError, "github_milestone: failed to parse issues response", "err", err)
 			} else {
-				printer.ToolCall(printer.IconSearch, "github_milestone: fetched issues", "count", len(issues))
+				g.printer.ToolCall(printer.IconSearch, "github_milestone: fetched issues", "count", len(issues))
 			}
 		}
 	}
@@ -1522,12 +1343,16 @@ type PullRequest struct {
 
 // FetchPullRequest fetches a GitHub pull request with all its details including files, comments, and reviews.
 func (g *GitHubTools) FetchPullRequest(repo string, prNum string) (string, error) {
+	if !g.enabled {
+		return "", errors.New("github tool is disabled")
+	}
+
 	owner, repoName, err := parseGitHubRepoURL(repo)
 	if err != nil {
 		return "", fmt.Errorf("github_pull_request: failed to parse repository URL: %w", err)
 	}
 
-	printer.ToolCall(printer.IconSearch, "github_pull_request", "repo", repo, "pr", prNum)
+	g.printer.ToolCall(printer.IconSearch, "github_pull_request", "repo", repo, "pr", prNum)
 
 	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
 	defer cancel()
@@ -1559,7 +1384,7 @@ func (g *GitHubTools) FetchPullRequest(repo string, prNum string) (string, error
 	// Fetch files changed in the PR
 	files, err := g.fetchPullRequestFiles(owner, repoName, prNum)
 	if err != nil {
-		printer.ToolCall(printer.IconError, "github_pull_request: failed to fetch files", "repo", repo, "pr", prNum, "err", err)
+		g.printer.ToolCall(printer.IconError, "github_pull_request: failed to fetch files", "repo", repo, "pr", prNum, "err", err)
 	} else {
 		prData.Files = files
 		prData.Additions, prData.Deletions, prData.ChangedFiles = g.calculateChanges(files)
@@ -1568,7 +1393,7 @@ func (g *GitHubTools) FetchPullRequest(repo string, prNum string) (string, error
 	// Fetch review comments
 	comments, err := g.fetchPullRequestComments(owner, repoName, prNum)
 	if err != nil {
-		printer.ToolCall(printer.IconError, "github_pull_request: failed to fetch comments", "repo", repo, "pr", prNum, "err", err)
+		g.printer.ToolCall(printer.IconError, "github_pull_request: failed to fetch comments", "repo", repo, "pr", prNum, "err", err)
 	} else {
 		prData.Comments = comments
 	}
@@ -1576,7 +1401,7 @@ func (g *GitHubTools) FetchPullRequest(repo string, prNum string) (string, error
 	// Fetch reviews
 	reviews, err := g.fetchPullRequestReviews(owner, repoName, prNum)
 	if err != nil {
-		printer.ToolCall(printer.IconError, "github_pull_request: failed to fetch reviews", "repo", repo, "pr", prNum, "err", err)
+		g.printer.ToolCall(printer.IconError, "github_pull_request: failed to fetch reviews", "repo", repo, "pr", prNum, "err", err)
 	} else {
 		prData.Reviews = reviews
 	}
@@ -1814,56 +1639,6 @@ func (g *GitHubTools) formatPullRequestMarkdown(pr *PullRequest) string {
 }
 
 // DefinitionPullRequest returns the OpenAI tool schema for github_pull_request.
-func (g *GitHubTools) DefinitionPullRequest() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "github_pull_request",
-			Description: "Fetch a GitHub pull request with all details including files changed, comments, and reviews",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"repo": map[string]any{
-						"type":        "string",
-						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
-					},
-					"pr": map[string]any{
-						"type":        "string",
-						"description": "Pull request number (e.g., '7')",
-					},
-				},
-				"required": []string{"repo", "pr"},
-			},
-		},
-	}
-}
-
-// StaticDefinitionPullRequest returns the OpenAI tool schema for github_pull_request without
-// requiring an initialised GitHubTools instance.
-func StaticDefinitionPullRequest() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "github_pull_request",
-			Description: "Fetch a GitHub pull request with all details including files changed, comments, and reviews",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"repo": map[string]any{
-						"type":        "string",
-						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
-					},
-					"pr": map[string]any{
-						"type":        "string",
-						"description": "Pull request number (e.g., '7')",
-					},
-				},
-				"required": []string{"repo", "pr"},
-			},
-		},
-	}
-}
-
 // Release represents a GitHub release.
 type Release struct {
 	URL       string `json:"url"`
@@ -1943,12 +1718,16 @@ type Release struct {
 
 // FetchRelease fetches a GitHub release by tag name and returns its details in Markdown format.
 func (g *GitHubTools) FetchRelease(repo string, tag string) (string, error) {
+	if !g.enabled {
+		return "", errors.New("github tool is disabled")
+	}
+
 	owner, repoName, err := parseGitHubRepoURL(repo)
 	if err != nil {
 		return "", fmt.Errorf("github_release_info: failed to parse repository URL: %w", err)
 	}
 
-	printer.ToolCall(printer.IconSearch, "github_release_info", "repo", repo, "tag", tag)
+	g.printer.ToolCall(printer.IconSearch, "github_release_info", "repo", repo, "tag", tag)
 
 	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
 	defer cancel()
@@ -2017,28 +1796,78 @@ func (g *GitHubTools) formatReleaseMarkdown(release *Release) string {
 }
 
 // DefinitionRelease returns the OpenAI tool schema for github_release_info.
-func (g *GitHubTools) DefinitionRelease() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "github_release_info",
-			Description: "Fetch a GitHub release by tag name and return its details in Markdown format",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"repo": map[string]any{
-						"type":        "string",
-						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
-					},
-					"tag": map[string]any{
-						"type":        "string",
-						"description": "Release tag name (e.g., 'v1.6.0')",
-					},
-				},
-				"required": []string{"repo", "tag"},
-			},
-		},
+// Exec executes the github_repo tool and returns the result.
+func (g *GitHubTools) Exec(ctx context.Context, params *RepositoryParams) (any, error) {
+	if !g.enabled {
+		return nil, errors.New("github tool is disabled")
 	}
+	return g.FetchRepository(params.Repo)
+}
+
+// ExecFile executes the github_file tool and returns the result.
+func (g *GitHubTools) ExecFile(ctx context.Context, params *FileParams) (any, error) {
+	if !g.enabled {
+		return nil, errors.New("github tool is disabled")
+	}
+	if params == nil {
+		return nil, errors.New("invalid params for github_file")
+	}
+	return g.FetchFile(params.Repo, params.Branch, params.File)
+}
+
+// ExecTree executes the github_tree tool and returns the result.
+func (g *GitHubTools) ExecTree(ctx context.Context, params *TreeParams) (any, error) {
+	if !g.enabled {
+		return nil, errors.New("github tool is disabled")
+	}
+	if params == nil {
+		return nil, errors.New("invalid params for github_tree")
+	}
+	return g.FetchTree(params.Repo, params.Branch, params.Path)
+}
+
+// ExecIssue executes the github_issue tool and returns the result.
+func (g *GitHubTools) ExecIssue(ctx context.Context, params *IssueParams) (any, error) {
+	if !g.enabled {
+		return nil, errors.New("github tool is disabled")
+	}
+	if params == nil {
+		return nil, errors.New("invalid params for github_issue")
+	}
+	return g.FetchIssue(params.Repo, params.Issue)
+}
+
+// ExecMilestone executes the github_milestone tool and returns the result.
+func (g *GitHubTools) ExecMilestone(ctx context.Context, params *MilestoneParams) (any, error) {
+	if !g.enabled {
+		return nil, errors.New("github tool is disabled")
+	}
+	if params == nil {
+		return nil, errors.New("invalid params for github_milestone")
+	}
+	return g.FetchMilestone(params.Repo, params.Milestone)
+}
+
+// ExecPullRequest executes the github_pull_request tool and returns the result.
+func (g *GitHubTools) ExecPullRequest(ctx context.Context, params *PullRequestParams) (any, error) {
+	if !g.enabled {
+		return nil, errors.New("github tool is disabled")
+	}
+	if params == nil {
+		return nil, errors.New("invalid params for github_pull_request")
+	}
+	return g.FetchPullRequest(params.Repo, params.PR)
+}
+
+// ExecRelease executes the github_release_info tool and returns the result.
+func (g *GitHubTools) ExecRelease(ctx context.Context, params *ReleaseParams) (any, error) {
+	if !g.enabled {
+		return nil, errors.New("github tool is disabled")
+	}
+	if params == nil {
+		return nil, errors.New("invalid params for github_release_info")
+	}
+	return g.FetchRelease(params.Repo, params.Tag)
 }
 
 // StaticDefinitionRelease returns the OpenAI tool schema for github_release_info without
