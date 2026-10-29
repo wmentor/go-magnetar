@@ -112,7 +112,7 @@ func (t *Tool) WebFetchEngine(ctx context.Context, urlStr string, isFetch bool) 
 		if strings.HasPrefix(urlStr, t.cfg.String("jira.base_url")) && (strings.Contains(urlStr, "/browse/") || strings.Contains(urlStr, "/issues/")) {
 			issueKey, err := web.ExtractIssueKeyFromJIRAURL(urlStr)
 			if err == nil && issueKey != "" {
-				return jira.New(t.cfg).FetchIssue(issueKey)
+				return jira.New(t.cfg, t.printer, t.clientFactory).FetchIssue(issueKey)
 			}
 		}
 	}

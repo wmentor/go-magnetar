@@ -1,9 +1,6 @@
 package jiraplug
 
 import (
-	"context"
-	"sync"
-
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/tools/jira"
 )
@@ -12,11 +9,12 @@ func init() {
 	plugin.Register("jira", &Plugin{})
 }
 
-// Plugin wraps the JIRA tools and exposes jira_task_get as an LLM tool.
+// Plugin wraps the JIRA tools and exposes them as LLM tools.
 type Plugin struct {
-	mu    sync.Mutex
-	state *plugin.State
-	tools *jira.JiraTools
+	state      *plugin.State
+	getTool    *jira.GetTool
+	searchTool *jira.SearchTool
+	createTool *jira.CreateTool
 }
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
@@ -26,45 +24,21 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		return nil
 	}
 
-	tools, err := p.get()
-	if err != nil {
-		return err
-	}
+	// Initialize tools with Printer and RequesterFactory for proper dependency injection
+	p.getTool = jira.NewGetTool(s.Config, s.Printer, s.RequesterFactory)
+	p.searchTool = jira.NewSearchTool(s.Config, s.Printer, s.RequesterFactory)
+	p.createTool = jira.NewCreateTool(s.Config, s.Printer, s.RequesterFactory)
 
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: jira.StaticDefinition,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return tools.Dispatch("jira_task_get", args), nil
-		},
-	})
+	// Register jira_task_get tool
+	s.ToolStore.Register(p.getTool.Name(), p.getTool.Description(), p.getTool.Exec)
 
-	hub.RegisterTool(plugin.LLMTool{
-		Definition:   jira.StaticDefinitionSearch,
-		IsSearchTool: true,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return tools.Dispatch("jira_task_search", args), nil
-		},
-	})
+	// Register jira_task_search tool
+	s.ToolStore.Register(p.searchTool.Name(), p.searchTool.Description(), p.searchTool.Exec)
 
-	// Register create issue tool if not in read-only mode
+	// Register jira_issue_create tool if not in read-only mode
 	if !s.Config.Bool("jira.readonly") {
-		hub.RegisterTool(plugin.LLMTool{
-			Definition: jira.StaticDefinitionCreate,
-			Execute: func(_ context.Context, args string) (string, error) {
-				return tools.Dispatch("jira_issue_create", args), nil
-			},
-		})
+		s.ToolStore.Register(p.createTool.Name(), p.createTool.Description(), p.createTool.Exec)
 	}
 
 	return nil
-}
-
-func (p *Plugin) get() (*jira.JiraTools, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.tools != nil {
-		return p.tools, nil
-	}
-	p.tools = jira.New(p.state.Config)
-	return p.tools, nil
 }
