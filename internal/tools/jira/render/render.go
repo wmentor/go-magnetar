@@ -256,7 +256,7 @@ func (r *JIRARenderer) renderString(buf *strings.Builder, n *ast.String, enterin
 // escapeJIRAText escapes special characters for JIRA.
 func (r *JIRARenderer) escapeJIRAText(text string) string {
 	var b strings.Builder
-	b.Grow(len(text))
+	b.Grow(2 * len(text))
 	runes := []rune(text)
 	for i := 0; i < len(runes); i++ {
 		r := runes[i]
