@@ -40,26 +40,6 @@ func Embed(ctx context.Context, embedClient *openai.Client, model string, text s
 	return resp.Data[0].Embedding, nil
 }
 
-func StaticDefinitionSearch() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "rag_search",
-			Description: "Search the knowledge base for relevant information",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"query": map[string]any{
-						"type":        "string",
-						"description": "Search query",
-					},
-				},
-				"required": []string{"query"},
-			},
-		},
-	}
-}
-
 // NewEmbeddingClient creates a new OpenAI client configured for RAG embeddings.
 func NewEmbeddingClient(cfg *config.Config) *openai.Client {
 	var apiKey, baseURL string

@@ -5,17 +5,41 @@ verbose: true       # enable verbose tool call output (default: true)
 
 profile: default
 
+rag:
+  enable: true
+  store:
+    type: chromem
+  chunk:
+    size: 2048
+    overlap: 256
+  search:
+    limit: 10
+    threshold: 0.40
+    multi_query: 2
+    dedup_threshold: 0.95
+  qdrant:
+    connstr: http://localhost:6334
+    collection: documents
+  chromem:
+    data_dir: ~/.go-magnetar/store
+    collection: documents
+  llm:
+    base_url: https://api.openai.com/v1
+    api_key: sk-embed-test
+    model: text-embedding-3-small
+    vector_size: 1536
+
 profiles:
   default:
     llm:
       base_url: https://api.openai.com/v1
-      api_key: YOUR_API_KEY
+      api_key: sk-test-key
       model: gpt-4o
       context: 128000
-      temperature: 0.9   # LLM temperature for response generation (default: 0.9)
-      top_p: 0.95        # LLM top_p for response generation (default: 0.95)
-      reasoning_effort: high  # reasoning effort: low, medium, or high (default: high)
+      temperature: 0.9
+      top_p: 0.95
+      reasoning_effort: high
 
 compact:
-  threshold: 0    # token count at which history summarization is triggered. If not set (or 0), defaults to 80 % of llm.context.
-  save_tail: 6    # number of most-recent messages to preserve unchanged during summarization. If less than 1, all non-system messages are summarized.
+  threshold: 0
+  save_tail: 6

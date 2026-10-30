@@ -1,13 +1,9 @@
 package rag
 
 import (
-	"encoding/json"
 	"errors"
 
-	"github.com/sashabaranov/go-openai"
-
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/printer"
 )
 
 var (
@@ -15,20 +11,23 @@ var (
 	ErrInvalidStore  = errors.New("invalid value of vector store")
 )
 
+// Store interface defines RAG operations.
 type Store interface {
 	Name() string
 	RagSearch(query string) string
 	RagSave(content string, prepend string, part int) bool
 }
 
+// Deprecated: Use the Tool struct with Exec method instead.
 // RAGTools provides RAG operations as LLM tools.
 type RAGTools struct {
 	cfg   *config.Config
 	store Store
 }
 
-// New creates a new RAGTools instance.
-func New(cfg *config.Config, store Store) (*RAGTools, error) {
+// NewRAGTools creates a new RAGTools instance.
+// Deprecated: Use the Tool struct with Exec method instead.
+func NewRAGTools(cfg *config.Config, store Store) (*RAGTools, error) {
 	if cfg == nil {
 		return nil, ErrInvalidConfig
 	}
@@ -43,49 +42,8 @@ func New(cfg *config.Config, store Store) (*RAGTools, error) {
 	}, nil
 }
 
-// DefinitionSearch returns the OpenAI tool schema for rag_search.
-func (r *RAGTools) DefinitionSearch() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "rag_search",
-			Description: "Search the knowledge base for relevant information",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"query": map[string]any{
-						"type":        "string",
-						"description": "Search query",
-					},
-				},
-				"required": []string{"query"},
-			},
-		},
-	}
-}
-
+// RagSave saves a text fragment to the store.
+// Deprecated: Use the store directly or through the Tool interface.
 func (r *RAGTools) RagSave(content string, prepend string, part int) bool {
 	return r.store.RagSave(content, prepend, part)
-}
-
-// Dispatch handles a tool call by name, parsing JSON args and returning the result as a string.
-func (r *RAGTools) Dispatch(name string, args string) string {
-	switch name {
-	case "rag_search":
-		var params struct {
-			Query string `json:"query"`
-		}
-		if err := json.Unmarshal([]byte(args), &params); err != nil {
-			printer.ToolCall(printer.IconError, "rag_search: failed to parse args", "args", args, "err", err)
-			return "error: failed to parse arguments"
-		}
-		result := r.store.RagSearch(params.Query)
-		if result == "" {
-			return "no relevant information found"
-		}
-		return result
-
-	default:
-		return "error: unknown tool " + name
-	}
 }

@@ -21,7 +21,7 @@ import (
 // Indexer chunks content into overlapping segments and stores them in the RAG knowledge base.
 type Indexer struct {
 	cfg   *config.Config
-	rag   *rag.RAGTools
+	store rag.Store
 	fetch *webfetch.Tool
 }
 
@@ -32,16 +32,11 @@ func New(cfg *config.Config, root *os.Root, state *plugin.State) (*Indexer, erro
 		return nil, fmt.Errorf("init RAG store error: %w", err)
 	}
 
-	ragTools, err := rag.New(cfg, vecStore)
-	if err != nil {
-		return nil, fmt.Errorf("indexer: failed to initialise RAG tools: %w", err)
-	}
-
 	fetchTool := webfetch.NewTool(cfg, state.Printer, state.RequesterFactory, state)
 
 	return &Indexer{
 		cfg:   cfg,
-		rag:   ragTools,
+		store: vecStore,
 		fetch: fetchTool,
 	}, nil
 }
@@ -96,7 +91,7 @@ func (idx *Indexer) chunkAndSave(content string, msg string) error {
 	saved := 0
 
 	for i, c := range chunks {
-		if idx.rag.RagSave(c, msg, i+1) {
+		if idx.store.RagSave(c, msg, i+1) {
 			saved++
 		}
 	}
