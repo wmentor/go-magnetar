@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/sashabaranov/go-openai"
+	"golang.org/x/time/rate"
 
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/http/requester"
@@ -23,6 +24,7 @@ type Tool struct {
 	printer       printer.Printer
 	clientFactory requester.ClientFactory
 	state         *plugin.State
+	limiter       *rate.Limiter
 }
 
 // NewTool creates a new Tool instance.
@@ -33,6 +35,10 @@ func NewTool(cfg *config.Config, p printer.Printer, clientFactory requester.Clie
 		clientFactory: clientFactory,
 		state:         state,
 	}
+}
+
+func (t *Tool) SetLimiter(limiter *rate.Limiter) {
+	t.limiter = limiter
 }
 
 // Name returns the tool name.
@@ -54,6 +60,12 @@ type Params struct {
 func (t *Tool) WebSearch(ctx context.Context, params *Params) (any, error) {
 	if params == nil {
 		return nil, errors.New("invalid params")
+	}
+
+	if t.limiter != nil {
+		if err := t.limiter.Wait(ctx); err != nil {
+			return nil, errors.Wrap(err, "rate limiter error")
+		}
 	}
 
 	t.printer.ToolCall(printer.IconSearch, "web_search", "query", params.Query)

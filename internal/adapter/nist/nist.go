@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"golang.org/x/time/rate"
 
 	"github.com/wmentor/go-magnetar/internal/http/requester"
 )
@@ -24,24 +25,8 @@ const (
 var (
 	ErrCveIDRequired = errors.New("cveID is required")
 
-	waitCH = make(chan struct{}, 1)
+	limiter = rate.NewLimiter(rate.Every(sendTimeout), 1)
 )
-
-func init() {
-	waitCH <- struct{}{}
-
-	go func() {
-		ticker := time.NewTicker(sendTimeout)
-		defer ticker.Stop()
-
-		for range ticker.C {
-			select {
-			case waitCH <- struct{}{}:
-			default:
-			}
-		}
-	}()
-}
 
 // CVE represents a Common Vulnerabilities and Exposures entry from NIST.
 type CVE struct {
@@ -120,10 +105,8 @@ func (a *Adapter) Get(ctx context.Context, cveID string) (*CVE, error) {
 		return nil, errors.New("cveID is required")
 	}
 
-	select {
-	case <-ctx.Done():
+	if err := limiter.Wait(ctx); err != nil {
 		return nil, errors.Wrap(ctx.Err(), "nist.Adapter.Get")
-	case <-waitCH:
 	}
 
 	url := fmt.Sprintf(nistAPIURL, url.QueryEscape(cveID))
