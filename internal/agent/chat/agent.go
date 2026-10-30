@@ -306,6 +306,8 @@ func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
 
 	a.compactIfNeeded()
 
+	beginIndex := len(a.messages)
+
 	// Build tool list and dispatch map from registered plugins.
 	llmTools := plugin.LLMTools()
 	tools := make([]openai.Tool, 0, len(llmTools))
@@ -365,6 +367,8 @@ func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
 
 		if choice.FinishReason == openai.FinishReasonLength {
 			printer.Error("chat: LLM response was truncated (finish_reason=length); the answer may be incomplete")
+			// Return whatever content we have; continuing would just repeat the same truncated response
+			return choice.Message.Content, nil
 		}
 
 		if choice.FinishReason == openai.FinishReasonToolCalls { //nolint:nestif // later.
@@ -510,6 +514,9 @@ func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
 
 			if noProgressCount >= noProgressCountMax {
 				printer.Warn("broke potential infinite loop")
+				if beginIndex < len(a.messages) {
+					a.messages = a.messages[:beginIndex]
+				}
 				return lastAnswerContent, nil
 			}
 
@@ -520,6 +527,9 @@ func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
 	}
 
 	printer.Warn("broke potential infinite loop")
+	if beginIndex < len(a.messages) {
+		a.messages = a.messages[:beginIndex]
+	}
 	return lastAnswerContent, nil
 }
 
