@@ -2,76 +2,86 @@ package lastresponse
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
-	"github.com/sashabaranov/go-openai"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/plugin"
+	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/response"
+	"github.com/wmentor/go-magnetar/internal/tools"
 )
 
 type mockHub struct {
-	tools      []plugin.LLMTool
-	commands   []plugin.ChatCommand
-	preproc    []plugin.PreprocessorFunc
-	registered bool
+	tools []plugin.LLMTool
 }
 
-func (h *mockHub) RegisterTool(tool plugin.LLMTool) {
-	h.tools = append(h.tools, tool)
-	h.registered = true
+func (h *mockHub) RegisterTool(tool plugin.LLMTool)             { h.tools = append(h.tools, tool) }
+func (h *mockHub) RegisterChatCommand(plugin.ChatCommand)       {}
+func (h *mockHub) RegisterPreprocessor(plugin.PreprocessorFunc) {}
+func (h *mockHub) Go(func(ctx context.Context))                 {}
+func (h *mockHub) Stop()                                        {}
+
+func loadConfig(t *testing.T, yaml string) *config.Config {
+	t.Helper()
+	path := filepath.Join(t.TempDir(), "config.yml")
+	require.NoError(t, os.WriteFile(path, []byte(yaml), 0o600))
+	cfg, err := config.Load(path)
+	require.NoError(t, err)
+	return cfg
 }
 
-func (h *mockHub) RegisterChatCommand(cmd plugin.ChatCommand) {
-	h.commands = append(h.commands, cmd)
-}
-
-func (h *mockHub) RegisterPreprocessor(fn plugin.PreprocessorFunc) {
-	h.preproc = append(h.preproc, fn)
-}
-
-func (h *mockHub) Go(f func(ctx context.Context)) {
-}
-
-func (h *mockHub) Stop() {
-}
-
-func TestPluginInit(t *testing.T) {
+func TestInitRegistersTool(t *testing.T) {
 	t.Parallel()
 
-	s := &plugin.State{
-		ResponseStore: response.New(plugin.DefaultResponseStoreSize),
-	}
+	cfg := loadConfig(t, "version: \"1.0\"\n")
 	hub := &mockHub{}
+	responseStore := response.New(plugin.DefaultResponseStoreSize)
+	state := &plugin.State{
+		Config:           cfg,
+		ToolStore:        tools.NewStore(),
+		RequesterFactory: requester.NewFactory(),
+		Printer:          printer.GetDefault(),
+		ResponseStore:    responseStore,
+	}
+	err := (&Plugin{}).Init(state, hub)
+	require.NoError(t, err)
 
-	p := &Plugin{}
-	err := p.Init(s, hub)
-	assert.NoError(t, err)
-	assert.True(t, hub.registered, "tool should be registered")
-
-	// Verify tool is registered
-	assert.NotEmpty(t, hub.tools)
-	def := hub.tools[0].Definition()
-	assert.Equal(t, openai.ToolTypeFunction, def.Type)
-	assert.Equal(t, "last_response", def.Function.Name)
+	// Check that the tool was registered
+	var names []string
+	for _, tool := range state.ToolStore.Tools() {
+		names = append(names, tool.Name)
+	}
+	assert.Contains(t, names, "last_response")
 }
 
-func TestPluginToolDefinition(t *testing.T) {
+func TestToolDefinition(t *testing.T) {
 	t.Parallel()
 
-	s := &plugin.State{
-		ResponseStore: response.New(plugin.DefaultResponseStoreSize),
+	cfg := loadConfig(t, "version: \"1.0\"\n")
+	responseStore := response.New(plugin.DefaultResponseStoreSize)
+	state := &plugin.State{
+		Config:           cfg,
+		ToolStore:        tools.NewStore(),
+		RequesterFactory: requester.NewFactory(),
+		Printer:          printer.GetDefault(),
+		ResponseStore:    responseStore,
 	}
 	hub := &mockHub{}
+	err := (&Plugin{}).Init(state, hub)
+	require.NoError(t, err)
 
-	p := &Plugin{}
-	err := p.Init(s, hub)
-	assert.NoError(t, err)
+	// Get the registered tool
+	tool, err := state.ToolStore.GetTool("last_response")
+	require.NoError(t, err)
 
 	// Check tool definition
-	def := hub.tools[0].Definition()
-	assert.Equal(t, openai.ToolTypeFunction, def.Type)
+	def := tool.Definition()
 	assert.Equal(t, "last_response", def.Function.Name)
 
 	// Check description mentions user explicitly
@@ -80,79 +90,99 @@ func TestPluginToolDefinition(t *testing.T) {
 	assert.Contains(t, desc, "What was your last answer?")
 }
 
-func TestPluginExecute(t *testing.T) {
+func TestToolExecute(t *testing.T) {
 	t.Parallel()
 
-	s := &plugin.State{
-		ResponseStore: response.New(plugin.DefaultResponseStoreSize),
+	cfg := loadConfig(t, "version: \"1.0\"\n")
+	responseStore := response.New(plugin.DefaultResponseStoreSize)
+	state := &plugin.State{
+		Config:           cfg,
+		ToolStore:        tools.NewStore(),
+		RequesterFactory: requester.NewFactory(),
+		Printer:          printer.GetDefault(),
+		ResponseStore:    responseStore,
 	}
 	hub := &mockHub{}
-
-	p := &Plugin{}
-	err := p.Init(s, hub)
-	assert.NoError(t, err)
+	err := (&Plugin{}).Init(state, hub)
+	require.NoError(t, err)
 
 	// Push some responses
-	s.ResponseStore.Push("First response")
-	s.ResponseStore.Push("Second response")
-	s.ResponseStore.Push("Third response")
+	responseStore.Push("First response")
+	responseStore.Push("Second response")
+	responseStore.Push("Third response")
+
+	// Get the registered tool
+	tool, err := state.ToolStore.GetTool("last_response")
+	require.NoError(t, err)
 
 	// Test index 0 (most recent)
-	result, err := hub.tools[0].Execute(context.Background(), `{"index": 0}`)
-	assert.NoError(t, err)
+	result := tool.Execute(context.Background(), []byte(`{"index": 0}`))
 	assert.Contains(t, result, "Third response")
 	assert.Contains(t, result, "index 0")
 
 	// Test index 1 (second most recent)
-	result, err = hub.tools[0].Execute(context.Background(), `{"index": 1}`)
-	assert.NoError(t, err)
+	result = tool.Execute(context.Background(), []byte(`{"index": 1}`))
 	assert.Contains(t, result, "Second response")
 	assert.Contains(t, result, "index 1")
 
 	// Test index 2 (third most recent)
-	result, err = hub.tools[0].Execute(context.Background(), `{"index": 2}`)
-	assert.NoError(t, err)
+	result = tool.Execute(context.Background(), []byte(`{"index": 2}`))
 	assert.Contains(t, result, "First response")
 	assert.Contains(t, result, "index 2")
 }
 
-func TestPluginExecuteInvalidIndex(t *testing.T) {
+func TestToolExecuteInvalidIndex(t *testing.T) {
 	t.Parallel()
 
-	s := &plugin.State{
-		ResponseStore: response.New(plugin.DefaultResponseStoreSize),
+	cfg := loadConfig(t, "version: \"1.0\"\n")
+	responseStore := response.New(plugin.DefaultResponseStoreSize)
+	state := &plugin.State{
+		Config:           cfg,
+		ToolStore:        tools.NewStore(),
+		RequesterFactory: requester.NewFactory(),
+		Printer:          printer.GetDefault(),
+		ResponseStore:    responseStore,
 	}
 	hub := &mockHub{}
+	err := (&Plugin{}).Init(state, hub)
+	require.NoError(t, err)
 
-	p := &Plugin{}
-	err := p.Init(s, hub)
-	assert.NoError(t, err)
+	// Get the registered tool
+	tool, err := state.ToolStore.GetTool("last_response")
+	require.NoError(t, err)
 
 	// Test negative index
-	result, err := hub.tools[0].Execute(context.Background(), `{"index": -1}`)
-	assert.Error(t, err)
-	assert.Equal(t, "", result)
+	result := tool.Execute(context.Background(), []byte(`{"index": -1}`))
+	assert.Contains(t, result, "error")
+	assert.Contains(t, result, "index must be non-negative")
 
 	// Test index out of bounds (empty store)
-	result, err = hub.tools[0].Execute(context.Background(), `{"index": 0}`)
-	assert.Error(t, err)
-	assert.Equal(t, "", result)
+	result = tool.Execute(context.Background(), []byte(`{"index": 0}`))
+	assert.Contains(t, result, "error")
+	assert.Contains(t, result, "no response found at the specified index")
 }
 
-func TestPluginExecuteInvalidJSON(t *testing.T) {
+func TestToolExecuteInvalidJSON(t *testing.T) {
 	t.Parallel()
 
-	s := &plugin.State{
-		ResponseStore: response.New(plugin.DefaultResponseStoreSize),
+	cfg := loadConfig(t, "version: \"1.0\"\n")
+	responseStore := response.New(plugin.DefaultResponseStoreSize)
+	state := &plugin.State{
+		Config:           cfg,
+		ToolStore:        tools.NewStore(),
+		RequesterFactory: requester.NewFactory(),
+		Printer:          printer.GetDefault(),
+		ResponseStore:    responseStore,
 	}
 	hub := &mockHub{}
+	err := (&Plugin{}).Init(state, hub)
+	require.NoError(t, err)
 
-	p := &Plugin{}
-	err := p.Init(s, hub)
-	assert.NoError(t, err)
+	// Get the registered tool
+	tool, err := state.ToolStore.GetTool("last_response")
+	require.NoError(t, err)
 
 	// Test invalid JSON
-	result, err := hub.tools[0].Execute(context.Background(), "invalid json")
-	assert.Error(t, err)
-	assert.Equal(t, "", result)
+	result := tool.Execute(context.Background(), []byte("invalid json"))
+	assert.Contains(t, result, "json_error")
 }
