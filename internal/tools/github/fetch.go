@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/sashabaranov/go-openai"
 
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/http/requester"
@@ -1129,113 +1128,6 @@ func (g *GitHubTools) formatMilestoneMarkdown(milestoneData *struct {
 	return sb.String()
 }
 
-// StaticDefinitionMilestone returns the OpenAI tool schema for github_milestone without
-// requiring an initialised GitHubTools instance.
-func StaticDefinitionMilestone() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "github_milestone",
-			Description: "Fetch a GitHub milestone and all its issues, returns milestone details in Markdown format",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"repo": map[string]any{
-						"type":        "string",
-						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
-					},
-					"milestone": map[string]any{
-						"type":        "string",
-						"description": "Milestone number (e.g., '278')",
-					},
-				},
-				"required": []string{"repo", "milestone"},
-			},
-		},
-	}
-}
-
-// requiring an initialised GitHubTools instance.
-func StaticDefinition() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "github_repo",
-			Description: "Fetch GitHub repository information and return its details in Markdown format",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"repo": map[string]any{
-						"type":        "string",
-						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
-					},
-				},
-				"required": []string{"repo"},
-			},
-		},
-	}
-}
-
-// StaticDefinitionFile returns the OpenAI tool schema for github_file without
-// requiring an initialised GitHubTools instance.
-func StaticDefinitionFile() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "github_file",
-			Description: "Fetch a file from GitHub repository and return its content",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"repo": map[string]any{
-						"type":        "string",
-						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
-					},
-					"branch": map[string]any{
-						"type":        "string",
-						"description": "Branch name (default: 'master')",
-					},
-					"file": map[string]any{
-						"type":        "string",
-						"description": "Path to the file in the repository",
-					},
-				},
-				"required": []string{"repo", "file"},
-			},
-		},
-	}
-}
-
-// StaticDefinitionTree returns the OpenAI tool schema for github_tree without
-// requiring an initialised GitHubTools instance.
-func StaticDefinitionTree() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "github_tree",
-			Description: "List repository contents at root or specified path",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"repo": map[string]any{
-						"type":        "string",
-						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
-					},
-					"branch": map[string]any{
-						"type":        "string",
-						"description": "Branch name (default: 'master')",
-					},
-					"path": map[string]any{
-						"type":        "string",
-						"description": "Path to directory (default: '' for root)",
-					},
-				},
-				"required": []string{"repo"},
-			},
-		},
-	}
-}
-
 // PullRequestFile represents a file changed in a pull request.
 type PullRequestFile struct {
 	SHA         string `json:"sha"`
@@ -1868,30 +1760,4 @@ func (g *GitHubTools) ExecRelease(ctx context.Context, params *ReleaseParams) (a
 		return nil, errors.New("invalid params for github_release_info")
 	}
 	return g.FetchRelease(params.Repo, params.Tag)
-}
-
-// StaticDefinitionRelease returns the OpenAI tool schema for github_release_info without
-// requiring an initialised GitHubTools instance.
-func StaticDefinitionRelease() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "github_release_info",
-			Description: "Fetch a GitHub release by tag name and return its details in Markdown format",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"repo": map[string]any{
-						"type":        "string",
-						"description": "GitHub repository URL (e.g., 'https://github.com/owner/repo' or 'owner/repo')",
-					},
-					"tag": map[string]any{
-						"type":        "string",
-						"description": "Release tag name (e.g., 'v1.6.0')",
-					},
-				},
-				"required": []string{"repo", "tag"},
-			},
-		},
-	}
 }
