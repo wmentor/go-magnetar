@@ -10,7 +10,6 @@ import (
 	"slices"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -22,6 +21,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/agent/summarizer"
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/gmutex"
 	hstore "github.com/wmentor/go-magnetar/internal/history"
 	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/plugin"
@@ -29,63 +29,58 @@ import (
 	"github.com/wmentor/go-magnetar/internal/tools"
 )
 
-const systemPromptTemplate = `You are a helpful assistant that answers questions strictly based on the knowledge base.
+const systemPromptTemplate = `You are a helpful assistant. Answer in: %s.
 
-Parameters:
-- language: %s
+## How to answer
 
-Rules:
-- For questions about facts, documents, or knowledge: use *web_search* or *rag_search* first. Base your answer exclusively on what search returns.
-- For file operations (read, edit, create, run commands): use the file/exec tools directly. Do not call search tools first.
-- You may call *web_search* and *rag_search* multiple times with different queries to gather all necessary information.
-- Use *web_search* for time-sensitive or general knowledge queries (e.g., current events, news, popular topics).
-- Use *rag_search* for domain-specific questions that should be answered from the knowledge base.
+- Questions about facts, documents, or knowledge → call *web_search* or *rag_search* first; base your answer exclusively on what they return.
+- File operations (read, edit, create) or shell commands → use the file/exec tools directly; do not call search tools first.
+- If *web_search* and *rag_search* return no relevant results, tell the user honestly that you don't have information on this topic.
 - Do not invent, assume, or extrapolate facts beyond what the tools return.
-- If *web_search* and *rag_search* and *rag_search* provide no relevant results, tell the user honestly that you don't have information on this topic.
 - Be concise and precise.
-- You may execute multiple tools in parallel when the response contains multiple tool calls.
-- NEVER combine file_write, file_edit, or file_edit_multiple with any other tool in the same response.
-  Always call file_read first in a separate step, then call the edit tool alone.
 
-FILE EDITING RULES:
-- ALWAYS call file_read FIRST before any file_edit or file_edit_multiple call. Never guess file contents.
-- Use file_edit for a single targeted replacement; old_text must appear EXACTLY ONCE in the file.
-- Use file_edit_multiple when making several replacements in one file or when old_text appears more than once.
-- Use file_write only when creating a new file or completely rewriting an existing one.
-- file_edit and file_edit_multiple work ONLY with plain-text files (.go, .py, .js, .ts, .md, .yaml, .json, .txt, etc.).
-- Formats .docx, .pdf, .odt, .xlsx, .pptx, .csv, .tsv, .html, .htm have dedicated codecs and CANNOT be edited
-  with file_edit — use file_write or a specialized tool for those formats.
-- The search is CASE-SENSITIVE and requires an exact character-for-character match including whitespace and newlines.
-- Copy old_text verbatim from the file_read output — do not paraphrase or reconstruct it from memory.
-- Include enough surrounding context in old_text to make it unique: add the preceding or following line if needed.
-- If file_edit returns "old_text appears N times", add more context to old_text or switch to file_edit_multiple.
-- If file_edit returns "old_text not found", re-read the file and copy the text again exactly as it appears.
-- Do not add or remove leading/trailing whitespace or newlines in old_text unless the file actually has them.
+## Search
 
-SKILL USAGE:
-- When a skill is applied (e.g., via /skill command), the skill's output is provided to you as the user's input.
-- You MUST treat this skill output as the direct user request and respond to it naturally.
-- When responding to skill output, do NOT use tools or generate tool calls UNLESS the skill explicitly instructs you to use tools.
-- Skill results without explicit tool instructions MUST be answered directly without calling any tools.
+- Use *web_search* for time-sensitive or general knowledge queries (current events, news, popular topics).
+- Use *rag_search* for domain-specific questions that should be answered from the knowledge base.
+- You may call each search tool multiple times with different queries to gather all necessary information.
+- You may call *web_search* and *rag_search* in parallel.
 
-SECURITY WARNING: You are FORBIDDEN from executing destructive commands such as:
-- rm -rf /, rm -rf *, sudo, chmod 777, dd, mkfs, fdisk, or any command that could delete/modify/system files.
-- curl ... | bash, wget ... | sh, zsh, or any pipe to shell execution.
+## Tool call limit
 
-You are FORBIDDEN from using heredoc syntax to write files:
-- Never execute commands like cat > /tmp/params.txt << 'EOF', cat << EOF, or similar heredoc patterns.
-- This includes any command that writes content to files using heredoc redirection.
+If ANY tool response contains "error: tool call limit reached":
+- STOP. Do NOT call that tool again under any circumstances for this request.
+- Do NOT retry with a different query or slightly modified parameters.
+- Immediately compose a final answer using only the information already gathered.
+- If you have no useful information, tell the user honestly instead of retrying.
 
-You are FORBIDDEN from downloading and executing untrusted scripts:
-- Never execute curl ... | bash, wget ... -O - | sh, or similar patterns.
-- Always verify script sources and contents before execution.
+## Parallel execution
 
-IMPORTANT: The exec tool will BLOCK any command matching security patterns (rm -rf, sudo, mkfs, dd with /dev/, pipe to bash/sh/zsh,
-git commit/push/rebase/pull/cherry-pick/reset/stash/clean/reflog). DO NOT attempt to bypass these protections.
+- You may execute multiple independent tools in parallel within a single response.
+- NEVER combine file_write, file_edit, file_edit_multiple, or exec with each other in the same response — they run
+  sequentially and must be issued one per step.
 
-SECURITY CHECK: When the guard tool analyzes a command for safety:
-- If the guard is uncertain about whether a command is safe, ALWAYS reject it (allow=false).
-- Err on the side of caution - better to block a safe command than to allow a dangerous one.
+## File editing
+
+1. ALWAYS call file_read FIRST. Never guess or reconstruct file contents from memory.
+2. Then call the edit tool ALONE in the next step (no other tools in the same response).
+3. Choose the right tool:
+   - file_edit — single replacement; old_text must appear EXACTLY ONCE in the file.
+   - file_edit_multiple — multiple replacements, or when old_text appears more than once.
+   - file_write — create a new file or completely rewrite an existing one.
+4. file_edit and file_edit_multiple work ONLY with plain-text files (.go, .py, .js, .ts, .md, .yaml, .json, .txt, .csv, .tsv, .html, .htm, etc.).
+   Binary/structured formats (.docx, .pdf, .odt, .xlsx, .pptx) cannot be edited this way — use file_write instead.
+5. old_text is CASE-SENSITIVE and must match the file character-for-character, including all whitespace and newlines.
+6. Copy old_text verbatim from file_read output. Add surrounding lines if needed to make it unique.
+7. If file_edit returns "old_text appears N times" → add more context or switch to file_edit_multiple.
+8. If file_edit returns "old_text not found" → re-read the file and copy the text again exactly.
+
+## Security
+
+The exec tool automatically blocks destructive operations (rm -rf, sudo, mkfs, dd on devices, pipe to shell, heredoc file writes,
+git commit/push/rebase and similar mutating git commands). Do not attempt to bypass these protections.
+
+When the guard tool analyzes a command: if uncertain, always reject it (allow=false). Err on the side of caution.
 `
 
 const (
@@ -299,37 +294,29 @@ type toolRecord struct {
 
 // ask sends the user input to the LLM, handles tool calls, and returns the final answer.
 func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
+	a.compactIfNeeded()
+
 	a.messages = append(a.messages, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleUser,
 		Content: userInput,
 	})
 
-	a.compactIfNeeded()
-
 	beginIndex := len(a.messages)
 
 	// Build tool list and dispatch map from registered plugins.
-	llmTools := plugin.LLMTools()
-	tools := make([]openai.Tool, 0, len(llmTools))
-	toolMap := make(map[string]plugin.LLMTool, len(llmTools))
-	for _, t := range llmTools {
-		def := t.Definition()
-		tools = append(tools, def)
-		toolMap[def.Function.Name] = t
-	}
+	tools := make([]openai.Tool, 0, 32)
 
 	for _, t := range state.ToolStore.Tools() {
 		def := t.Definition()
 		tools = append(tools, def)
 	}
 
-	toolCallCount := new(int64)
 	noProgressCount := 0
-	allInterationRealToolCall := new(int64)
 
 	lastAnswerContent := ""
 
 	alreadyDoneToolCalls := map[toolRecord]struct{}{}
+	allToolCallStat := map[string]int{}
 
 	for range maxAskLoopIteration {
 		reserved := 0
@@ -382,67 +369,32 @@ func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
 
 			var wg sync.WaitGroup
 
-			atomic.StoreInt64(allInterationRealToolCall, 0)
-
 			// executeTool runs a single tool call and sends the result to results.
 			executeTool := func(tc openai.ToolCall) {
 				name := tc.Function.Name
 				args := tc.Function.Arguments
-				toolKey := toolRecord{Name: name, Args: args}
 
 				var result string
-				t, ok := toolMap[name]
-				if !ok {
-					if tool, err := state.ToolStore.GetTool(name); err == nil {
-						if tool.IsSearchTool {
-							if atomic.LoadInt64(toolCallCount) >= maxSearchToolCalls {
-								result = "error: reached maximum number of search tool calls, no further searches allowed"
-								txt := fmt.Sprintf("LLM requested tool call %s but maximum search tool calls (%d) has been reached",
-									toolKey.Name, maxSearchToolCalls)
-								printer.Warn(txt, toolKey.Name, toolKey.Args)
-							} else {
-								atomic.AddInt64(toolCallCount, 1)
-								result = tool.Execute(context.Background(), []byte(args))
-							}
-						} else {
-							result = tool.Execute(context.Background(), []byte(args))
-						}
+				if tool, err := state.ToolStore.GetTool(name); err == nil {
+					if tool.Sequential {
+						gmutex.Lock()
+						defer gmutex.Unlock()
 					} else {
-						result = "error: unknown tool " + name
+						gmutex.RLock()
+						defer gmutex.RUnlock()
 					}
+					result = tool.Execute(context.Background(), []byte(args))
 				} else {
-					if t.IsSearchTool {
-						if atomic.LoadInt64(toolCallCount) >= maxSearchToolCalls {
-							result = "error: reached maximum number of search tool calls, no further searches allowed"
-							txt := fmt.Sprintf("LLM requested tool call %s but maximum search tool calls (%d) has been reached",
-								toolKey.Name, maxSearchToolCalls)
-							printer.Warn(txt, toolKey.Name, toolKey.Args)
-						} else {
-							atomic.AddInt64(toolCallCount, 1)
-							r, err := t.Execute(context.Background(), args)
-							if err != nil {
-								result = "error: " + err.Error()
-							} else {
-								result = r
-							}
-						}
-					} else {
-						r, err := t.Execute(context.Background(), args)
-						if err != nil {
-							result = "error: " + err.Error()
-						} else {
-							result = r
-						}
-					}
+					result = "error: unknown tool " + name
 				}
+
 				results <- toolResult{toolCall: tc, result: result}
 			}
 
 			// Split tool calls into parallel and sequential buckets.
 			// Sequential tools (e.g. file_edit, file_write) must not run
 			// concurrently because they mutate shared state (the filesystem).
-			var parallelCalls []openai.ToolCall
-			var sequentialCalls []openai.ToolCall
+			var tools []openai.ToolCall
 
 			for _, toolCall := range choice.Message.ToolCalls {
 				toolKey := toolRecord{Name: toolCall.Function.Name, Args: toolCall.Function.Arguments}
@@ -456,28 +408,36 @@ func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
 					continue
 				}
 				alreadyDoneToolCalls[toolKey] = struct{}{}
-				if atomic.LoadInt64(toolCallCount) < maxSearchToolCalls {
-					atomic.AddInt64(allInterationRealToolCall, 1)
+
+				tool, err := state.ToolStore.GetTool(toolCall.Function.Name)
+				if err != nil {
+					a.messages = append(a.messages, openai.ChatCompletionMessage{
+						Role:       openai.ChatMessageRoleTool,
+						Content:    "error: unknown tool " + toolCall.Function.Name,
+						ToolCallID: toolCall.ID,
+					})
+					printer.Error("unknown tool call", "tool", toolKey.Name, "args", toolKey.Args)
+					continue
+				}
+				allToolCallStat[tool.Name]++
+				if tool.RateLimit > 0 && tool.RateLimit < allToolCallStat[tool.Name] {
+					a.messages = append(a.messages, openai.ChatCompletionMessage{
+						Role:       openai.ChatMessageRoleTool,
+						Content:    "error: tool call limit reached",
+						ToolCallID: toolCall.ID,
+					})
+					printer.Warn("tool call limit reached", "tool", toolKey.Name, "args", toolKey.Args)
+					continue
 				}
 
-				if t, ok := toolMap[toolCall.Function.Name]; ok {
-					if t.Sequential {
-						sequentialCalls = append(sequentialCalls, toolCall)
-					} else {
-						parallelCalls = append(parallelCalls, toolCall)
-					}
-				} else {
-					newTool, err := state.ToolStore.GetTool(toolCall.Function.Name)
-					if err == nil && newTool.Sequential {
-						sequentialCalls = append(sequentialCalls, toolCall)
-					} else {
-						parallelCalls = append(parallelCalls, toolCall)
-					}
-				}
+				tools = append(tools, toolCall)
 			}
 
+			noProgressCount++
+
 			// Run parallel tools concurrently.
-			for _, tc := range parallelCalls {
+			for _, tc := range tools {
+				noProgressCount = 0
 				wg.Add(1)
 				go func(tc openai.ToolCall) {
 					defer wg.Done()
@@ -486,28 +446,20 @@ func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
 			}
 			wg.Wait()
 
-			// Run sequential tools one at a time, in the order the LLM listed them.
-			for _, tc := range sequentialCalls {
-				executeTool(tc)
-			}
-
 			close(results)
 
 			for r := range results {
+				message := r.result
 				if r.err != nil {
 					printer.Error("chat: tool execution failed", "tool", r.toolCall.Function.Name, "err", r.err)
+					message = r.err.Error()
 				}
+
 				a.messages = append(a.messages, openai.ChatCompletionMessage{
 					Role:       openai.ChatMessageRoleTool,
-					Content:    r.result,
+					Content:    message,
 					ToolCallID: r.toolCall.ID,
 				})
-			}
-
-			if atomic.LoadInt64(allInterationRealToolCall) == 0 {
-				noProgressCount++
-			} else {
-				noProgressCount = 0
 			}
 
 			lastAnswerContent = choice.Message.Content

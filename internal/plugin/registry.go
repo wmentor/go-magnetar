@@ -20,7 +20,6 @@ type entry struct {
 type hub struct {
 	mu sync.Mutex
 
-	tools         []LLMTool
 	commands      []ChatCommand
 	preprocessors []PreprocessorFunc
 	toolStore     *tools.Store
@@ -34,12 +33,6 @@ type hub struct {
 
 func newHub() *hub {
 	return &hub{}
-}
-
-func (h *hub) RegisterTool(tool LLMTool) {
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	h.tools = append(h.tools, tool)
 }
 
 func (h *hub) RegisterChatCommand(cmd ChatCommand) {
@@ -156,15 +149,6 @@ func InitAll(s *State) error {
 
 	globalHub.start()
 	return nil
-}
-
-// LLMTools returns all LLM tools registered by plugins.
-func LLMTools() []LLMTool {
-	globalHub.mu.Lock()
-	defer globalHub.mu.Unlock()
-	out := make([]LLMTool, len(globalHub.tools))
-	copy(out, globalHub.tools)
-	return out
 }
 
 // ChatCommands returns all chat commands registered by plugins.

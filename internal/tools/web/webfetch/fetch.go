@@ -94,6 +94,9 @@ func (t *Tool) WebFetch(ctx context.Context, params *Params) (any, error) {
 }
 
 func (t *Tool) WebFetchEngine(ctx context.Context, urlStr string, isFetch bool) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, webFetchDefaultTimeout)
+	defer cancel()
+
 	if !strings.Contains(urlStr, "://") {
 		urlStr = "https://" + urlStr
 	}
@@ -252,6 +255,7 @@ func (t *Tool) WebFetchEngine(ctx context.Context, urlStr string, isFetch bool) 
 			t.printer.Error("web_fetch: failed to fetch URL", "url", urlStr, "err", err)
 			return "", fmt.Errorf("web_fetch: failed to fetch URL %q", urlStr)
 		}
+		t.printer.Error("web_search: failed to fetch URL", "err", err)
 		return "", errors.New("web_search: failed")
 	}
 

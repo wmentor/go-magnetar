@@ -12,7 +12,7 @@ func TestHub_NewHubIsEmpty(t *testing.T) {
 	t.Parallel()
 
 	h := newHub()
-	if len(h.tools) != 0 || len(h.commands) != 0 || len(h.preprocessors) != 0 || len(h.goroutines) != 0 {
+	if len(h.commands) != 0 || len(h.preprocessors) != 0 || len(h.goroutines) != 0 {
 		t.Fatalf("a new hub must hold no registrations, got %+v", h)
 	}
 	if h.initialised || h.cancel != nil {
@@ -26,15 +26,11 @@ func TestHub_RegistrationsKeepTheirOrder(t *testing.T) {
 	h := newHub()
 	for _, name := range []string{"stat", "help", "exit"} {
 		h.RegisterChatCommand(ChatCommand{Name: name})
-		h.RegisterTool(LLMTool{IsSearchTool: name == "help"})
 		h.RegisterPreprocessor(func(_ context.Context, text string) (string, error) { return name + ":" + text, nil })
 	}
 
 	if got := []string{h.commands[0].Name, h.commands[1].Name, h.commands[2].Name}; fmt.Sprint(got) != "[stat help exit]" {
 		t.Errorf("commands in registration order: got %v", got)
-	}
-	if len(h.tools) != 3 || !h.tools[1].IsSearchTool || h.tools[0].IsSearchTool {
-		t.Errorf("tools in registration order: got %+v", h.tools)
 	}
 	var got []string
 	for _, pre := range h.preprocessors {
@@ -58,16 +54,15 @@ func TestHub_ConcurrentRegistrationsAreAllKept(t *testing.T) {
 	for i := range n {
 		wg.Go(func() {
 			h.RegisterChatCommand(ChatCommand{Name: fmt.Sprint(i)})
-			h.RegisterTool(LLMTool{})
 			h.RegisterPreprocessor(func(_ context.Context, s string) (string, error) { return s, nil })
 			h.Go(func(context.Context) {})
 		})
 	}
 	wg.Wait()
 
-	if len(h.commands) != n || len(h.tools) != n || len(h.preprocessors) != n || len(h.goroutines) != n {
-		t.Fatalf("expected %d of each, got commands=%d tools=%d preprocessors=%d goroutines=%d",
-			n, len(h.commands), len(h.tools), len(h.preprocessors), len(h.goroutines))
+	if len(h.commands) != n || len(h.preprocessors) != n || len(h.goroutines) != n {
+		t.Fatalf("expected %d of each, got commands=%d preprocessors=%d goroutines=%d",
+			n, len(h.commands), len(h.preprocessors), len(h.goroutines))
 	}
 }
 

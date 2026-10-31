@@ -65,9 +65,6 @@ type PreprocessorFunc func(ctx context.Context, text string) (string, error)
 // A plugin calls the Register* methods to contribute functionality,
 // and Go to enqueue managed background goroutines.
 type Hub interface {
-	// RegisterTool adds an LLM tool to the agent tool-use loop.
-	RegisterTool(tool LLMTool)
-
 	// RegisterChatCommand adds a slash command to the chat REPL.
 	RegisterChatCommand(cmd ChatCommand)
 
@@ -85,23 +82,6 @@ type Hub interface {
 	// Stop cancels all goroutine contexts and waits for them to finish.
 	// Called once by main when the program is shutting down.
 	Stop()
-}
-
-// LLMTool is a single tool exposed to the LLM in the tool-use loop.
-type LLMTool struct {
-	// Definition returns the OpenAI-compatible tool schema.
-	Definition func() openai.Tool
-	// Execute is called when the LLM invokes this tool.
-	// args is the raw JSON arguments string.
-	Execute func(ctx context.Context, args string) (string, error)
-	// IsSearchTool marks tools that count toward the per-request search call
-	// limit (e.g. rag_search, web_search).
-	IsSearchTool bool
-	// Sequential marks tools that must NOT run concurrently with other tool
-	// calls in the same LLM response. All sequential tools in a batch are
-	// executed one after another (in the order the LLM listed them) after
-	// all parallel tools have finished.
-	Sequential bool
 }
 
 // ChatCommandInput encapsulates all parameters for ChatCommand execution.

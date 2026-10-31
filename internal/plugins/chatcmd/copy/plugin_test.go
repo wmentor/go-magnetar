@@ -180,7 +180,6 @@ func (s failingResponseStore) Push(string) {}
 func (s failingResponseStore) Last(int) (string, error) { return "", s.err }
 
 func (h *mockHub) RegisterChatCommand(cmd plugin.ChatCommand)      { h.lastCommand = &cmd }
-func (h *mockHub) RegisterTool(tool plugin.LLMTool)                {}
 func (h *mockHub) RegisterCLICommand(cmd any)                      {}
 func (h *mockHub) RegisterPreprocessor(fn plugin.PreprocessorFunc) {}
 func (h *mockHub) Go(f func(context.Context))                      {}
