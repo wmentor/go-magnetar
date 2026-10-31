@@ -2,12 +2,10 @@ package websearch
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/url"
 
 	"github.com/pkg/errors"
-	"github.com/sashabaranov/go-openai"
 	"golang.org/x/time/rate"
 
 	"github.com/wmentor/go-magnetar/internal/config"
@@ -86,49 +84,3 @@ func (t *Tool) WebSearch(ctx context.Context, params *Params) (any, error) {
 	}, nil
 }
 
-// StaticDefinitionSearch returns the OpenAI tool schema for web_search without
-// requiring an initialised Tool instance. Used by the plugin for lazy init.
-func StaticDefinitionSearch() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name:        "web_search",
-			Description: "Execute web search and return results in Markdown format",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"query": map[string]any{
-						"type":        "string",
-						"description": "Search query string",
-					},
-				},
-				"required": []string{"query"},
-			},
-		},
-	}
-}
-
-// WebSearchString executes the web_search tool with the given JSON args and returns the result as a string.
-func (t *Tool) WebSearchString(args string) (string, error) {
-	var params Params
-	if err := json.Unmarshal([]byte(args), &params); err != nil {
-		return fmt.Sprintf("error: failed to parse arguments: %v", err), nil
-	}
-
-	ctx := context.Background()
-	result, err := t.WebSearch(ctx, &params)
-	if err != nil {
-		return fmt.Sprintf("error: %v", err), nil
-	}
-
-	// Extract content from response
-	if resp, ok := result.(tools.Response); ok {
-		return resp.Result, nil
-	}
-	if resp, ok := result.(map[string]any); ok {
-		if r, ok := resp["result"]; ok {
-			return fmt.Sprintf("%v", r), nil
-		}
-	}
-	return fmt.Sprintf("%v", result), nil
-}
