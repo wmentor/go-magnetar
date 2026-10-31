@@ -8,6 +8,7 @@ import (
 	"github.com/docker/go-units"
 	"github.com/sashabaranov/go-openai"
 
+	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 )
 
@@ -39,12 +40,16 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 
 // contextStats aggregates context usage numbers for rendering.
 type contextStats struct {
-	messages   int
-	tokens     int
-	bytes      int
-	llmModel   string
-	ragModel   string
-	vectorSize int
+	messages          int
+	tokens            int
+	bytes             int
+	llmModel          string
+	ragModel          string
+	vectorSize        int
+	totalRequests     int64
+	chatRequests      int64
+	embeddingRequests int64
+	failedRequests    int64
 }
 
 // collectStats computes context statistics from the conversation history and
@@ -59,13 +64,18 @@ func collectStats(msgs []openai.ChatCompletionMessage, llmModel, ragModel string
 		totalBytes += b
 		totalTokens += max(b/4, 1)
 	}
+
 	return contextStats{
-		messages:   len(msgs),
-		tokens:     totalTokens,
-		bytes:      totalBytes,
-		llmModel:   llmModel,
-		ragModel:   ragModel,
-		vectorSize: vectorSize,
+		messages:          len(msgs),
+		tokens:            totalTokens,
+		bytes:             totalBytes,
+		llmModel:          llmModel,
+		ragModel:          ragModel,
+		vectorSize:        vectorSize,
+		totalRequests:     requester.GetTotalRequests(),
+		chatRequests:      requester.GetChatCompletionsRequests(),
+		embeddingRequests: requester.GetEmbeddingRequests(),
+		failedRequests:    requester.GetFailedRequests(),
 	}
 }
 
@@ -82,5 +92,9 @@ func formatStatsMarkdown(s contextStats) string {
 	fmt.Fprintf(&sb, "| LLM model | %s |\n", s.llmModel)
 	fmt.Fprintf(&sb, "| RAG model | %s |\n", s.ragModel)
 	fmt.Fprintf(&sb, "| Vector size | %d |\n", s.vectorSize)
+	fmt.Fprintf(&sb, "| HTTP total requests | %d |\n", s.totalRequests)
+	fmt.Fprintf(&sb, "| HTTP chat completions | %d |\n", s.chatRequests)
+	fmt.Fprintf(&sb, "| HTTP embeddings | %d |\n", s.embeddingRequests)
+	fmt.Fprintf(&sb, "| HTTP failed requests | %d |\n", s.failedRequests)
 	return sb.String()
 }
