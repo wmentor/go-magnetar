@@ -185,10 +185,6 @@ type mockHub struct {
 	RegisteredCommands []plugin.ChatCommand
 }
 
-func (m *mockHub) RegisterTool(tool plugin.LLMTool) {
-	// no-op
-}
-
 func (m *mockHub) RegisterChatCommand(cmd plugin.ChatCommand) {
 	m.RegisteredCommands = append(m.RegisteredCommands, cmd)
 }

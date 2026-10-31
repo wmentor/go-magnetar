@@ -16,11 +16,8 @@ import (
 	"github.com/wmentor/go-magnetar/internal/tools"
 )
 
-type mockHub struct {
-	tools []plugin.LLMTool
-}
+type mockHub struct{}
 
-func (h *mockHub) RegisterTool(tool plugin.LLMTool)             { h.tools = append(h.tools, tool) }
 func (h *mockHub) RegisterChatCommand(plugin.ChatCommand)       {}
 func (h *mockHub) RegisterPreprocessor(plugin.PreprocessorFunc) {}
 func (h *mockHub) Go(func(ctx context.Context))                 {}

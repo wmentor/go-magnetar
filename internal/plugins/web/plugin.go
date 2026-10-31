@@ -6,6 +6,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/wmentor/go-magnetar/internal/plugin"
+	"github.com/wmentor/go-magnetar/internal/tools"
 	"github.com/wmentor/go-magnetar/internal/tools/web/webfetch"
 	"github.com/wmentor/go-magnetar/internal/tools/web/websearch"
 )
@@ -37,7 +38,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		limit := rate.Every(webSearchTimeInterval)
 		limiter := rate.NewLimiter(limit, 1)
 		searchTool.SetLimiter(limiter)
-		s.ToolStore.Register(searchTool.Name(), searchTool.Description(), searchTool.WebSearch)
+		s.ToolStore.Register(searchTool.Name(), searchTool.Description(), searchTool.WebSearch, tools.OptionRateLimit(1))
 	}
 
 	return nil

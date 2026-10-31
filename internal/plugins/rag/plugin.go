@@ -27,7 +27,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 
 		// Create RAG tool with the store instance
 		p.tool = rag.New(cfg, s.Printer, vecStore, s)
-		s.ToolStore.Register(p.tool.Name(), p.tool.Description(), p.tool.Exec, tools.OptionSearch())
+		s.ToolStore.Register(p.tool.Name(), p.tool.Description(), p.tool.Exec, tools.OptionRateLimit(5))
 	}
 	return nil
 }

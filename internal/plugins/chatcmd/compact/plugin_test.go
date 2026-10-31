@@ -16,7 +16,6 @@ type mockCompactHub struct {
 	cmd plugin.ChatCommand
 }
 
-func (h *mockCompactHub) RegisterTool(plugin.LLMTool)                  {}
 func (h *mockCompactHub) RegisterChatCommand(c plugin.ChatCommand)     { h.cmd = c }
 func (h *mockCompactHub) RegisterPreprocessor(plugin.PreprocessorFunc) {}
 func (h *mockCompactHub) Go(func(ctx context.Context))                 {}
