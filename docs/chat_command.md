@@ -11,7 +11,7 @@ go-magnetar provides several built-in chat commands accessible from the interact
 | `/compact [soft\|full]` | — | Immediately compress conversation history via the summarizer |
 | `/new` | — | Start a new session and clear conversation history |
 | `/stat` | — | Print context statistics: messages, tokens, bytes, LLM model, RAG model, vector size |
-| `/index` | `/i` | Index file or URL into RAG knowledge base (auto-detects URL vs file) |
+| `/index` | `/i` | Index a file, URL, or directory into RAG knowledge base (use `-r` for directories) |
 | `/idxtab` | — | Index multiple files/URLs from a JSON lines file (one per line, format: `{"source":"path\|url","message":"text"}`) |
 | `/write` | `/w` | Write content to a file |
 | `/copy [index]` | `/c` | Copy an assistant answer to clipboard (default: the last one) |
@@ -68,6 +68,21 @@ Fetch content from a URL, optionally save to file:
 ```
 
 The command cleans HTML content and converts it to Markdown. If a filename is provided, the content is saved to that file; otherwise, it's displayed in the terminal (using `less` if available).
+
+## /index Command
+
+Index a file, URL, or directory into the RAG knowledge base:
+
+```
+> /index docs/guide.md
+> /index https://example.com/article
+> /index docs/ -r
+> /index project/ -r -m "API documentation"
+```
+
+The command detects whether the target is a URL, a directory, or a file. Directories require `-r` (or `--recursive`) to be indexed recursively; the flag is ignored for files and URLs. Use `-m <message>` to prepend context to each chunk.
+
+When indexing a directory, files with a supported extension (`.md`, `.txt` and the formats listed in [file_codecs.md](file_codecs.md)) are indexed, and `.git`, `node_modules` and `__pycache__` directories are skipped. A file that cannot be read or indexed is reported with a warning and does not stop the run. A summary with the number of files, chunks and failures is printed at the end.
 
 ## /exec Command
 
