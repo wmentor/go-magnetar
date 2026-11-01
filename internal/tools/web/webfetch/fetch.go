@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/sashabaranov/go-openai"
 	"golang.org/x/net/html/charset"
 
 	"github.com/wmentor/go-magnetar/internal/codec"
@@ -433,31 +432,6 @@ func (t *Tool) fetchGitLabTree(projectPath string, branch string, path string) (
 		return resp.Result, nil
 	}
 	return fmt.Sprintf("%v", result), nil
-}
-
-// StaticDefinition returns the OpenAI tool schema for web_fetch without
-// requiring an initialised Tool instance. Used by the plugin for lazy init.
-func StaticDefinition() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name: "web_fetch",
-			Description: "Fetch a web page and return clean Markdown content. " +
-				"Supports Confluence pages, JIRA issues, GitLab repositories/files/tree/merge requests, " +
-				"and GitHub repositories, issues, milestones, pull requests, releases, and advisories.",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"url": map[string]any{
-						"type": "string",
-						"description": "URL of the web page, Confluence page, JIRA issue, " +
-							"GitLab repository/file/tree/merge request, or GitHub repository to fetch",
-					},
-				},
-				"required": []string{"url"},
-			},
-		},
-	}
 }
 
 // WebFetchString executes the web_fetch tool with the given JSON args and returns the result as a string.

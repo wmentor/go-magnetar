@@ -83,4 +83,3 @@ func (t *Tool) WebSearch(ctx context.Context, params *Params) (any, error) {
 		Result: result,
 	}, nil
 }
-
