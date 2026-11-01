@@ -283,8 +283,6 @@ go-magnetar uses a plugin architecture modelled after `database/sql` drivers.
 3. Implement `Init(s plugin.State, hub plugin.Hub) error` — call `hub.RegisterTool(...)`
 4. Add a blank import in `cmd/go-magnetar/main.go`
 
-For search tools (`web_search`, `rag_search`), set `IsSearchTool: true` to enable search call limit tracking.
-
 ### Adding a new chat command
 
 Same pattern but call `hub.RegisterChatCommand(plugin.ChatCommand{...})` in `Init`.
