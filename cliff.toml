@@ -66,9 +66,9 @@ protect_breaking_commits = false
 commit_parsers = [
     { message = "^feat", group = "<!-- 0 -->🚀 Features" },
     { message = "^fix", group = "<!-- 1 -->🐛 Bug Fixes" },
-    { message = "^doc", group = "<!-- 3 -->📚 Documentation" },
-    { message = "^perf", group = "<!-- 4 -->⚡ Performance" },
-    { message = "^refactor", group = "<!-- 2 -->🚜 Refactor" },
+    { message = "^security", group = "<!-- 2 -->🛡️ Security" },
+    { message = "^doc", group = "<!-- 4 -->📚 Documentation" },
+    { message = "^refactor", group = "<!-- 3 -->🧹 Refactor" },
     { message = "^style", group = "<!-- 5 -->🎨 Styling" },
     { message = "^test", group = "<!-- 6 -->🧪 Testing" },
     { message = "^chore\\(release\\): prepare for", skip = true },
@@ -76,9 +76,8 @@ commit_parsers = [
     { message = "^chore\\(pr\\)", skip = true },
     { message = "^chore\\(pull\\)", skip = true },
     { message = "^chore|^ci", group = "<!-- 7 -->⚙️ Miscellaneous Tasks" },
-    { body = ".*security", group = "<!-- 8 -->🛡️ Security" },
-    { message = "^revert", group = "<!-- 9 -->◀️ Revert" },
-    { message = ".*", group = "<!-- 10 -->💼 Other" },
+    { message = "^revert", group = "<!-- 8 -->◀️ Revert" },
+    { message = ".*", group = "<!-- 9 -->💼 Other" },
 ]
 # Exclude commits that are not matched by any commit parser.
 filter_commits = false
