@@ -1,5 +1,65 @@
 # CHANGELOG
 
+## [1.8.0] - 2026-11-01
+
+### 🚀 Features
+
+- *(search)* Add ripgrep (rg) support as preferred search tool if available
+- *(codec)* Add EML file support
+- *(summarizer)* Support configurable compact.mode strategy (#216)
+- *(security)* Add NIST adapter support for CVE identifiers (#220)
+- *(security)* Add rd, rmdir, reboot, shutdown, del, assoc to command blocklists (#207)
+- *(web)* Add rate limiting for NIST and web search APIs (#242)
+- *(stat)* Add HTTP request metrics (#250)
+
+### 🐛 Bug Fixes
+
+- *(cve)* Cover nil and markdown formatting (#208)
+- *(web)* Remove stray fmt.Println on MIME codec decode error (#213)
+- *(web)* Add https to scheme-less URLs (#224)
+- *(chat)* Prevent infinite loop by truncating message history (#243)
+- *(skills)* Enhance commit-message skill instructions (#241)
+
+### 📚 Documentation
+
+- *(docs)* Update README with new features and tool documentation (#218)
+
+### 🧹 Refactor
+
+- *(security)* Move security patterns to interceptor package
+- *(rag)* Centralize embedding client initialization (#215)
+- *(tools)* Introduce unified tool architecture with plugin registration (#217)
+- *(tools)* Reorganize web tools into separate packages
+- *(tools)* Split monolithic Jira tools into separate tool types (#225)
+- *(tools)* Extract tools and remove ConfluenceTools legacy code (#226)
+- *(tools)* Split GitLab tools into separate packages and support new architecture (#227)
+- *(tools)* Migrate github tools to tool store API (#228)
+- *(tools)* Replace RAGTools with Tool interface for rag_search (#239)
+- *(tools)* Refactor last_response plugin (#240)
+- *(tools)* Remove legacy string APIs from websearch (#246)
+- *(tools)* Remove deprecated file_edit tool schema functions (#247)
+- *(tools)* Remove unused OpenAI tool definitions in github tools (#248)
+- *(agent)* Simplify tool execution logic and remove old LLMTool abstraction (#249)
+- *(tools)* Remove IsSearchTool flag from tool structure (#252)
+- *(tools)* Remove static tool definitions from confluence and web packages (#253)
+
+### 🧪 Testing
+
+- *(generic)* Add unit tests for FileList method (#214)
+- *(web)* Update tests to use new web tool structure
+- *(web)* Avoid assuming tool map order (#223)
+
+### 💼 Other
+
+- *(security)* Bumps Go version to 1.27.3 (#229)
+- *(security)* Update dependencies (#230)
+
+### 👥 Contributors
+
+<div align="left" style="padding-left: 20px;">
+<a href="https://github.com/wmentor" data-hovercard-type="user" data-hovercard-url="/users/wmentor/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/wmentor?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@wmentor" title="@wmentor" style="border-radius: 50% !important;"></a> <a href="https://github.com/duongynhi000005-oss" data-hovercard-type="user" data-hovercard-url="/users/duongynhi000005-oss/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/duongynhi000005-oss?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@duongynhi000005-oss" title="@duongynhi000005-oss" style="border-radius: 50% !important;"></a> <a href="https://github.com/Vamsi-2581" data-hovercard-type="user" data-hovercard-url="/users/Vamsi-2581/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/Vamsi-2581?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@Vamsi-2581" title="@Vamsi-2581" style="border-radius: 50% !important;"></a> <a href="https://github.com/udayx-dev" data-hovercard-type="user" data-hovercard-url="/users/udayx-dev/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/udayx-dev?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@udayx-dev" title="@udayx-dev" style="border-radius: 50% !important;"></a> <a href="https://github.com/SatriaBagusNurhadianto" data-hovercard-type="user" data-hovercard-url="/users/SatriaBagusNurhadianto/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/SatriaBagusNurhadianto?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@SatriaBagusNurhadianto" title="@SatriaBagusNurhadianto" style="border-radius: 50% !important;"></a> <a href="https://github.com/dannyward630" data-hovercard-type="user" data-hovercard-url="/users/dannyward630/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/dannyward630?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@dannyward630" title="@dannyward630" style="border-radius: 50% !important;"></a> 
+</div><br/><br/>
+
 ## [1.7.0] - 2026-10-25
 
 ### 🚀 Features
