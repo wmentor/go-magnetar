@@ -710,12 +710,11 @@ func (a *ChatAgent) Run(state *plugin.State, skillName string) error {
 		elapsed := time.Since(start)
 		if err == nil {
 			if cmdResponse != nil {
-				if cmdResponse.Exit {
-					break
-				}
-				// Print Stdout to stdout if present
 				if cmdResponse.Stdout != "" {
 					a.printAnswer(state, cmdResponse.Stdout, cmdResponse.NoLog)
+				}
+				if cmdResponse.Exit {
+					break
 				}
 				if cmdResponse.Content == "" {
 					printTiming(state, elapsed)
