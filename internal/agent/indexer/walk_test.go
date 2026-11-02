@@ -43,8 +43,26 @@ func TestListIndexableFiles(t *testing.T) {
 		},
 		{
 			name:  "unsupported extensions are skipped",
-			files: []string{"keep.md", "image.png", "binary.exe", "main.go", "Makefile"},
+			files: []string{"keep.md", "image.png", "binary.exe", "data.json", "Makefile", "Dockerfile"},
 			want:  []string{"keep.md"},
+		},
+		{
+			name: "source and config files are indexed",
+			files: []string{
+				"main.go", "app.py", "app.js", "App.jsx", "app.ts", "App.tsx", "index.php",
+				"gem.rb", "lib.rs", "main.c", "main.h", "main.cpp", "main.hpp",
+				"Main.java", "run.sh", "ci.yaml", "ci.yml", "Cargo.toml", "app.ini",
+			},
+			want: []string{
+				"App.jsx", "App.tsx", "Cargo.toml", "Main.java", "app.ini", "app.js", "app.py", "app.ts",
+				"ci.yaml", "ci.yml", "gem.rb", "index.php", "lib.rs", "main.c", "main.cpp",
+				"main.go", "main.h", "main.hpp", "run.sh",
+			},
+		},
+		{
+			name:  "source file extension match is case insensitive",
+			files: []string{"Main.GO", "script.PY"},
+			want:  []string{"Main.GO", "script.PY"},
 		},
 		{
 			name:  "extension match is case insensitive",

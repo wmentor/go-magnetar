@@ -33,8 +33,30 @@ var excludedDirNames = map[string]struct{}{
 	"__pycache__":  {},
 }
 
-// plainTextExts are file extensions that are considered plain text.
-var plainTextExts = map[string]struct{}{".md": {}, ".txt": {}}
+// plainTextExts are file extensions that are considered plain text and source files.
+var plainTextExts = map[string]struct{}{
+	".md":   {},
+	".txt":  {},
+	".go":   {},
+	".js":   {},
+	".jsx":  {},
+	".ts":   {},
+	".tsx":  {},
+	".php":  {},
+	".rb":   {},
+	".rs":   {},
+	".py":   {},
+	".c":    {},
+	".h":    {},
+	".cpp":  {},
+	".hpp":  {},
+	".java": {},
+	".sh":   {},
+	".yaml": {},
+	".yml":  {},
+	".toml": {},
+	".ini":  {},
+}
 
 // New creates a new Indexer instance.
 func New(cfg *config.Config, root *os.Root, state *plugin.State) (*Indexer, error) {
