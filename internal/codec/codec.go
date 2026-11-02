@@ -18,7 +18,7 @@ import (
 var (
 	ErrCodecNotFound = errors.New("codec not found")
 
-	codecs = map[string]Codec{
+	readCodecs = map[string]ReadCodec{
 		".csv":  &csv.Codec{},
 		".docx": &docx.Codec{},
 		".eml":  &eml.Codec{},
@@ -41,8 +41,13 @@ var (
 		"xlsx":  &excel.Codec{},
 	}
 
+	writeCodecs = map[string]WriteCodec{
+		".docx": &docx.Codec{},
+		"docx":  &docx.Codec{},
+	}
+
 	// mimeCodecs maps MIME types to codecs.
-	mimeCodecs = map[string]Codec{
+	mimeReadCodecs = map[string]ReadCodec{
 		"application/pdf": &pdf.Codec{},
 		"application/vnd.openxmlformats-officedocument.wordprocessingml.document":   &docx.Codec{},
 		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":         &excel.Codec{},
@@ -63,19 +68,30 @@ var (
 	}
 )
 
-type Codec interface {
+type ReadCodec interface {
 	ReadFile(filename string) (string, error)
 }
 
-func GetCodec(extentionName string) (Codec, error) {
-	if c, has := codecs[strings.ToLower(extentionName)]; has {
+type WriteCodec interface {
+	WriteFile(filename string, content string) error
+}
+
+func GetCodec(extentionName string) (ReadCodec, error) {
+	if c, has := readCodecs[strings.ToLower(extentionName)]; has {
 		return c, nil
 	}
 	return nil, ErrCodecNotFound
 }
 
-func GetCodecByMIME(mime string) (Codec, error) {
-	if c, has := mimeCodecs[strings.ToLower(mime)]; has {
+func GetWriteCodec(extentionName string) (WriteCodec, error) {
+	if c, has := writeCodecs[strings.ToLower(extentionName)]; has {
+		return c, nil
+	}
+	return nil, ErrCodecNotFound
+}
+
+func GetCodecByMIME(mime string) (ReadCodec, error) {
+	if c, has := mimeReadCodecs[strings.ToLower(mime)]; has {
 		return c, nil
 	}
 	return nil, ErrCodecNotFound
