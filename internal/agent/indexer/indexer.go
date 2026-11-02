@@ -29,7 +29,6 @@ type Indexer struct {
 // excludedDirNames are directories that should not be indexed.
 var excludedDirNames = map[string]struct{}{
 	"node_modules": {},
-	".git":         {},
 	"__pycache__":  {},
 }
 
@@ -183,7 +182,7 @@ func listIndexableFiles(path string) ([]string, error) {
 		}
 
 		if d.IsDir() {
-			if _, ok := excludedDirNames[d.Name()]; ok {
+			if isExcludedDirName(d.Name()) && p != path {
 				return filepath.SkipDir
 			}
 			return nil
@@ -215,4 +214,15 @@ func isIndexable(path string) bool {
 		return true
 	}
 	return false
+}
+
+// isExcludedDirName reports whether a directory is skipped when indexing:
+// hidden directories (names starting with ".") and the names in excludedDirNames.
+func isExcludedDirName(name string) bool {
+	if strings.HasPrefix(name, ".") {
+		return true
+	}
+
+	_, ok := excludedDirNames[name]
+	return ok
 }

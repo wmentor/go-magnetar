@@ -82,7 +82,7 @@ Index a file, URL, or directory into the RAG knowledge base:
 
 The command detects whether the target is a URL, a directory, or a file. Directories require `-r` (or `--recursive`) to be indexed recursively; the flag is ignored for files and URLs. Use `-m <message>` to prepend context to each chunk.
 
-When indexing a directory, files with a supported extension are indexed: plain text (`.md`, `.txt`), source code (`.go`, `.py`, `.js`, `.jsx`, `.ts`, `.tsx`, `.php`, `.rb`, `.rs`, `.c`, `.h`, `.cpp`, `.hpp`, `.java`, `.sh`), config files (`.yaml`, `.yml`, `.toml`, `.ini`) and the formats listed in [file_codecs.md](file_codecs.md). Files without an extension (such as `Makefile` or `Dockerfile`) and `.json` files are skipped. The `.git`, `node_modules` and `__pycache__` directories are skipped. A file that cannot be read or indexed is reported with a warning and does not stop the run. A summary with the number of files, chunks and failures is printed at the end.
+When indexing a directory, files with a supported extension are indexed: plain text (`.md`, `.txt`), source code (`.go`, `.py`, `.js`, `.jsx`, `.ts`, `.tsx`, `.php`, `.rb`, `.rs`, `.c`, `.h`, `.cpp`, `.hpp`, `.java`, `.sh`), config files (`.yaml`, `.yml`, `.toml`, `.ini`) and the formats listed in [file_codecs.md](file_codecs.md). Files without an extension (such as `Makefile` or `Dockerfile`) and `.json` files are skipped. Hidden directories (names starting with `.`) are skipped, plus `node_modules` and `__pycache__`. A file that cannot be read or indexed is reported with a warning and does not stop the run. A summary with the number of files, chunks and failures is printed at the end.
 
 ## /exec Command
 

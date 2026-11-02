@@ -75,6 +75,11 @@ func TestListIndexableFiles(t *testing.T) {
 			want:  []string{"keep.md"},
 		},
 		{
+			name:  "hidden directories are skipped",
+			files: []string{"keep.md", ".github/workflows/ci.yml", ".hidden/notes.md"},
+			want:  []string{"keep.md"},
+		},
+		{
 			name:  "node_modules is skipped",
 			files: []string{"keep.md", "node_modules/pkg/readme.md"},
 			want:  []string{"keep.md"},
@@ -106,6 +111,49 @@ func TestListIndexableFiles(t *testing.T) {
 			t.Parallel()
 
 			root := t.TempDir()
+			createFiles(t, root, tt.files)
+
+			got, err := listIndexableFiles(root)
+			if err != nil {
+				t.Fatalf("listIndexableFiles() unexpected error: %v", err)
+			}
+
+			rel := relativePaths(t, root, got)
+			if !slices.Equal(rel, tt.want) {
+				t.Errorf("listIndexableFiles() = %v, want %v", rel, tt.want)
+			}
+		})
+	}
+}
+
+func TestListIndexableFilesHiddenRoot(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		rootName string
+		files    []string // paths relative to the root, created as empty files
+		want     []string // expected result, relative to the root
+	}{
+		{
+			name:     "hidden root directory is walked",
+			rootName: ".docs",
+			files:    []string{"a.md", "sub/b.txt"},
+			want:     []string{"a.md", "sub/b.txt"},
+		},
+		{
+			name:     "hidden subdirectory of a hidden root is still skipped",
+			rootName: ".docs",
+			files:    []string{"a.md", ".cache/b.md"},
+			want:     []string{"a.md"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			root := filepath.Join(t.TempDir(), tt.rootName)
 			createFiles(t, root, tt.files)
 
 			got, err := listIndexableFiles(root)
