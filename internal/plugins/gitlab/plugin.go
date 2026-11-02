@@ -1,22 +1,19 @@
 package gitlabplug
 
 import (
-	"context"
-	"sync"
-
 	"github.com/wmentor/go-magnetar/internal/plugin"
-	"github.com/wmentor/go-magnetar/internal/tools/gitlab"
+	"github.com/wmentor/go-magnetar/internal/tools/gitlab/file"
+	"github.com/wmentor/go-magnetar/internal/tools/gitlab/mr"
+	"github.com/wmentor/go-magnetar/internal/tools/gitlab/repo"
+	"github.com/wmentor/go-magnetar/internal/tools/gitlab/tree"
 )
 
 func init() {
 	plugin.Register("gitlab", &Plugin{})
 }
 
-// Plugin wraps the GitLab tools and exposes gitlab_fetch_mr as an LLM tool.
 type Plugin struct {
-	mu    sync.Mutex
 	state *plugin.State
-	tools *gitlab.GitLabTools
 }
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
@@ -26,52 +23,21 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		return nil
 	}
 
-	tools, err := p.get()
-	if err != nil {
-		return err
-	}
+	// Register gitlab_fetch_mr tool
+	mrTool := mr.New(s.Config, s.Printer, s.RequesterFactory)
+	s.ToolStore.Register(mrTool.Name(), mrTool.Description(), mrTool.Exec)
 
-	// Register gitlab_fetch_mr
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: gitlab.StaticDefinition,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return tools.Dispatch("gitlab_fetch_mr", args), nil
-		},
-	})
+	// Register gitlab_repo tool
+	repoTool := repo.New(s.Config, s.Printer, s.RequesterFactory)
+	s.ToolStore.Register(repoTool.Name(), repoTool.Description(), repoTool.Exec)
 
-	// Register gitlab_repo
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: gitlab.StaticDefinitionRepository,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return tools.Dispatch("gitlab_repo", args), nil
-		},
-	})
+	// Register gitlab_file tool
+	fileTool := file.New(s.Config, s.Printer, s.RequesterFactory)
+	s.ToolStore.Register(fileTool.Name(), fileTool.Description(), fileTool.Exec)
 
-	// Register gitlab_file
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: gitlab.StaticDefinitionFile,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return tools.Dispatch("gitlab_file", args), nil
-		},
-	})
-
-	// Register gitlab_tree
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: gitlab.StaticDefinitionTree,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return tools.Dispatch("gitlab_tree", args), nil
-		},
-	})
+	// Register gitlab_tree tool
+	treeTool := tree.New(s.Config, s.Printer, s.RequesterFactory)
+	s.ToolStore.Register(treeTool.Name(), treeTool.Description(), treeTool.Exec)
 
 	return nil
-}
-
-func (p *Plugin) get() (*gitlab.GitLabTools, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.tools != nil {
-		return p.tools, nil
-	}
-	p.tools = gitlab.New(p.state.Config)
-	return p.tools, nil
 }

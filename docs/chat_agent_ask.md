@@ -72,8 +72,6 @@ Send request to OpenAI with:
    - **Sequential tools** (`Sequential: true`): file-mutating tools — executed one at a time after all parallel tools finish.
 
 3. Execute **parallel** tools concurrently:
-    - **Search tools** (`IsSearchTool: true`, e.g. web_search, rag_search, web_fetch, jira_task_search):
-      - Check if `toolCallCount >= maxSearchToolCalls` (20)
       - **Limit reached**: Return error, do NOT execute
       - **Limit not reached**:
         - Increment `toolCallCount`
@@ -173,19 +171,11 @@ Breaks after 50 iterations regardless of other conditions.
 
 ## Tool Categories
 
-### Search Tools (`IsSearchTool: true`)
-These tools count toward the per-request search call limit and run in parallel.
-- `web_search`: Execute web search and return results in Markdown format
-- `rag_search`: Search the knowledge base for relevant information
-- `web_fetch`: Fetch web pages (including Confluence, JIRA, GitHub)
-- `jira_task_search`: Search JIRA issues by JQL
-
-### Lookup Tools (`IsSearchTool: false`, `Sequential: false`)
+### Lookup Tools (`Sequential: false`)
 Read-only or network tools that run in parallel without a search limit.
 - `file_read`: Read a local file
 - `file_list`: List local files
 - `file_exists`: Check if a file exists
-- `exec`: Execute a shell command
 - `github_repo`: Fetch GitHub repository
 - `github_file`: Fetch GitHub file
 - `github_tree`: List repository contents
@@ -197,6 +187,7 @@ Read-only or network tools that run in parallel without a search limit.
 
 ### Sequential Tools (`Sequential: true`)
 File-mutating tools that run **after all parallel tools finish**, one at a time, in the order the LLM listed them. This guarantees each tool sees the result of the previous write.
+- `exec`: Execute a shell command
 - `file_write`: Write a file (create or overwrite)
 - `file_edit`: Replace a unique text fragment in a plain-text file
 - `file_edit_multiple`: Apply multiple text replacements in a plain-text file

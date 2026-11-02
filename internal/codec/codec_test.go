@@ -53,6 +53,40 @@ func TestGetCodec(t *testing.T) {
 	}
 }
 
+func TestGetWriteCodec(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		ext     string
+		wantErr bool
+	}{
+		{name: "xlsx extension without dot", ext: "xlsx", wantErr: true},
+		{name: "unknown extension", ext: ".unknown", wantErr: true},
+		{name: "empty extension", ext: "", wantErr: true},
+		{name: "uppercase CSV", ext: ".CSV", wantErr: true},
+		{name: "uppercase docx", ext: ".DOCX", wantErr: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := codec.GetWriteCodec(tt.ext)
+			if tt.wantErr {
+				if err == nil {
+					t.Errorf("GetCodec(%q) expected error, got nil", tt.ext)
+				}
+				if !errors.Is(err, codec.ErrCodecNotFound) {
+					t.Errorf("GetCodec(%q) expected ErrCodecNotFound, got %v", tt.ext, err)
+				}
+			} else {
+				if err != nil {
+					t.Errorf("GetCodec(%q) unexpected error: %v", tt.ext, err)
+				}
+			}
+		})
+	}
+}
+
 func TestGetCodecReturnsCodec(t *testing.T) {
 	t.Parallel()
 

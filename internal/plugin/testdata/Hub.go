@@ -167,46 +167,6 @@ func (_c *Hub_RegisterPreprocessor_Call) RunAndReturn(run func(fn plugin.Preproc
 	return _c
 }
 
-// RegisterTool provides a mock function for the type Hub
-func (_mock *Hub) RegisterTool(tool plugin.LLMTool) {
-	_mock.Called(tool)
-	return
-}
-
-// Hub_RegisterTool_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RegisterTool'
-type Hub_RegisterTool_Call struct {
-	*mock.Call
-}
-
-// RegisterTool is a helper method to define mock.On call
-//   - tool plugin.LLMTool
-func (_e *Hub_Expecter) RegisterTool(tool any) *Hub_RegisterTool_Call {
-	return &Hub_RegisterTool_Call{Call: _e.mock.On("RegisterTool", tool)}
-}
-
-func (_c *Hub_RegisterTool_Call) Run(run func(tool plugin.LLMTool)) *Hub_RegisterTool_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 plugin.LLMTool
-		if args[0] != nil {
-			arg0 = args[0].(plugin.LLMTool)
-		}
-		run(
-			arg0,
-		)
-	})
-	return _c
-}
-
-func (_c *Hub_RegisterTool_Call) Return() *Hub_RegisterTool_Call {
-	_c.Call.Return()
-	return _c
-}
-
-func (_c *Hub_RegisterTool_Call) RunAndReturn(run func(tool plugin.LLMTool)) *Hub_RegisterTool_Call {
-	_c.Run(run)
-	return _c
-}
-
 // Stop provides a mock function for the type Hub
 func (_mock *Hub) Stop() {
 	_mock.Called()

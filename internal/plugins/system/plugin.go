@@ -4,6 +4,7 @@ import (
 	"os/exec"
 
 	"github.com/wmentor/go-magnetar/internal/plugin"
+	"github.com/wmentor/go-magnetar/internal/tools"
 	execTool "github.com/wmentor/go-magnetar/internal/tools/exec"
 	sshTool "github.com/wmentor/go-magnetar/internal/tools/ssh"
 	"github.com/wmentor/go-magnetar/internal/tools/system/date"
@@ -27,12 +28,12 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 
 	// Register exec tool
 	p.exec = execTool.New(s.Config, s.Printer, s.RequesterFactory, plugin.GetRoot(), s)
-	s.ToolStore.Register(p.exec.Name(), p.exec.Description(), p.exec.Exec)
+	s.ToolStore.Register(p.exec.Name(), p.exec.Description(), p.exec.Exec, tools.OptionSequential())
 
 	// Register ssh tool (only if ssh.enable is true in config)
 	if s.Config.Bool("ssh.enable") {
 		p.ssh = sshTool.New(s.Config, s.Printer, s.RequesterFactory, plugin.GetRoot(), s)
-		s.ToolStore.Register(p.ssh.Name(), p.ssh.Description(), p.ssh.Exec)
+		s.ToolStore.Register(p.ssh.Name(), p.ssh.Description(), p.ssh.Exec, tools.OptionSequential())
 	}
 
 	// Register system_date tool

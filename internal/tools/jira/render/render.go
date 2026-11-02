@@ -255,10 +255,33 @@ func (r *JIRARenderer) renderString(buf *strings.Builder, n *ast.String, enterin
 
 // escapeJIRAText escapes special characters for JIRA.
 func (r *JIRARenderer) escapeJIRAText(text string) string {
-	// Characters that have special meaning in JIRA and need escaping
-	// We need to be careful not to double-escape or break formatting
-	// Only escape when the character would be interpreted as formatting
-	return text
+	var b strings.Builder
+	b.Grow(2 * len(text))
+	runes := []rune(text)
+	for i := 0; i < len(runes); i++ {
+		r := runes[i]
+		// Already escaped: copy both characters as-is, don't double-escape.
+		if r == '\\' && i+1 < len(runes) && isJIRASpecial(runes[i+1]) {
+			b.WriteRune(r)
+			b.WriteRune(runes[i+1])
+			i++
+			continue
+		}
+		if isJIRASpecial(r) {
+			b.WriteRune('\\')
+		}
+		b.WriteRune(r)
+	}
+	return b.String()
+}
+
+func isJIRASpecial(r rune) bool {
+	switch r {
+	case '\\', '|', '*', '_', '{', '}':
+		return true
+	default:
+		return false
+	}
 }
 
 // renderEmphasis renders emphasis (bold/italic).

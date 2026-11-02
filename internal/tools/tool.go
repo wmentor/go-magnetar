@@ -13,14 +13,14 @@ type Tool struct {
 	// Execute is called when the LLM invokes this tool.
 	// args is the raw JSON arguments string.
 	Execute ToolFunc
-	// IsSearchTool marks tools that count toward the per-request search call
-	// limit (e.g. rag_search, web_search).
-	IsSearchTool bool
 	// Sequential marks tools that must NOT run concurrently with other tool
 	// calls in the same LLM response. All sequential tools in a batch are
 	// executed one after another (in the order the LLM listed them) after
 	// all parallel tools have finished.
 	Sequential bool
+	// RateLimit sets the maximum number of allowed tool calls within a single
+	// user request (Ask method). 0 means no limit.
+	RateLimit int
 }
 
 type ToolOption func(*Tool)
@@ -30,18 +30,20 @@ func (t Tool) GetName() string {
 	return t.Name
 }
 
-func OptionSearch() ToolOption {
+func OptionSequential() ToolOption {
 	return func(t *Tool) {
 		if t != nil {
-			t.IsSearchTool = true
+			t.Sequential = true
 		}
 	}
 }
 
-func Sequential() ToolOption {
+// OptionRateLimit sets the maximum number of allowed tool calls within a single user request.
+// 0 means no limit.
+func OptionRateLimit(limit int) ToolOption {
 	return func(t *Tool) {
 		if t != nil {
-			t.Sequential = true
+			t.RateLimit = limit
 		}
 	}
 }

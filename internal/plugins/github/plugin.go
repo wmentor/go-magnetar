@@ -1,9 +1,6 @@
 package githubplug
 
 import (
-	"context"
-	"sync"
-
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/tools/github"
 )
@@ -13,95 +10,40 @@ func init() {
 }
 
 type Plugin struct {
-	mu      sync.Mutex
-	state   *plugin.State
-	tools   *github.GitHubTools
-	enabled bool
+	state *plugin.State
+	tool  *github.GitHubTools
 }
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	p.state = s
+	p.tool = github.New(s.Config, s.Printer, s.RequesterFactory, s)
 
-	if !s.Config.Bool("github.enable") || s.Config.String("github.base_url") == "" {
-		p.enabled = false
+	if !p.tool.Enabled() {
 		return nil
 	}
 
-	p.enabled = true
-	tools, err := p.get()
-	if err != nil {
-		return err
-	}
-
 	// Register github_repo tool
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: github.StaticDefinition,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return tools.Dispatch("github_repo", args), nil
-		},
-	})
+	s.ToolStore.Register("github_repo", "Fetch GitHub repository information and return its details in Markdown format", p.tool.Exec)
 
 	// Register github_file tool
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: github.StaticDefinitionFile,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return tools.Dispatch("github_file", args), nil
-		},
-	})
+	s.ToolStore.Register("github_file", "Fetch a file from GitHub repository and return its content", p.tool.ExecFile)
 
 	// Register github_tree tool
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: github.StaticDefinitionTree,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return tools.Dispatch("github_tree", args), nil
-		},
-	})
+	s.ToolStore.Register("github_tree", "List repository contents at root or specified path", p.tool.ExecTree)
 
 	// Register github_issue tool
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: github.StaticDefinitionIssue,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return tools.Dispatch("github_issue", args), nil
-		},
-	})
+	s.ToolStore.Register("github_issue", "Fetch a GitHub issue and its comments, returns issue details in Markdown format", p.tool.ExecIssue)
 
 	// Register github_milestone tool
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: github.StaticDefinitionMilestone,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return tools.Dispatch("github_milestone", args), nil
-		},
-	})
+	s.ToolStore.Register("github_milestone", "Fetch a GitHub milestone and all its issues, returns milestone details in Markdown format",
+		p.tool.ExecMilestone)
 
 	// Register github_pull_request tool
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: github.StaticDefinitionPullRequest,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return tools.Dispatch("github_pull_request", args), nil
-		},
-	})
+	s.ToolStore.Register("github_pull_request", "Fetch a GitHub pull request with all details including files changed, comments, and reviews",
+		p.tool.ExecPullRequest)
 
 	// Register github_release_info tool
-	hub.RegisterTool(plugin.LLMTool{
-		Definition: github.StaticDefinitionRelease,
-		Execute: func(_ context.Context, args string) (string, error) {
-			return tools.Dispatch("github_release_info", args), nil
-		},
-	})
+	s.ToolStore.Register("github_release_info", "Fetch a GitHub release by tag name and return its details in Markdown format", p.tool.ExecRelease)
 
 	return nil
-}
-
-func (p *Plugin) get() (*github.GitHubTools, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.tools != nil {
-		return p.tools, nil
-	}
-	p.tools = github.New(p.state.Config)
-	return p.tools, nil
-}
-
-func (p *Plugin) IsEnabled() bool {
-	return p.enabled
 }

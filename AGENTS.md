@@ -4,7 +4,7 @@ A knowledge base tool built on RAG (Retrieval-Augmented Generation). Combines a 
 
 ## Requirements
 
-- Go 1.27.2
+- Go 1.27.3
 - API key for OpenAI-compatible LLM and embedding model
 - Development tools: run `make setup/tools` to install all development tools (see [docs/dev_tools.md](./docs/dev_tools.md))
 

@@ -2,6 +2,7 @@ package fileplugin
 
 import (
 	"github.com/wmentor/go-magnetar/internal/plugin"
+	"github.com/wmentor/go-magnetar/internal/tools"
 	"github.com/wmentor/go-magnetar/internal/tools/file/edit"
 	"github.com/wmentor/go-magnetar/internal/tools/file/list"
 	"github.com/wmentor/go-magnetar/internal/tools/file/read"
@@ -28,11 +29,12 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 
 	// Register file_write tool
 	writeTool := write.New(s.Config, s.Printer, s.RequesterFactory, plugin.GetRoot(), s)
-	s.ToolStore.Register(writeTool.Name(), writeTool.Description(), writeTool.Exec)
+	s.ToolStore.Register(writeTool.Name(), writeTool.Description(), writeTool.Exec, tools.OptionSequential())
 
 	// Register file_edit and file_edit_multiple tools
 	editTool := edit.NewTool(s.Config, s.Printer, s.RequesterFactory, plugin.GetRoot(), s)
 	s.ToolStore.Register(editTool.Name(), editTool.Description(), editTool.FileEdit)
-	s.ToolStore.Register(editTool.Name()+"_multiple", editTool.Description()+" (multiple edits)", editTool.FileEditMultiple)
+	s.ToolStore.Register(editTool.Name()+"_multiple", editTool.Description()+" (multiple edits)",
+		editTool.FileEditMultiple, tools.OptionSequential())
 	return nil
 }

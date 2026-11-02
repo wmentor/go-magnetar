@@ -1,7 +1,12 @@
 package webplugin
 
 import (
+	"time"
+
+	"golang.org/x/time/rate"
+
 	"github.com/wmentor/go-magnetar/internal/plugin"
+	"github.com/wmentor/go-magnetar/internal/tools"
 	"github.com/wmentor/go-magnetar/internal/tools/web/webfetch"
 	"github.com/wmentor/go-magnetar/internal/tools/web/websearch"
 )
@@ -9,6 +14,10 @@ import (
 func init() {
 	plugin.Register("web", &Plugin{})
 }
+
+const (
+	webSearchTimeInterval = time.Second * 4
+)
 
 type Plugin struct {
 	state *plugin.State
@@ -26,7 +35,10 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	// Register web_search tool
 	if !s.Config.Bool("web.disable.search") {
 		searchTool := websearch.NewTool(s.Config, s.Printer, s.RequesterFactory, s)
-		s.ToolStore.Register(searchTool.Name(), searchTool.Description(), searchTool.WebSearch)
+		limit := rate.Every(webSearchTimeInterval)
+		limiter := rate.NewLimiter(limit, 1)
+		searchTool.SetLimiter(limiter)
+		s.ToolStore.Register(searchTool.Name(), searchTool.Description(), searchTool.WebSearch, tools.OptionRateLimit(1))
 	}
 
 	return nil

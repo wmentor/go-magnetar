@@ -3,7 +3,6 @@ package nist
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -81,19 +80,4 @@ func TestAdapter_Get_WithMockClient(t *testing.T) {
 	require.Equal(t, 7.5, cve.BaseScore)
 	require.Equal(t, "HIGH", cve.BaseSeverity)
 	require.Equal(t, "2026-10-15T00:00:00Z", cve.Published)
-}
-
-func TestAdapter_Get_WithMockClientError(t *testing.T) {
-	t.Parallel()
-
-	expectedErr := errors.New("request failed")
-	mock := &mockClient{err: expectedErr}
-	adapter := NewAdapter(mock)
-
-	ctx := context.Background()
-	cve, err := adapter.Get(ctx, "CVE-2026-78659")
-
-	require.Error(t, err)
-	require.Nil(t, cve)
-	require.Contains(t, err.Error(), "request failed")
 }

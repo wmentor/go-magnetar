@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/sashabaranov/go-openai"
 	"golang.org/x/net/html/charset"
 
 	"github.com/wmentor/go-magnetar/internal/codec"
@@ -24,7 +23,10 @@ import (
 	"github.com/wmentor/go-magnetar/internal/tools"
 	"github.com/wmentor/go-magnetar/internal/tools/confluence"
 	"github.com/wmentor/go-magnetar/internal/tools/github"
-	"github.com/wmentor/go-magnetar/internal/tools/gitlab"
+	gitlabfile "github.com/wmentor/go-magnetar/internal/tools/gitlab/file"
+	"github.com/wmentor/go-magnetar/internal/tools/gitlab/mr"
+	"github.com/wmentor/go-magnetar/internal/tools/gitlab/repo"
+	"github.com/wmentor/go-magnetar/internal/tools/gitlab/tree"
 	"github.com/wmentor/go-magnetar/internal/tools/jira"
 	"github.com/wmentor/go-magnetar/internal/tools/rss"
 	"github.com/wmentor/go-magnetar/internal/tools/web"
@@ -91,6 +93,9 @@ func (t *Tool) WebFetch(ctx context.Context, params *Params) (any, error) {
 }
 
 func (t *Tool) WebFetchEngine(ctx context.Context, urlStr string, isFetch bool) (string, error) {
+	ctx, cancel := context.WithTimeout(ctx, webFetchDefaultTimeout)
+	defer cancel()
+
 	if !strings.Contains(urlStr, "://") {
 		urlStr = "https://" + urlStr
 	}
@@ -102,8 +107,20 @@ func (t *Tool) WebFetchEngine(ctx context.Context, urlStr string, isFetch bool) 
 			pageID, err := confluence.ExtractPageIDURL(urlStr)
 			if err == nil && pageID != "" {
 				isShortID := strings.Contains(urlStr, "/x/") || strings.Contains(urlStr, "/p/")
-				confluencePlugin := confluence.New(t.cfg, t.state)
-				return confluencePlugin.FetchPage(pageID, isShortID)
+				// Use FetchTool directly
+				fetchTool := confluence.NewFetchTool(t.cfg, t.printer, t.clientFactory)
+				result, err := fetchTool.FetchPage(context.Background(), &confluence.FetchPageParams{
+					PageID:  pageID,
+					IsShort: isShortID,
+				})
+				if err != nil {
+					t.printer.Error("confluence_page_fetch: failed to fetch page", "url", urlStr, "err", err)
+					return "", fmt.Errorf("confluence_page_fetch: failed to fetch page %q: %w", urlStr, err)
+				}
+				if resp, ok := result.(*tools.Response); ok {
+					return resp.Result, nil
+				}
+				return "", fmt.Errorf("confluence_page_fetch: unexpected result type: %T", result)
 			}
 		}
 	}
@@ -112,7 +129,7 @@ func (t *Tool) WebFetchEngine(ctx context.Context, urlStr string, isFetch bool) 
 		if strings.HasPrefix(urlStr, t.cfg.String("jira.base_url")) && (strings.Contains(urlStr, "/browse/") || strings.Contains(urlStr, "/issues/")) {
 			issueKey, err := web.ExtractIssueKeyFromJIRAURL(urlStr)
 			if err == nil && issueKey != "" {
-				return jira.New(t.cfg).FetchIssue(issueKey)
+				return jira.New(t.cfg, t.printer, t.clientFactory).FetchIssue(issueKey)
 			}
 		}
 	}
@@ -165,14 +182,16 @@ func (t *Tool) WebFetchEngine(ctx context.Context, urlStr string, isFetch bool) 
 			if strings.Contains(urlStr, "/blob/") {
 				owner, repo, branch, file, err := web.ExtractGitHubFileURL(urlStr)
 				if err == nil && owner != "" && repo != "" && file != "" {
-					return github.New(t.cfg).FetchFile(owner+"/"+repo, branch, file)
+					ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+					return ghTools.FetchFile(owner+"/"+repo, branch, file)
 				}
 			}
 			// Check for pull request before tree/commits to avoid conflicts with /pull/123/commits
 			if web.IsGitHubPullRequestURL(urlStr) {
 				owner, repo, prNum, err := web.ExtractGitHubPullRequestURL(urlStr)
 				if err == nil && owner != "" && repo != "" && prNum != "" {
-					return github.New(t.cfg).FetchPullRequest(owner+"/"+repo, prNum)
+					ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+					return ghTools.FetchPullRequest(owner+"/"+repo, prNum)
 				}
 			}
 			if strings.Contains(urlStr, "/tree/") || strings.Contains(urlStr, "/commits/") || strings.HasSuffix(urlStr, "/") {
@@ -181,43 +200,50 @@ func (t *Tool) WebFetchEngine(ctx context.Context, urlStr string, isFetch bool) 
 					if branch == "" {
 						branch = "main"
 					}
-					return github.New(t.cfg).FetchTree(owner+"/"+repo, branch, path)
+					ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+					return ghTools.FetchTree(owner+"/"+repo, branch, path)
 				}
 			}
 			if strings.Contains(urlStr, "/issues/") {
 				owner, repo, issueNum, err := web.ExtractGitHubIssueURL(urlStr)
 				if err == nil && owner != "" && repo != "" && issueNum != "" {
-					return github.New(t.cfg).FetchIssue(owner+"/"+repo, issueNum)
+					ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+					return ghTools.FetchIssue(owner+"/"+repo, issueNum)
 				}
 			}
 			if strings.Contains(urlStr, "/milestone/") {
 				owner, repo, milestoneNum, err := web.ExtractGitHubMilestoneURL(urlStr)
 				if err == nil && owner != "" && repo != "" && milestoneNum != "" {
-					return github.New(t.cfg).FetchMilestone(owner+"/"+repo, milestoneNum)
+					ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+					return ghTools.FetchMilestone(owner+"/"+repo, milestoneNum)
 				}
 			}
 			if strings.Contains(urlStr, "/advisories/") || strings.Contains(urlStr, "/security/advisories") {
 				if strings.Contains(urlStr, "/security/advisories") && !strings.Contains(urlStr, "/advisories/GHSA-") {
 					owner, repo, err := web.ExtractGitHubRepoURL(urlStr)
 					if err == nil && owner != "" && repo != "" {
-						return github.New(t.cfg).FetchRepoAdvisories(owner + "/" + repo)
+						ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+						return ghTools.FetchRepoAdvisories(owner + "/" + repo)
 					}
 				} else {
 					advisoryID, err := web.ExtractGitHubAdvisoryURL(urlStr)
 					if err == nil && advisoryID != "" {
-						return github.New(t.cfg).FetchAdvisory(advisoryID)
+						ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+						return ghTools.FetchAdvisory(advisoryID)
 					}
 				}
 			}
 			if strings.Contains(urlStr, "/releases/tag/") {
 				owner, repo, tag, err := web.ExtractGitHubReleaseURL(urlStr)
 				if err == nil && owner != "" && repo != "" && tag != "" {
-					return github.New(t.cfg).FetchRelease(owner+"/"+repo, tag)
+					ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+					return ghTools.FetchRelease(owner+"/"+repo, tag)
 				}
 			}
 			owner, repo, err := web.ExtractGitHubRepoURL(urlStr)
 			if err == nil && owner != "" && repo != "" {
-				return github.New(t.cfg).FetchRepository(owner + "/" + repo)
+				ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+				return ghTools.FetchRepository(owner + "/" + repo)
 			}
 		}
 	}
@@ -228,6 +254,7 @@ func (t *Tool) WebFetchEngine(ctx context.Context, urlStr string, isFetch bool) 
 			t.printer.Error("web_fetch: failed to fetch URL", "url", urlStr, "err", err)
 			return "", fmt.Errorf("web_fetch: failed to fetch URL %q", urlStr)
 		}
+		t.printer.Error("web_search: failed to fetch URL", "err", err)
 		return "", errors.New("web_search: failed")
 	}
 
@@ -312,7 +339,7 @@ func (t *Tool) fetchURLWithContentType(ctx context.Context, u string) ([]byte, s
 	return body, contentType, nil
 }
 
-func (t *Tool) mimeCodecWork(myCodec codec.Codec, content []byte) (string, error) {
+func (t *Tool) mimeCodecWork(myCodec codec.ReadCodec, content []byte) (string, error) {
 	if myCodec == nil {
 		return "", errors.New("codec is nil")
 	}
@@ -341,50 +368,70 @@ func (t *Tool) mimeCodecWork(myCodec codec.Codec, content []byte) (string, error
 // fetchGitLabMergeRequest fetches a GitLab merge request and returns its content.
 func (t *Tool) fetchGitLabMergeRequest(projectPath string, mrID string) (string, error) {
 	t.printer.ToolCall(printer.IconSearch, "web_fetch: fetch GitLab merge request", "project_path", projectPath, "mr_id", mrID)
-	return gitlab.New(t.cfg).FetchMergeRequest(projectPath, mrID)
+	tool := mr.New(t.cfg, t.printer, t.clientFactory)
+	result, err := tool.Exec(context.Background(), &mr.GitLabMRParams{
+		ProjectPath: projectPath,
+		MRID:        mrID,
+	})
+	if err != nil {
+		return "", err
+	}
+	if resp, ok := result.(*tools.Response); ok {
+		return resp.Result, nil
+	}
+	return fmt.Sprintf("%v", result), nil
 }
 
 // fetchGitLabRepository fetches a GitLab repository and returns its content.
 func (t *Tool) fetchGitLabRepository(projectPath string) (string, error) {
 	t.printer.ToolCall(printer.IconSearch, "web_fetch: fetch GitLab repository", "project_path", projectPath)
-	return gitlab.New(t.cfg).FetchRepository(projectPath)
+	tool := repo.New(t.cfg, t.printer, t.clientFactory)
+	result, err := tool.Exec(context.Background(), &repo.GitLabRepoParams{
+		ProjectPath: projectPath,
+	})
+	if err != nil {
+		return "", err
+	}
+	if resp, ok := result.(*tools.Response); ok {
+		return resp.Result, nil
+	}
+	return fmt.Sprintf("%v", result), nil
 }
 
 // fetchGitLabFile fetches a GitLab file and returns its content.
 func (t *Tool) fetchGitLabFile(projectPath string, branch string, file string) (string, error) {
 	t.printer.ToolCall(printer.IconSearch, "web_fetch: fetch GitLab file", "project_path", projectPath, "branch", branch, "file", file)
-	return gitlab.New(t.cfg).FetchFile(projectPath, branch, file)
+	tool := gitlabfile.New(t.cfg, t.printer, t.clientFactory)
+	result, err := tool.Exec(context.Background(), &gitlabfile.GitLabFileParams{
+		ProjectPath: projectPath,
+		Branch:      branch,
+		File:        file,
+	})
+	if err != nil {
+		return "", err
+	}
+	if resp, ok := result.(*tools.Response); ok {
+		return resp.Result, nil
+	}
+	return fmt.Sprintf("%v", result), nil
 }
 
 // fetchGitLabTree fetches a GitLab directory tree and returns its content.
 func (t *Tool) fetchGitLabTree(projectPath string, branch string, path string) (string, error) {
 	t.printer.ToolCall(printer.IconSearch, "web_fetch: fetch GitLab tree", "project_path", projectPath, "branch", branch, "path", path)
-	return gitlab.New(t.cfg).FetchTree(projectPath, branch, path)
-}
-
-// StaticDefinition returns the OpenAI tool schema for web_fetch without
-// requiring an initialised Tool instance. Used by the plugin for lazy init.
-func StaticDefinition() openai.Tool {
-	return openai.Tool{
-		Type: openai.ToolTypeFunction,
-		Function: &openai.FunctionDefinition{
-			Name: "web_fetch",
-			Description: "Fetch a web page and return clean Markdown content. " +
-				"Supports Confluence pages, JIRA issues, GitLab repositories/files/tree/merge requests, " +
-				"and GitHub repositories, issues, milestones, pull requests, releases, and advisories.",
-			Parameters: map[string]any{
-				"type": "object",
-				"properties": map[string]any{
-					"url": map[string]any{
-						"type": "string",
-						"description": "URL of the web page, Confluence page, JIRA issue, " +
-							"GitLab repository/file/tree/merge request, or GitHub repository to fetch",
-					},
-				},
-				"required": []string{"url"},
-			},
-		},
+	tool := tree.New(t.cfg, t.printer, t.clientFactory)
+	result, err := tool.Exec(context.Background(), &tree.GitLabTreeParams{
+		ProjectPath: projectPath,
+		Branch:      branch,
+		Path:        path,
+	})
+	if err != nil {
+		return "", err
 	}
+	if resp, ok := result.(*tools.Response); ok {
+		return resp.Result, nil
+	}
+	return fmt.Sprintf("%v", result), nil
 }
 
 // WebFetchString executes the web_fetch tool with the given JSON args and returns the result as a string.

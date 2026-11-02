@@ -270,12 +270,37 @@ func TestEscapeJIRAText(t *testing.T) {
 		{
 			name:     "text with JIRA special characters",
 			input:    "text with | and * and _",
-			expected: "text with | and * and _",
+			expected: "text with \\| and \\* and \\_",
 		},
 		{
 			name:     "empty string",
 			input:    "",
 			expected: "",
+		},
+		{
+			name:     "already escaped input",
+			input:    "text with \\| and \\* and \\_",
+			expected: "text with \\| and \\* and \\_",
+		},
+		{
+			name:     "pipe only",
+			input:    "a|b",
+			expected: "a\\|b",
+		},
+		{
+			name:     "asterisk only",
+			input:    "a*b",
+			expected: "a\\*b",
+		},
+		{
+			name:     "underscore only",
+			input:    "a_b",
+			expected: "a\\_b",
+		},
+		{
+			name:     "braces only",
+			input:    "a{b}c",
+			expected: "a\\{b\\}c",
 		},
 	}
 
@@ -898,8 +923,9 @@ func TestSpecialCharacters(t *testing.T) {
 		{
 			name:     "pipe character",
 			input:    "text|more",
-			expected: "text|more",
+			expected: "text\\|more",
 		},
+
 		{
 			name:     "asterisk in code",
 			input:    "`*code*`",

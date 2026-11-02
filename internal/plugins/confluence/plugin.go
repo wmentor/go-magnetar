@@ -1,9 +1,6 @@
 package confluenceplugin
 
 import (
-	"context"
-	"sync"
-
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/tools/confluence"
 )
@@ -12,11 +9,11 @@ func init() {
 	plugin.Register("confluence", &Plugin{})
 }
 
-// Plugin wraps the Confluence tools and exposes confluence_page_edit as an LLM tool.
+// Plugin wraps the Confluence tools and exposes confluence_page_fetch and confluence_page_edit as LLM tools.
 type Plugin struct {
-	mu    sync.Mutex
-	state *plugin.State
-	tools *confluence.ConfluenceTools
+	state     *plugin.State
+	fetchTool *confluence.FetchTool
+	editTool  *confluence.EditTool
 }
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
@@ -26,29 +23,15 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		return nil
 	}
 
-	tools, err := p.get()
-	if err != nil {
-		return err
-	}
+	// Initialize fetch tool
+	p.fetchTool = confluence.NewFetchTool(s.Config, s.Printer, s.RequesterFactory)
+	s.ToolStore.Register(p.fetchTool.Name(), p.fetchTool.Description(), p.fetchTool.Exec)
 
+	// Initialize and register edit tool if not in read-only mode
 	if !s.Config.Bool("confluence.readonly") {
-		hub.RegisterTool(plugin.LLMTool{
-			Definition: confluence.StaticDefinitionEdit,
-			Execute: func(_ context.Context, args string) (string, error) {
-				return tools.Dispatch("confluence_page_edit", args), nil
-			},
-		})
+		p.editTool = confluence.NewEditTool(s.Config, s.Printer, s.RequesterFactory, s)
+		s.ToolStore.Register(p.editTool.Name(), p.editTool.Description(), p.editTool.Exec)
 	}
 
 	return nil
-}
-
-func (p *Plugin) get() (*confluence.ConfluenceTools, error) {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	if p.tools != nil {
-		return p.tools, nil
-	}
-	p.tools = confluence.New(p.state.Config, p.state)
-	return p.tools, nil
 }

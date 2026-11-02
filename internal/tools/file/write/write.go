@@ -19,8 +19,8 @@ import (
 
 // FileWriteParams represents parameters for the file_write tool.
 type FileWriteParams struct {
-	Filename string `json:"filename" jsonschema_description:"Path where to write the file"`
-	Content  string `json:"content" jsonschema_description:"Content to write to the file"`
+	Filename string `json:"filename" jsonschema_description:"File path. For .docx, markdown is auto-converted to Word."`
+	Content  string `json:"content" jsonschema_description:"Content to write. For .docx, use markdown - auto-converted to Word format."`
 }
 
 // Tool provides file_write operation as LLM tool.
@@ -50,7 +50,9 @@ func (t *Tool) Name() string {
 
 // Description returns the tool description.
 func (t *Tool) Description() string {
-	return "Write content to a file. Supports creating directories recursively if they don't exist."
+	return "Write content to a file. Supports creating directories recursively if they don't exist. " +
+		"For .docx files, you can provide markdown content (headings, lists, tables, code blocks, inline code) " +
+		"and it will be automatically converted to a proper Word document format."
 }
 
 // Exec executes the file_write tool and returns the result.
@@ -83,6 +85,17 @@ func (t *Tool) Exec(ctx context.Context, params *FileWriteParams) (any, error) {
 
 	// Check if the file extension is handled by a codec (binary/structured formats)
 	ext := strings.ToLower(filepath.Ext(params.Filename))
+	if wc, err := codec.GetWriteCodec(ext); err == nil {
+		if err = wc.WriteFile(params.Filename, params.Content); err != nil {
+			t.printer.Error("file_write: failed to write file", "file", params.Filename, "err", err)
+			return nil, fmt.Errorf("file_write: failed to write file: %w", err)
+		}
+		t.printer.ToolCall(printer.IconDone, "file_write: file written successfully", "file", params.Filename)
+		return &tools.Response{
+			Status: tools.StatusOK,
+			Result: "File written successfully.",
+		}, nil
+	}
 	if _, err := codec.GetCodec(ext); err == nil {
 		// For codec-handled formats, write directly without validation
 		// The codec will handle the file during read operations

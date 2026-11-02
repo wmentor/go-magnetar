@@ -5,22 +5,17 @@ import (
 	"testing"
 
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/plugin"
+	"github.com/wmentor/go-magnetar/internal/printer"
+	"github.com/wmentor/go-magnetar/internal/response"
+	"github.com/wmentor/go-magnetar/internal/tools"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
 )
 
-var testConfig *config.Config
-
-func init() {
-	var err error
-	testConfig, err = config.Load("./testdata/config.yml")
-	if err != nil {
-		panic(err)
-	}
-}
-
+// mockStore implements rag.Store interface for testing
 type mockStore struct {
-	searchResults map[string]string
-	saveResults   map[string]bool
+	results map[string]string
+	saved   map[string]bool
 }
 
 func (m *mockStore) Name() string {
@@ -28,253 +23,189 @@ func (m *mockStore) Name() string {
 }
 
 func (m *mockStore) RagSearch(query string) string {
-	if result, ok := m.searchResults[query]; ok {
+	if result, ok := m.results[query]; ok {
 		return result
 	}
 	return ""
 }
 
 func (m *mockStore) RagSave(content string, prepend string, part int) bool {
-	if m.saveResults == nil {
-		m.saveResults = make(map[string]bool)
+	if m.saved == nil {
+		m.saved = make(map[string]bool)
 	}
 	key := content + prepend + string(rune(part))
-	if result, ok := m.saveResults[key]; ok {
+	if result, ok := m.saved[key]; ok {
 		return result
 	}
 	return true
 }
 
-func TestNew(t *testing.T) {
+// parseResult parses the result from Exec which can be either a string or *tools.Response
+func parseResult(t *testing.T, result any) tools.Response {
+	t.Helper()
+
+	switch v := result.(type) {
+	case string:
+		var resp tools.Response
+		if err := json.Unmarshal([]byte(v), &resp); err != nil {
+			t.Fatalf("failed to parse response: %v", err)
+		}
+		return resp
+	case *tools.Response:
+		return *v
+	default:
+		t.Fatalf("unexpected result type: %T", result)
+	}
+	panic("unreachable")
+}
+
+func TestToolName(t *testing.T) {
 	t.Parallel()
 
-	tests := []struct {
-		name      string
-		cfg       *config.Config
-		store     rag.Store
-		wantErr   bool
-		errString string
-	}{
-		{
-			name:    "valid config and store",
-			cfg:     testConfig,
-			store:   &mockStore{},
-			wantErr: false,
-		},
-		{
-			name:      "nil config",
-			cfg:       nil,
-			store:     &mockStore{},
-			wantErr:   true,
-			errString: "invalid value of config",
-		},
-		{
-			name:      "nil store",
-			cfg:       testConfig,
-			store:     nil,
-			wantErr:   true,
-			errString: "invalid value of vector store",
-		},
-		{
-			name:      "store as nil interface",
-			cfg:       testConfig,
-			store:     rag.Store(nil),
-			wantErr:   true,
-			errString: "invalid value of vector store",
-		},
-	}
+	tool := newTestTool(t)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
-			r, err := rag.New(tt.cfg, tt.store)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("New() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if err != nil {
-				if tt.errString != "" && err.Error() != tt.errString {
-					t.Errorf("New() error = %v, want %q", err, tt.errString)
-				}
-				return
-			}
-			if r == nil {
-				t.Error("New() returned nil result without error")
-			}
-		})
+	if tool.Name() != "rag_search" {
+		t.Errorf("Name() = %q, want %q", tool.Name(), "rag_search")
 	}
 }
 
-func TestDefinitionSearch(t *testing.T) {
+func TestToolDescription(t *testing.T) {
 	t.Parallel()
 
-	store := &mockStore{}
-	r, err := rag.New(testConfig, store)
-	if err != nil {
-		t.Fatal("New() failed:", err)
-	}
+	tool := newTestTool(t)
 
-	tool := r.DefinitionSearch()
-
-	if tool.Type != "function" {
-		t.Errorf("Tool.Type = %s, want %s", tool.Type, "function")
-	}
-
-	if tool.Function == nil {
-		t.Fatal("Tool.Function is nil")
-	}
-
-	if tool.Function.Name != "rag_search" {
-		t.Errorf("Tool.Function.Name = %s, want %s", tool.Function.Name, "rag_search")
-	}
-
-	if tool.Function.Description != "Search the knowledge base for relevant information" {
-		t.Errorf("Tool.Function.Description = %s, want %s",
-			tool.Function.Description, "Search the knowledge base for relevant information")
-	}
-
-	params := tool.Function.Parameters
-	if params == nil {
-		t.Fatal("Tool.Function.Parameters is nil")
-	}
-
-	propsMap, ok := params.(map[string]any)
-	if !ok {
-		t.Fatal("Tool.Function.Parameters is not map[string]any")
-	}
-
-	props, ok := propsMap["properties"].(map[string]any)
-	if !ok {
-		t.Fatal("Tool.Function.Parameters.properties is not map[string]any")
-	}
-
-	if _, ok := props["query"]; !ok {
-		t.Error("Tool.Function.Parameters.properties.query is missing")
-	}
-
-	queryProp, ok := props["query"].(map[string]any)
-	if !ok {
-		t.Fatal("Tool.Function.Parameters.properties.query is not map[string]any")
-	}
-
-	if queryProp["type"] != "string" {
-		t.Errorf("Tool.Function.Parameters.properties.query.type = %v, want %v", queryProp["type"], "string")
-	}
-
-	if queryProp["description"] != "Search query" {
-		t.Errorf("Tool.Function.Parameters.properties.query.description = %v, want %v",
-			queryProp["description"], "Search query")
-	}
-
-	req, ok := propsMap["required"].([]string)
-	if !ok {
-		t.Fatalf("Tool.Function.Parameters.required is not []string, got %T", propsMap["required"])
-	}
-
-	if len(req) != 1 {
-		t.Errorf("Tool.Function.Parameters.required has %d items, want %d", len(req), 1)
-	}
-
-	if req[0] != "query" {
-		t.Errorf("Tool.Function.Parameters.required[0] = %v, want %v", req[0], "query")
+	if tool.Description() != "Search the knowledge base for relevant information" {
+		t.Errorf("Description() = %q, want %q", tool.Description(), "Search the knowledge base for relevant information")
 	}
 }
 
-func TestRagSave(t *testing.T) {
+func TestExecWithNilParams(t *testing.T) {
 	t.Parallel()
 
-	store := &mockStore{}
-	r, err := rag.New(testConfig, store)
-	if err != nil {
-		t.Fatal("New() failed:", err)
+	tool := newTestTool(t)
+
+	result, err := tool.Exec(t.Context(), nil)
+
+	if err == nil {
+		t.Errorf("Exec() expected error with nil params, got nil")
 	}
 
-	result := r.RagSave("test content", "test prepend", 1)
-	if !result {
-		t.Error("RagSave() returned false, expected true")
+	if result != nil {
+		t.Errorf("Exec() expected nil result with nil params, got %v", result)
 	}
 }
 
-func TestDispatch(t *testing.T) {
+func TestExecWithEmptyQuery(t *testing.T) {
 	t.Parallel()
 
-	store := &mockStore{
-		searchResults: map[string]string{
-			"test query": "search result 1\n\n---\n\nsearch result 2",
+	tool := newTestTool(t)
+
+	params := &rag.RagSearchParams{
+		Query: "",
+	}
+
+	result, err := tool.Exec(t.Context(), params)
+	if err != nil {
+		t.Fatalf("Exec() failed: %v", err)
+	}
+
+	switch v := result.(type) {
+	case *tools.Response:
+		if v.Status != tools.StatusOK {
+			t.Errorf("Status = %q, want %q", v.Status, tools.StatusOK)
+		}
+	default:
+		t.Errorf("unexpected result type: %T", v)
+	}
+}
+
+func TestExecWithMockStore(t *testing.T) {
+	t.Parallel()
+
+	cfg := loadTestConfig(t)
+	mock := &mockStore{
+		results: map[string]string{
+			"test query": "test result 1\n\n---\n\ntest result 2",
 		},
 	}
-	r, err := rag.New(testConfig, store)
-	if err != nil {
-		t.Fatal("New() failed:", err)
+	tool := rag.New(cfg, printer.GetDefault(), mock, &plugin.State{Config: cfg})
+
+	params := &rag.RagSearchParams{
+		Query: "test query",
 	}
 
-	t.Run("valid rag_search call", func(t *testing.T) {
-		t.Parallel()
+	result, err := tool.Exec(t.Context(), params)
+	if err != nil {
+		t.Fatalf("Exec() failed: %v", err)
+	}
 
-		args, err := json.Marshal(map[string]string{"query": "test query"})
-		if err != nil {
-			t.Fatal("failed to marshal args:", err)
-		}
+	resp := parseResult(t, result)
+	if resp.Status != tools.StatusOK {
+		t.Errorf("Status = %q, want %q", resp.Status, tools.StatusOK)
+	}
+	if resp.Result != "test result 1\n\n---\n\ntest result 2" {
+		t.Errorf("Result = %q, want %q", resp.Result, "test result 1\n\n---\n\ntest result 2")
+	}
+}
 
-		result := r.Dispatch("rag_search", string(args))
-		if result != "search result 1\n\n---\n\nsearch result 2" {
-			t.Errorf("Dispatch() = %q, want %q", result, "search result 1\n\n---\n\nsearch result 2")
-		}
-	})
+func TestExecWithNoResults(t *testing.T) {
+	t.Parallel()
 
-	t.Run("rag_search with empty result", func(t *testing.T) {
-		t.Parallel()
+	cfg := loadTestConfig(t)
+	mock := &mockStore{
+		results: map[string]string{},
+	}
+	tool := rag.New(cfg, printer.GetDefault(), mock, &plugin.State{Config: cfg})
 
-		args, err := json.Marshal(map[string]string{"query": "empty query"})
-		if err != nil {
-			t.Fatal("failed to marshal args:", err)
-		}
+	params := &rag.RagSearchParams{
+		Query: "nonexistent query",
+	}
 
-		result := r.Dispatch("rag_search", string(args))
-		if result != "no relevant information found" {
-			t.Errorf("Dispatch() = %q, want %q", result, "no relevant information found")
-		}
-	})
+	result, err := tool.Exec(t.Context(), params)
+	if err != nil {
+		t.Fatalf("Exec() failed: %v", err)
+	}
 
-	t.Run("rag_search with invalid JSON", func(t *testing.T) {
-		t.Parallel()
-
-		result := r.Dispatch("rag_search", "invalid json")
-		if result != "error: failed to parse arguments" {
-			t.Errorf("Dispatch() = %q, want %q", result, "error: failed to parse arguments")
-		}
-	})
-
-	t.Run("unknown tool", func(t *testing.T) {
-		t.Parallel()
-
-		result := r.Dispatch("unknown_tool", "{}")
-		if result != "error: unknown tool unknown_tool" {
-			t.Errorf("Dispatch() = %q, want %q", result, "error: unknown tool unknown_tool")
-		}
-	})
-
-	t.Run("rag_search with missing query field", func(t *testing.T) {
-		t.Parallel()
-
-		args, err := json.Marshal(map[string]string{"other": "value"})
-		if err != nil {
-			t.Fatal("failed to marshal args:", err)
-		}
-
-		result := r.Dispatch("rag_search", string(args))
-		if result != "no relevant information found" {
-			t.Errorf("Dispatch() = %q, want %q", result, "no relevant information found")
-		}
-	})
+	resp := parseResult(t, result)
+	if resp.Status != tools.StatusOK {
+		t.Errorf("Status = %q, want %q", resp.Status, tools.StatusOK)
+	}
+	if resp.Result != "no relevant information found" {
+		t.Errorf("Result = %q, want %q", resp.Result, "no relevant information found")
+	}
 }
 
 func TestStoreInterface(t *testing.T) {
 	t.Parallel()
 
-	// Test that mockStore implements Store interface
+	// Test that mockStore implements rag.Store interface
 	var _ rag.Store = &mockStore{}
 
 	t.Log("mockStore implements Store interface")
+}
+
+func loadTestConfig(t *testing.T) *config.Config {
+	t.Helper()
+	cfg, err := config.Load("./testdata/config.yml")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return cfg
+}
+
+func newTestTool(t *testing.T) *rag.Tool {
+	t.Helper()
+
+	// Create a mock store for testing
+	mock := &mockStore{
+		results: map[string]string{},
+	}
+
+	responseStore := response.New(plugin.DefaultResponseStoreSize)
+	p := printer.GetDefault()
+
+	// Create a config with RAG enabled
+	cfg := loadTestConfig(t)
+
+	return rag.New(cfg, p, mock, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
 }

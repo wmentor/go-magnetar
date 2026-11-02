@@ -78,29 +78,45 @@ Fixed bug in parser
 feat: Added new feature
 ```
 
+## Instructions
+
+When generating commit messages, use the following Git commands to analyze changes:
+
+- **Staged changes**: `git diff --staged`
+- **Unstaged changes**: `git diff`
+- **Untracked files**: `git status` (check for untracked files)
+
+**DO NOT** ask the user which command to use — use all available information to generate the commit message.
+
 ## Rules
 
 - **NEVER** modify files on disk
 - **NEVER** commit changes
 - **NEVER** suggest running `git commit` or `git push`
+- **DO NOT** ask the user to clarify which Git command to use
+- **DO NOT** ask whether to check untracked files
 - **ONLY** generate the commit message text
-
-### Generate commit message for current changes
 
 When asked to generate a commit message, follow these steps:
 
-1. **Analyze the current git changes**:
-   - If provided a diff, extract all modified lines
-   - If provided file paths and descriptions, identify the type of change
+1. **Gather all Git information** (without asking the user):
+   - Run `git diff --staged` to get staged changes
+   - Run `git diff` to get unstaged changes
+   - Run `git status` to check for untracked files
+   - Use ALL available information to understand the complete scope of changes
+
+2. **Analyze the changes**:
+   - Extract all modified lines from diffs
+   - Identify all changed files and their paths
    - Determine the scope (e.g., `rag`, `indexer`, `config`, `skill`, `docs`)
    - Identify the commit type based on the nature of changes
 
-2. **Generate the commit message**:
+3. **Generate the commit message**:
    - Create a concise, imperative subject line (max 72 chars)
    - Add a body describing the changes if needed
    - Include footers for breaking changes or issue references
 
-3. **Return ONLY the commit message text** (no additional commentary)
+4. **Return ONLY the commit message text** (no additional commentary, no questions)
 
 Example:
 ```
