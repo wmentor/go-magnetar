@@ -137,30 +137,29 @@ func (idx *Indexer) chunkAndSave(content string, msg string) (int, error) {
 }
 
 // IndexDirectory indexes all indexable files in a directory into the RAG knowledge base.
+// Files are indexed as they are discovered, so large directories are not buffered in memory.
 func (idx *Indexer) IndexDirectory(root string, msg string) error {
-	files, err := listIndexableFiles(root)
-	if err != nil {
-		return fmt.Errorf("indexer: failed to list files in %q: %w", root, err)
-	}
-
 	var (
 		indexed  int
 		chunks   int
 		errFiles int
 	)
 
-	for _, file := range files {
+	err := walkIndexableFiles(root, func(file string) {
 		n, err := idx.indexFileChunks(file, msg)
 		if err != nil {
 			printer.Warn("indexer: failed to index file", "file", file, "err", err)
 			errFiles++
-			continue
+			return
 		}
 		chunks += n
 		indexed++
+	})
+	if err != nil {
+		return fmt.Errorf("indexer: failed to walk directory %q: %w", root, err)
 	}
 
-	if len(files) == 0 {
+	if indexed+errFiles == 0 {
 		printer.Warn("indexer: no indexable files found", "directory", root)
 	} else {
 		printer.Print(printer.IconFile, "indexer: directory indexed", "files", indexed, "chunks", chunks, "failed", errFiles)
@@ -168,10 +167,8 @@ func (idx *Indexer) IndexDirectory(root string, msg string) error {
 	return nil
 }
 
-// listIndexableFiles lists all indexable files in a directory.
-func listIndexableFiles(path string) ([]string, error) {
-	var found []string
-
+// walkIndexableFiles walks a directory and calls fn for every indexable file found.
+func walkIndexableFiles(path string, fn func(file string)) error {
 	err := filepath.WalkDir(path, func(p string, d fs.DirEntry, err error) error {
 		if err != nil {
 			if p == path {
@@ -182,25 +179,22 @@ func listIndexableFiles(path string) ([]string, error) {
 		}
 
 		if d.IsDir() {
-			if isExcludedDirName(d.Name()) && p != path {
+			if p != path && isExcludedDirName(d.Name()) {
 				return filepath.SkipDir
 			}
 			return nil
 		}
 
-		if !isIndexable(p) {
-			return nil
+		if isIndexable(p) {
+			fn(p)
 		}
-
-		found = append(found, p)
 		return nil
 	})
-
 	if err != nil {
-		return nil, fmt.Errorf("walk %q: %w", path, err)
+		return fmt.Errorf("walk %q: %w", path, err)
 	}
 
-	return found, nil
+	return nil
 }
 
 // isIndexable checks if a file is indexable based on its extension.

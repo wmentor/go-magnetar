@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestListIndexableFiles(t *testing.T) {
+func TestWalkIndexableFiles(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -113,20 +113,17 @@ func TestListIndexableFiles(t *testing.T) {
 			root := t.TempDir()
 			createFiles(t, root, tt.files)
 
-			got, err := listIndexableFiles(root)
-			if err != nil {
-				t.Fatalf("listIndexableFiles() unexpected error: %v", err)
-			}
+			got := collectFiles(t, root)
 
 			rel := relativePaths(t, root, got)
 			if !slices.Equal(rel, tt.want) {
-				t.Errorf("listIndexableFiles() = %v, want %v", rel, tt.want)
+				t.Errorf("walkIndexableFiles() = %v, want %v", rel, tt.want)
 			}
 		})
 	}
 }
 
-func TestListIndexableFilesHiddenRoot(t *testing.T) {
+func TestWalkIndexableFilesHiddenRoot(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -156,27 +153,35 @@ func TestListIndexableFilesHiddenRoot(t *testing.T) {
 			root := filepath.Join(t.TempDir(), tt.rootName)
 			createFiles(t, root, tt.files)
 
-			got, err := listIndexableFiles(root)
-			if err != nil {
-				t.Fatalf("listIndexableFiles() unexpected error: %v", err)
-			}
+			got := collectFiles(t, root)
 
 			rel := relativePaths(t, root, got)
 			if !slices.Equal(rel, tt.want) {
-				t.Errorf("listIndexableFiles() = %v, want %v", rel, tt.want)
+				t.Errorf("walkIndexableFiles() = %v, want %v", rel, tt.want)
 			}
 		})
 	}
 }
 
-func TestListIndexableFilesMissingRoot(t *testing.T) {
+func TestWalkIndexableFilesMissingRoot(t *testing.T) {
 	t.Parallel()
 
 	missing := filepath.Join(t.TempDir(), "does-not-exist")
 
-	if _, err := listIndexableFiles(missing); err == nil {
-		t.Fatal("listIndexableFiles() expected an error for a missing root, got nil")
+	if err := walkIndexableFiles(missing, func(string) {}); err == nil {
+		t.Fatal("walkIndexableFiles() expected an error for a missing root, got nil")
 	}
+}
+
+// collectFiles walks root and returns every file reported by walkIndexableFiles.
+func collectFiles(t *testing.T, root string) []string {
+	t.Helper()
+
+	var files []string
+	if err := walkIndexableFiles(root, func(file string) { files = append(files, file) }); err != nil {
+		t.Fatalf("walkIndexableFiles() unexpected error: %v", err)
+	}
+	return files
 }
 
 // createFiles creates every relative path under root as an empty file,
