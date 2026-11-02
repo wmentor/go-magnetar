@@ -1,0 +1,218 @@
+package indexer
+
+import (
+	"os"
+	"path/filepath"
+	"slices"
+	"testing"
+)
+
+func TestWalkIndexableFiles(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		files []string // paths relative to the root, created as empty files
+		want  []string // expected result, relative to the root
+	}{
+		{
+			name:  "empty directory",
+			files: nil,
+			want:  nil,
+		},
+		{
+			name:  "single supported file",
+			files: []string{"guide.md"},
+			want:  []string{"guide.md"},
+		},
+		{
+			name: "all supported extensions",
+			files: []string{
+				"a.md", "b.txt", "c.csv", "d.tsv", "e.docx",
+				"f.pdf", "g.odt", "h.pptx", "i.xlsx", "j.html", "k.htm",
+			},
+			want: []string{
+				"a.md", "b.txt", "c.csv", "d.tsv", "e.docx",
+				"f.pdf", "g.odt", "h.pptx", "i.xlsx", "j.html", "k.htm",
+			},
+		},
+		{
+			name:  "nested directories",
+			files: []string{"top.md", "docs/api.md", "docs/deep/er/notes.txt"},
+			want:  []string{"docs/api.md", "docs/deep/er/notes.txt", "top.md"},
+		},
+		{
+			name:  "unsupported extensions are skipped",
+			files: []string{"keep.md", "image.png", "binary.exe", "data.json", "Makefile", "Dockerfile"},
+			want:  []string{"keep.md"},
+		},
+		{
+			name: "source and config files are indexed",
+			files: []string{
+				"main.go", "app.py", "app.js", "App.jsx", "app.ts", "App.tsx", "index.php",
+				"gem.rb", "lib.rs", "main.c", "main.h", "main.cpp", "main.hpp",
+				"Main.java", "run.sh", "ci.yaml", "ci.yml", "Cargo.toml", "app.ini",
+			},
+			want: []string{
+				"App.jsx", "App.tsx", "Cargo.toml", "Main.java", "app.ini", "app.js", "app.py", "app.ts",
+				"ci.yaml", "ci.yml", "gem.rb", "index.php", "lib.rs", "main.c", "main.cpp",
+				"main.go", "main.h", "main.hpp", "run.sh",
+			},
+		},
+		{
+			name:  "source file extension match is case insensitive",
+			files: []string{"Main.GO", "script.PY"},
+			want:  []string{"Main.GO", "script.PY"},
+		},
+		{
+			name:  "extension match is case insensitive",
+			files: []string{"REPORT.PDF", "Notes.TXT"},
+			want:  []string{"Notes.TXT", "REPORT.PDF"},
+		},
+		{
+			name:  "git directory is skipped",
+			files: []string{"keep.md", ".git/config.txt", ".git/hooks/readme.md"},
+			want:  []string{"keep.md"},
+		},
+		{
+			name:  "hidden directories are skipped",
+			files: []string{"keep.md", ".github/workflows/ci.yml", ".hidden/notes.md"},
+			want:  []string{"keep.md"},
+		},
+		{
+			name:  "node_modules is skipped",
+			files: []string{"keep.md", "node_modules/pkg/readme.md"},
+			want:  []string{"keep.md"},
+		},
+		{
+			name:  "pycache is skipped",
+			files: []string{"keep.md", "__pycache__/cache.txt"},
+			want:  []string{"keep.md"},
+		},
+		{
+			name:  "excluded directory nested deeper is skipped",
+			files: []string{"docs/keep.md", "docs/node_modules/readme.md", "docs/sub/.git/x.txt"},
+			want:  []string{"docs/keep.md"},
+		},
+		{
+			name:  "excluded name only matches directories",
+			files: []string{"node_modules.md", "docs/.git.txt"},
+			want:  []string{"docs/.git.txt", "node_modules.md"},
+		},
+		{
+			name:  "directory with a supported extension in its name is not a file",
+			files: []string{"archive.md/inside.txt"},
+			want:  []string{"archive.md/inside.txt"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			root := t.TempDir()
+			createFiles(t, root, tt.files)
+
+			got := collectFiles(t, root)
+
+			rel := relativePaths(t, root, got)
+			if !slices.Equal(rel, tt.want) {
+				t.Errorf("walkIndexableFiles() = %v, want %v", rel, tt.want)
+			}
+		})
+	}
+}
+
+func TestWalkIndexableFilesHiddenRoot(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		rootName string
+		files    []string // paths relative to the root, created as empty files
+		want     []string // expected result, relative to the root
+	}{
+		{
+			name:     "hidden root directory is walked",
+			rootName: ".docs",
+			files:    []string{"a.md", "sub/b.txt"},
+			want:     []string{"a.md", "sub/b.txt"},
+		},
+		{
+			name:     "hidden subdirectory of a hidden root is still skipped",
+			rootName: ".docs",
+			files:    []string{"a.md", ".cache/b.md"},
+			want:     []string{"a.md"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			root := filepath.Join(t.TempDir(), tt.rootName)
+			createFiles(t, root, tt.files)
+
+			got := collectFiles(t, root)
+
+			rel := relativePaths(t, root, got)
+			if !slices.Equal(rel, tt.want) {
+				t.Errorf("walkIndexableFiles() = %v, want %v", rel, tt.want)
+			}
+		})
+	}
+}
+
+func TestWalkIndexableFilesMissingRoot(t *testing.T) {
+	t.Parallel()
+
+	missing := filepath.Join(t.TempDir(), "does-not-exist")
+
+	if err := walkIndexableFiles(missing, func(string) {}); err == nil {
+		t.Fatal("walkIndexableFiles() expected an error for a missing root, got nil")
+	}
+}
+
+// collectFiles walks root and returns every file reported by walkIndexableFiles.
+func collectFiles(t *testing.T, root string) []string {
+	t.Helper()
+
+	var files []string
+	if err := walkIndexableFiles(root, func(file string) { files = append(files, file) }); err != nil {
+		t.Fatalf("walkIndexableFiles() unexpected error: %v", err)
+	}
+	return files
+}
+
+// createFiles creates every relative path under root as an empty file,
+// making parent directories as needed.
+func createFiles(t *testing.T, root string, files []string) {
+	t.Helper()
+
+	for _, f := range files {
+		full := filepath.Join(root, filepath.FromSlash(f))
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatalf("mkdir for %q: %v", f, err)
+		}
+		if err := os.WriteFile(full, nil, 0o644); err != nil {
+			t.Fatalf("write %q: %v", f, err)
+		}
+	}
+}
+
+// relativePaths converts paths to slash-separated paths relative to root
+// and sorts them, so the comparison does not depend on walk order.
+func relativePaths(t *testing.T, root string, paths []string) []string {
+	t.Helper()
+
+	var out []string
+	for _, p := range paths {
+		r, err := filepath.Rel(root, p)
+		if err != nil {
+			t.Fatalf("rel %q: %v", p, err)
+		}
+		out = append(out, filepath.ToSlash(r))
+	}
+	slices.Sort(out)
+	return out
+}

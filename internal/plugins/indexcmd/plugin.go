@@ -42,7 +42,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name:    "index",
 		Aliases: []string{"i"},
-		Help:    "Index file or URL into RAG knowledge base (auto-detects URL vs file)",
+		Help:    "Index a file, URL, or directory into RAG knowledge base (use `-r` for directories)",
 		Execute: p.execute,
 	})
 
@@ -59,31 +59,84 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
 	args := params.Args
 	if args == "" {
-		return nil, fmt.Errorf("usage: /index <path|url> [-m <message>]")
+		return nil, fmt.Errorf("usage: /index <path|url> [-r|--recursive] [-m <message>]")
 	}
 
-	message := ""
-
-	parts := strings.Fields(args)
-	target := parts[0]
-	for i := 1; i < len(parts); i++ {
-		if parts[i] == "-m" && i+1 < len(parts) {
-			message = parts[i+1]
-			i++
-		}
+	opts, err := parseIndexArgs(args)
+	if err != nil {
+		return nil, fmt.Errorf("parse index arg error: %w", err)
 	}
 
-	if strings.HasPrefix(target, "http://") || strings.HasPrefix(target, "https://") {
-		if err := p.idx.IndexURL(target, message); err != nil {
+	switch {
+	case isURL(opts.target):
+		if err := p.idx.IndexURL(opts.target, opts.message); err != nil {
 			return nil, fmt.Errorf("index URL failed: %w", err)
 		}
 		return plugin.NopChatCommandResponse, nil
+	case isDir(opts.target):
+		if !opts.recursive {
+			return nil, fmt.Errorf("target is a directory, use -r or --recursive for recursive indexing")
+		}
+
+		err := p.idx.IndexDirectory(opts.target, opts.message)
+		if err != nil {
+			return nil, fmt.Errorf("index directory failed: %w", err)
+		}
+		return plugin.NopChatCommandResponse, nil
+	default:
+		if err := p.idx.IndexFile(opts.target, opts.message); err != nil {
+			return nil, fmt.Errorf("index file failed: %w", err)
+		}
 	}
 
-	if err := p.idx.IndexFile(target, message); err != nil {
-		return nil, fmt.Errorf("index file failed: %w", err)
-	}
 	return plugin.NopChatCommandResponse, nil
+}
+
+func isURL(s string) bool {
+	return strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://")
+}
+
+func isDir(path string) bool {
+	info, err := os.Stat(path)
+	return err == nil && info.IsDir()
+}
+
+func parseIndexArgs(args string) (IndexArgs, error) {
+	parts := strings.Fields(args)
+	opts := IndexArgs{}
+
+	for i := 0; i < len(parts); i++ {
+		switch parts[i] {
+		case "-m":
+			if i+1 < len(parts) {
+				opts.message = parts[i+1]
+				i++
+			} else {
+				return IndexArgs{}, fmt.Errorf("message can not be empty")
+			}
+		case "-r", "--recursive":
+			opts.recursive = true
+		default:
+			if strings.HasPrefix(parts[i], "-") {
+				return IndexArgs{}, fmt.Errorf("unknown flag: %q", parts[i])
+			}
+			if opts.target != "" {
+				return IndexArgs{}, fmt.Errorf("too many targets: %q and %q", opts.target, parts[i])
+			}
+			opts.target = parts[i]
+		}
+	}
+
+	if opts.target == "" {
+		return IndexArgs{}, fmt.Errorf("target not found")
+	}
+	return opts, nil
+}
+
+type IndexArgs struct {
+	target    string
+	message   string
+	recursive bool
 }
 
 type Entry struct {
