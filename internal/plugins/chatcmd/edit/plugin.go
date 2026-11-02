@@ -23,7 +23,7 @@ type Plugin struct {
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	p.state = s
-	p.tool = confluence.NewEditTool(s.Config, nil, nil, s)
+	p.tool = confluence.NewEditTool(s.Config, s.Printer, s.RequesterFactory, s)
 
 	if s.Config.Bool("confluence.enable") && s.Config.String("confluence.base_url") != "" {
 		hub.RegisterChatCommand(plugin.ChatCommand{
