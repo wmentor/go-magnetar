@@ -339,7 +339,7 @@ func (t *Tool) fetchURLWithContentType(ctx context.Context, u string) ([]byte, s
 	return body, contentType, nil
 }
 
-func (t *Tool) mimeCodecWork(myCodec codec.Codec, content []byte) (string, error) {
+func (t *Tool) mimeCodecWork(myCodec codec.ReadCodec, content []byte) (string, error) {
 	if myCodec == nil {
 		return "", errors.New("codec is nil")
 	}
