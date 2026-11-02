@@ -6,7 +6,7 @@ go-magnetar provides the following tools for the chat agent:
 |---|---|---|
 | `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem; supports `.txt`, `.md`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`, `.html`, `.htm`, and `.gz` (transparent decompression); `limit` and `offset` specify line range (0 = read all). See [docs/file_codecs.md](./file_codecs.md) for complete format support and codec details |
 | `file_list` | `(filter: string) -> []string` | Recursively lists files in the current directory using glob pattern (e.g. `*.go`) |
-| `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem (blocked in read-only mode) |
+| `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem (blocked in read-only mode); transparently converts Markdown to DOCX when writing `.docx` files |
 | `file_edit` | `(filename: string, old_text: string, new_text: string) -> string` | Edits a **plain-text** file by replacing text. **CRITICAL**: `old_text` must appear EXACTLY ONCE in the file. Returns error if `old_text` appears multiple times. Case-sensitive search. Not supported for `.docx`, `.pdf`, `.odt`, `.xlsx`, `.pptx`, `.csv`, `.tsv`, `.html`, `.htm` — use `file_write` for those. |
 | `file_edit_multiple` | `(filename: string, edits: [{old_text, new_text}], strategy: "first"\|"all") -> string` | Edits a **plain-text** file by applying multiple text replacements. Strategy `"all"` (default) replaces all occurrences; `"first"` replaces only the first. Not supported for codec-handled formats (same as `file_edit`). |
 | `exec` | `(command: string, stdin: string) -> string` | Executes a shell command via `sh -c` with clean environment, current working directory, and built-in safety guard |
@@ -69,6 +69,10 @@ This prevents the lost-write race condition where two concurrent edits both read
 
 See [chat_agent_ask.md](./chat_agent_ask.md) for details on tool execution categories.
 
+### Markdown to DOCX conversion
+
+When writing content to a `.docx` file using `file_write`, the content is treated as Markdown and automatically converted to DOCX format. This allows you to write rich documents using Markdown syntax and have them saved as proper Word documents.
+
 ### Guidelines
 
 1. Use `file_read` first to see the file contents before editing
@@ -76,6 +80,7 @@ See [chat_agent_ask.md](./chat_agent_ask.md) for details on tool execution categ
 3. Use `file_edit_multiple` with "all" for replacing multiple occurrences
 4. Use `file_edit_multiple` with "first" for replacing only the first occurrence of multiple strings
 5. Use `file_write` when you need to create a new file or completely rewrite an existing one
+6. Use `file_write` with `.docx` extension to create DOCX files from Markdown content (automatic conversion)
 
 ## Search Tools
 
