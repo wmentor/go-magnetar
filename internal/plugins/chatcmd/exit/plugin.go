@@ -19,7 +19,7 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 		Aliases: []string{"quit", "q"},
 		Help:    "End the session and exit.",
 		Execute: func(_ context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
-			return &plugin.ChatCommandResponse{Exit: true}, nil
+			return &plugin.ChatCommandResponse{Exit: true, Stdout: "Good bye!"}, nil
 		},
 	})
 	return nil
