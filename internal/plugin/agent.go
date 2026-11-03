@@ -1,4 +1,4 @@
-package agent
+package plugin
 
 import (
 	"errors"
@@ -31,4 +31,9 @@ func (a *Agent) Copy() *Agent {
 		Disable:        a.Disable,
 		Subagents:      slices.Clone(a.Subagents),
 	}
+}
+
+type AgentStore interface {
+	Get(agentName string) (*Agent, error)
+	List() []*Agent
 }

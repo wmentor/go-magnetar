@@ -12,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sashabaranov/go-openai"
 
+	"github.com/wmentor/go-magnetar/internal/agent"
 	"github.com/wmentor/go-magnetar/internal/agent/chat"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/http/requester"
@@ -84,6 +85,11 @@ func Execute() error {
 		filepath.Join(workDir, ".go-magnetar", "skills"),
 	)
 
+	agentStore := agent.NewStore(
+		filepath.Join(homeDir, ".go-magnetar", "agents"),
+		filepath.Join(workDir, ".go-magnetar", "agents"),
+	)
+
 	responseStore := response.New(plugin.DefaultResponseStoreSize) // circular buffer with capacity DefaultResponseStoreSize
 
 	rootFS, err := os.OpenRoot(workDir)
@@ -108,6 +114,7 @@ func Execute() error {
 		ToolStore:        toolStore,
 		RequesterFactory: requester.NewFactory(),
 		Printer:          printer.GetDefault(),
+		AgentStore:       agentStore,
 	}
 	state.TimingEnabled.Store(root.Timing)
 
