@@ -11,18 +11,19 @@ import (
 	"go.yaml.in/yaml/v3"
 	"golang.org/x/exp/maps"
 
+	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 )
 
 type Store struct {
 	dirs   []string
-	agents map[string]*Agent
+	agents map[string]*plugin.Agent
 }
 
 func NewStore(dirs ...string) *Store {
 	st := &Store{
 		dirs:   slices.Clone(dirs),
-		agents: make(map[string]*Agent),
+		agents: make(map[string]*plugin.Agent),
 	}
 
 	for _, d := range st.dirs {
@@ -79,7 +80,7 @@ func (st *Store) loadAgent(filename string) {
 	}
 
 	if metadata.Name != "" {
-		st.agents[metadata.Name] = &Agent{
+		st.agents[metadata.Name] = &plugin.Agent{
 			Name:           metadata.Name,
 			Description:    metadata.Description,
 			Prompt:         texts[2],
@@ -90,17 +91,17 @@ func (st *Store) loadAgent(filename string) {
 	}
 }
 
-func (st *Store) Get(agentName string) (*Agent, error) {
+func (st *Store) Get(agentName string) (*plugin.Agent, error) {
 	if agent, ok := st.agents[agentName]; ok {
 		return agent.Copy(), nil
 	}
-	return nil, ErrAgentNotFound
+	return nil, plugin.ErrAgentNotFound
 }
 
-func (st *Store) List() []*Agent {
+func (st *Store) List() []*plugin.Agent {
 	keys := maps.Keys(st.agents)
 	sort.Strings(keys)
-	ret := make([]*Agent, 0, len(keys))
+	ret := make([]*plugin.Agent, 0, len(keys))
 
 	for _, k := range keys {
 		ret = append(ret, st.agents[k].Copy())

@@ -54,6 +54,7 @@ type State struct {
 	ResponseStore    ResponseStore           // response storage interface (circular buffer with capacity DefaultResponseStoreSize).
 	TimingEnabled    atomic.Bool             // if true, the chat REPL prints how long each answer took (/timing, --enable-timing).
 	ToolStore        *tools.Store            // universal tool store.
+	AgentStore       AgentStore              // agent storage interface.
 	RequesterFactory requester.ClientFactory // HTTP client factory.
 }
 
