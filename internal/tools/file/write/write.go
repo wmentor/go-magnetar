@@ -86,6 +86,10 @@ func (t *Tool) Exec(ctx context.Context, params *FileWriteParams) (any, error) {
 	// Check if the file extension is handled by a codec (binary/structured formats)
 	ext := strings.ToLower(filepath.Ext(params.Filename))
 	if wc, err := codec.GetWriteCodec(ext); err == nil {
+		if err = t.root.WriteFile(params.Filename, []byte{}, 0o644); err != nil {
+			t.printer.Error("file_write: failed to write file", "file", params.Filename, "err", err)
+			return nil, fmt.Errorf("file_write: failed to write file: %w", err)
+		}
 		if err = wc.WriteFile(params.Filename, params.Content); err != nil {
 			t.printer.Error("file_write: failed to write file", "file", params.Filename, "err", err)
 			return nil, fmt.Errorf("file_write: failed to write file: %w", err)
