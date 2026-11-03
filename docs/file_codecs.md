@@ -4,17 +4,19 @@ go-magnetar supports reading multiple file formats through a unified codec inter
 
 ## Supported Formats
 
-| Extension | Codec | Description |
-|---|---|---|
-| `.csv` | `csv.Codec` | CSV files (comma-separated values) |
-| `.tsv` | `tsv.Codec` | TSV files (tab-separated values) |
-| `.docx` | `docx.Codec` | Microsoft Word documents |
-| `.html` | `html.Codec` | HTML files (cleaned and converted to Markdown) |
-| `.pdf` | `pdf.Codec` | PDF documents |
-| `.odt` | `odt.Codec` | OpenOffice Writer documents |
-| `.pptx` | `pptx.Codec` | PowerPoint presentations |
-| `.xlsx` | `excel.Codec` | Excel files |
-| `.eml` | `eml.Codec` | EML files |
+| Extension | Codec | Description | Read | Write |
+|---|---|---|---|---|
+| `.csv` | `csv.Codec` | CSV files (comma-separated values) | ✅ | ✅ |
+| `.tsv` | `tsv.Codec` | TSV files (tab-separated values) | ✅ | ✅ |
+| `.docx` | `docx.Codec` | Microsoft Word documents | ✅ | ✅ |
+| `.html` | `html.Codec` | HTML files (cleaned and converted to Markdown) | ✅ | ✅ |
+| `.pdf` | `pdf.Codec` | PDF documents | ✅ | ❌ |
+| `.odt` | `odt.Codec` | OpenOffice Writer documents | ✅ | ❌ |
+| `.pptx` | `pptx.Codec` | PowerPoint presentations | ✅ | ❌ |
+| `.xlsx` | `excel.Codec` | Excel files | ✅ | ❌ |
+| `.eml` | `eml.Codec` | EML files | ✅ | ❌ |
+
+Additionally, all text-based formats are supported with read and write capabilities: `.txt`, `.md`, `.pl`, `.py`, `.go`, `.java`, `.c`, `.cpp`, `.h`, `.hpp`, `.js`, `.ts`, `.rs`, `.rb`, `.php`, `.swift`, `.kt`, `.scala`, `.r`, `.m`, `.cs`, `.vb`, `.sh`, `.bash`, `.zsh`, `.fish`, `.yaml`, `.yml`, `.json`, `.xml`, `.toml`, `.ini`, `.cfg`, `.conf`, `.properties`, `.sql`, `.graphql`, `.proto`, `.tf`, `.hcl`, `.rst`, `.asciidoc`, `.org`, `.lua`, `.tex`, `.ltx`, `.bib`, `.log`, `.env`, `.gitignore`, `.dockerignore`, `.gitattributes`, `.editorconfig`, `.license`, `.notice`, `.readme`, `.changelog`, `.contributing`, `.code-of-conduct`, `.security`, `.authors`, `.maintainers`, `.contributors`.
 
 ## Codec Interface
 
