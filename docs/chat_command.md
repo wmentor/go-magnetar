@@ -24,6 +24,16 @@ go-magnetar provides several built-in chat commands accessible from the interact
 | `/profile` | — | Show current profile or switch to a different profile |
 | `/timing` | — | Toggle execution time display (on\|off) |
 | `/skill` | `/sk` | List available skills or load/activate a skill |
+| `/agent [agent_name] [request]` | — | List available subagents or switch to a named subagent |
+
+## /agent Command
+
+Run `/agent` without arguments to list enabled subagents from the agent store.
+Each entry shows the agent name and its description when one is provided.
+Disabled agents are omitted. Listing agents does not make a model request.
+
+To initialize a named subagent, use `/agent <agent_name>`. Add a request after
+the name to send it to that subagent: `/agent <agent_name> <request>`.
 
 ## /compact Command
 

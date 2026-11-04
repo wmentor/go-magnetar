@@ -22,7 +22,7 @@ func (p *Plugin) Init(state *plugin.State, hub plugin.Hub) error {
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name:    "agent",
 		Aliases: []string{},
-		Help:    "Switch to a subagent by name. Usage: /agent <agent_name> [request]",
+		Help:    "List available subagents or switch by name. Usage: /agent [agent_name] [request]",
 		Execute: p.execute,
 	})
 	return nil
@@ -32,7 +32,7 @@ func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (
 	args := strings.TrimSpace(params.Args)
 	if args == "" {
 		return &plugin.ChatCommandResponse{
-			Stdout: "Usage: /agent <agent_name> [request]\n",
+			Stdout: listAgents(p.state.AgentStore),
 			NoLog:  true,
 		}, nil
 	}
@@ -79,6 +79,26 @@ func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (
 		Stdout: response,
 		NoLog:  true,
 	}, nil
+}
+
+func listAgents(agentStore plugin.AgentStore) string {
+	var sb strings.Builder
+	sb.WriteString("Available agents:\n")
+	if agentStore == nil {
+		return sb.String()
+	}
+
+	for _, agent := range agentStore.List() {
+		if agent.Disable {
+			continue
+		}
+		if agent.Description != "" {
+			fmt.Fprintf(&sb, "  * %s - %s\n", agent.Name, agent.Description)
+		} else {
+			fmt.Fprintf(&sb, "  * %s\n", agent.Name)
+		}
+	}
+	return sb.String()
 }
 
 // splitArgs splits the input string into at most n parts, separated by a space.
