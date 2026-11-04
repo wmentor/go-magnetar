@@ -840,7 +840,7 @@ See [docs/security.md](./docs/security.md) for complete security information.
 
 **IMPORTANT**: For custom errors in new packages, define them as global variables with `Err` prefix (e.g., `ErrRefRequired`) in `internal/<package>/errors.go`.
 
-**IMPORTANT**: README.md MUST be written in Russian!
+**IMPORTANT**: README.md MUST be written in English!
 
 **IMPORTANT**: After adding new features, run the linter via `make check/lint` and fix all warnings.
 
