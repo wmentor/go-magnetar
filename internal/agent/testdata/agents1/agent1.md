@@ -1,7 +1,7 @@
 ---
 name: agent1
 description: First agent
-available_tools:
+tools:
   - tool1
   - tool2
 disable: false

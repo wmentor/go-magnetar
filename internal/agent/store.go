@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"errors"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -67,11 +68,11 @@ func (st *Store) loadAgent(filename string) {
 	}
 
 	var metadata struct {
-		Name           string   `yaml:"name"`
-		Description    string   `yaml:"description"`
-		AvailableTools []string `yaml:"available_tools"`
-		Disable        bool     `yaml:"disable"`
-		Subagents      []string `yaml:"subagents"`
+		Name        string   `yaml:"name"`
+		Description string   `yaml:"description"`
+		Tools       []string `yaml:"tools"`
+		Disable     bool     `yaml:"disable"`
+		Subagents   []string `yaml:"subagents"`
 	}
 
 	if err := yaml.Unmarshal([]byte(texts[1]), &metadata); err != nil {
@@ -84,7 +85,7 @@ func (st *Store) loadAgent(filename string) {
 			Name:           metadata.Name,
 			Description:    metadata.Description,
 			Prompt:         texts[2],
-			AvailableTools: metadata.AvailableTools,
+			AvailableTools: metadata.Tools,
 			Disable:        metadata.Disable,
 			Subagents:      metadata.Subagents,
 		}
@@ -108,4 +109,40 @@ func (st *Store) List() []*plugin.Agent {
 	}
 
 	return ret
+}
+
+// Filter creates a copy of the store containing only the specified agents.
+// Returns an error if any of the specified agent names do not exist in the store.
+func (st *Store) Filter(agents []string) (plugin.AgentStore, error) {
+	if st == nil {
+		return nil, errors.New("store is nil")
+	}
+
+	// Create a new store with the same directories
+	newStore := &Store{
+		dirs:   slices.Clone(st.dirs),
+		agents: make(map[string]*plugin.Agent),
+	}
+
+	// Track which agents were not found
+	notFound := make([]string, 0)
+
+	for _, name := range agents {
+		agent, err := st.Get(name)
+		if err != nil {
+			if errors.Is(err, plugin.ErrAgentNotFound) {
+				notFound = append(notFound, name)
+			} else {
+				return nil, err
+			}
+			continue
+		}
+		newStore.agents[name] = agent
+	}
+
+	if len(notFound) > 0 {
+		return nil, plugin.ErrAgentName
+	}
+
+	return newStore, nil
 }

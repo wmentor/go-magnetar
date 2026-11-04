@@ -45,6 +45,68 @@ func (_m *AgentStore) EXPECT() *AgentStore_Expecter {
 	return &AgentStore_Expecter{mock: &_m.Mock}
 }
 
+// Filter provides a mock function for the type AgentStore
+func (_mock *AgentStore) Filter(agents []string) (plugin.AgentStore, error) {
+	ret := _mock.Called(agents)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Filter")
+	}
+
+	var r0 plugin.AgentStore
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func([]string) (plugin.AgentStore, error)); ok {
+		return returnFunc(agents)
+	}
+	if returnFunc, ok := ret.Get(0).(func([]string) plugin.AgentStore); ok {
+		r0 = returnFunc(agents)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(plugin.AgentStore)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func([]string) error); ok {
+		r1 = returnFunc(agents)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// AgentStore_Filter_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Filter'
+type AgentStore_Filter_Call struct {
+	*mock.Call
+}
+
+// Filter is a helper method to define mock.On call
+//   - agents []string
+func (_e *AgentStore_Expecter) Filter(agents any) *AgentStore_Filter_Call {
+	return &AgentStore_Filter_Call{Call: _e.mock.On("Filter", agents)}
+}
+
+func (_c *AgentStore_Filter_Call) Run(run func(agents []string)) *AgentStore_Filter_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 []string
+		if args[0] != nil {
+			arg0 = args[0].([]string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *AgentStore_Filter_Call) Return(agentStore plugin.AgentStore, err error) *AgentStore_Filter_Call {
+	_c.Call.Return(agentStore, err)
+	return _c
+}
+
+func (_c *AgentStore_Filter_Call) RunAndReturn(run func(agents []string) (plugin.AgentStore, error)) *AgentStore_Filter_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Get provides a mock function for the type AgentStore
 func (_mock *AgentStore) Get(agentName string) (*plugin.Agent, error) {
 	ret := _mock.Called(agentName)

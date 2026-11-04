@@ -376,12 +376,14 @@ func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
 
 				var result string
 				if tool, err := state.ToolStore.GetTool(name); err == nil {
-					if tool.Sequential {
-						gmutex.Lock()
-						defer gmutex.Unlock()
-					} else {
-						gmutex.RLock()
-						defer gmutex.RUnlock()
+					if tool.Name != "agent" {
+						if tool.Sequential {
+							gmutex.Lock()
+							defer gmutex.Unlock()
+						} else {
+							gmutex.RLock()
+							defer gmutex.RUnlock()
+						}
 					}
 					result = tool.Execute(context.Background(), []byte(args))
 				} else {
