@@ -6,6 +6,8 @@ import (
 	"os/user"
 
 	"github.com/wmentor/go-magnetar/internal/cmd"
+	_ "github.com/wmentor/go-magnetar/internal/plugins/agent"
+	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/agent"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/compact"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/copy"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/edit"

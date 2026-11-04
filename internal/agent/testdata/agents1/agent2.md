@@ -1,7 +1,7 @@
 ---
 name: agent2
 description: Second agent
-available_tools:
+tools:
   - tool3
 disable: true
 subagents:

@@ -5,7 +5,10 @@ import (
 	"slices"
 )
 
-var ErrAgentNotFound = errors.New("agent not found")
+var (
+	ErrAgentNotFound = errors.New("agent not found")
+	ErrAgentName     = errors.New("agent name not found in store")
+)
 
 // Agent represents a chat agent with its configuration and state.
 type Agent struct {
@@ -36,4 +39,5 @@ func (a *Agent) Copy() *Agent {
 type AgentStore interface {
 	Get(agentName string) (*Agent, error)
 	List() []*Agent
+	Filter(agents []string) (AgentStore, error)
 }

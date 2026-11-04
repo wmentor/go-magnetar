@@ -1,7 +1,7 @@
 ---
 name: agent3
 description: Third agent from dir2
-available_tools:
+tools:
   - tool4
   - tool5
 disable: false
