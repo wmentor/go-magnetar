@@ -22,7 +22,7 @@ func TestFormatTreeMarkdown(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name string
+		name  string
 		files []struct {
 			Name        string `json:"name"`
 			Path        string `json:"path"`
@@ -44,8 +44,8 @@ func TestFormatTreeMarkdown(t *testing.T) {
 		want string
 	}{
 		{
-			name:    "empty file list",
-			files:   []struct {
+			name: "empty file list",
+			files: []struct {
 				Name        string `json:"name"`
 				Path        string `json:"path"`
 				Sha         string `json:"sha"`
@@ -85,16 +85,16 @@ func TestFormatTreeMarkdown(t *testing.T) {
 				} `json:"_links"`
 			}{
 				{
-					Name:  "README.md",
-					Path:  "README.md",
-					Sha:   "abc123",
-					Size:  1024,
-					URL:   "https://api.github.com/repos/test/test/contents/README.md",
-					HTMLURL: "https://github.com/test/test/blob/main/README.md",
-					GitURL:  "https://api.github.com/repos/test/test/git/blobs/abc123",
+					Name:        "README.md",
+					Path:        "README.md",
+					Sha:         "abc123",
+					Size:        1024,
+					URL:         "https://api.github.com/repos/test/test/contents/README.md",
+					HTMLURL:     "https://github.com/test/test/blob/main/README.md",
+					GitURL:      "https://api.github.com/repos/test/test/git/blobs/abc123",
 					DownloadURL: "https://raw.githubusercontent.com/test/test/main/README.md",
-					Type:  "file",
-					Encoding: "utf-8",
+					Type:        "file",
+					Encoding:    "utf-8",
 					Links: struct {
 						Self string `json:"self"`
 						Git  string `json:"git"`
@@ -129,16 +129,16 @@ func TestFormatTreeMarkdown(t *testing.T) {
 				} `json:"_links"`
 			}{
 				{
-					Name:  "README.md",
-					Path:  "README.md",
-					Sha:   "abc123",
-					Size:  1024,
-					URL:   "https://api.github.com/repos/test/test/contents/README.md",
-					HTMLURL: "https://github.com/test/test/blob/main/README.md",
-					GitURL:  "https://api.github.com/repos/test/test/git/blobs/abc123",
+					Name:        "README.md",
+					Path:        "README.md",
+					Sha:         "abc123",
+					Size:        1024,
+					URL:         "https://api.github.com/repos/test/test/contents/README.md",
+					HTMLURL:     "https://github.com/test/test/blob/main/README.md",
+					GitURL:      "https://api.github.com/repos/test/test/git/blobs/abc123",
 					DownloadURL: "https://raw.githubusercontent.com/test/test/main/README.md",
-					Type:  "file",
-					Encoding: "utf-8",
+					Type:        "file",
+					Encoding:    "utf-8",
 					Links: struct {
 						Self string `json:"self"`
 						Git  string `json:"git"`
@@ -150,16 +150,16 @@ func TestFormatTreeMarkdown(t *testing.T) {
 					},
 				},
 				{
-					Name:  "main.go",
-					Path:  "main.go",
-					Sha:   "def456",
-					Size:  2048,
-					URL:   "https://api.github.com/repos/test/test/contents/main.go",
-					HTMLURL: "https://github.com/test/test/blob/main/main.go",
-					GitURL:  "https://api.github.com/repos/test/test/git/blobs/def456",
+					Name:        "main.go",
+					Path:        "main.go",
+					Sha:         "def456",
+					Size:        2048,
+					URL:         "https://api.github.com/repos/test/test/contents/main.go",
+					HTMLURL:     "https://github.com/test/test/blob/main/main.go",
+					GitURL:      "https://api.github.com/repos/test/test/git/blobs/def456",
 					DownloadURL: "https://raw.githubusercontent.com/test/test/main/main.go",
-					Type:  "file",
-					Encoding: "utf-8",
+					Type:        "file",
+					Encoding:    "utf-8",
 					Links: struct {
 						Self string `json:"self"`
 						Git  string `json:"git"`
@@ -171,16 +171,16 @@ func TestFormatTreeMarkdown(t *testing.T) {
 					},
 				},
 				{
-					Name:  "utils.go",
-					Path:  "utils.go",
-					Sha:   "ghi789",
-					Size:  512,
-					URL:   "https://api.github.com/repos/test/test/contents/utils.go",
-					HTMLURL: "https://github.com/test/test/blob/main/utils.go",
-					GitURL:  "https://api.github.com/repos/test/test/git/blobs/ghi789",
+					Name:        "utils.go",
+					Path:        "utils.go",
+					Sha:         "ghi789",
+					Size:        512,
+					URL:         "https://api.github.com/repos/test/test/contents/utils.go",
+					HTMLURL:     "https://github.com/test/test/blob/main/utils.go",
+					GitURL:      "https://api.github.com/repos/test/test/git/blobs/ghi789",
 					DownloadURL: "https://raw.githubusercontent.com/test/test/main/utils.go",
-					Type:  "file",
-					Encoding: "utf-8",
+					Type:        "file",
+					Encoding:    "utf-8",
 					Links: struct {
 						Self string `json:"self"`
 						Git  string `json:"git"`
@@ -215,16 +215,16 @@ func TestFormatTreeMarkdown(t *testing.T) {
 				} `json:"_links"`
 			}{
 				{
-					Name:  "test.go",
-					Path:  "internal/test/test.go",
-					Sha:   "jkl012",
-					Size:  3072,
-					URL:   "https://api.github.com/repos/test/test/contents/internal/test/test.go",
-					HTMLURL: "https://github.com/test/test/blob/main/internal/test/test.go",
-					GitURL:  "https://api.github.com/repos/test/test/git/blobs/jkl012",
+					Name:        "test.go",
+					Path:        "internal/test/test.go",
+					Sha:         "jkl012",
+					Size:        3072,
+					URL:         "https://api.github.com/repos/test/test/contents/internal/test/test.go",
+					HTMLURL:     "https://github.com/test/test/blob/main/internal/test/test.go",
+					GitURL:      "https://api.github.com/repos/test/test/git/blobs/jkl012",
 					DownloadURL: "https://raw.githubusercontent.com/test/test/main/internal/test/test.go",
-					Type:  "file",
-					Encoding: "utf-8",
+					Type:        "file",
+					Encoding:    "utf-8",
 					Links: struct {
 						Self string `json:"self"`
 						Git  string `json:"git"`
@@ -259,15 +259,15 @@ func TestFormatTreeMarkdown(t *testing.T) {
 				} `json:"_links"`
 			}{
 				{
-					Name:  "cmd",
-					Path:  "cmd",
-					Sha:   "mno345",
-					Size:  0,
-					URL:   "https://api.github.com/repos/test/test/contents/cmd",
-					HTMLURL: "https://github.com/test/test/tree/main/cmd",
-					GitURL:  "https://api.github.com/repos/test/test/git/trees/mno345",
+					Name:        "cmd",
+					Path:        "cmd",
+					Sha:         "mno345",
+					Size:        0,
+					URL:         "https://api.github.com/repos/test/test/contents/cmd",
+					HTMLURL:     "https://github.com/test/test/tree/main/cmd",
+					GitURL:      "https://api.github.com/repos/test/test/git/trees/mno345",
 					DownloadURL: "",
-					Type:  "tree",
+					Type:        "tree",
 					Links: struct {
 						Self string `json:"self"`
 						Git  string `json:"git"`
@@ -279,16 +279,16 @@ func TestFormatTreeMarkdown(t *testing.T) {
 					},
 				},
 				{
-					Name:  "main.go",
-					Path:  "main.go",
-					Sha:   "pqr678",
-					Size:  1536,
-					URL:   "https://api.github.com/repos/test/test/contents/main.go",
-					HTMLURL: "https://github.com/test/test/blob/main/main.go",
-					GitURL:  "https://api.github.com/repos/test/test/git/blobs/pqr678",
+					Name:        "main.go",
+					Path:        "main.go",
+					Sha:         "pqr678",
+					Size:        1536,
+					URL:         "https://api.github.com/repos/test/test/contents/main.go",
+					HTMLURL:     "https://github.com/test/test/blob/main/main.go",
+					GitURL:      "https://api.github.com/repos/test/test/git/blobs/pqr678",
 					DownloadURL: "https://raw.githubusercontent.com/test/test/main/main.go",
-					Type:  "file",
-					Encoding: "utf-8",
+					Type:        "file",
+					Encoding:    "utf-8",
 					Links: struct {
 						Self string `json:"self"`
 						Git  string `json:"git"`
@@ -323,15 +323,15 @@ func TestFormatTreeMarkdown(t *testing.T) {
 				} `json:"_links"`
 			}{
 				{
-					Name:  "docs",
-					Path:  "docs",
-					Sha:   "stu901",
-					Size:  0,
-					URL:   "https://api.github.com/repos/test/test/contents/docs",
-					HTMLURL: "https://github.com/test/test/tree/main/docs",
-					GitURL:  "https://api.github.com/repos/test/test/git/trees/stu901",
+					Name:        "docs",
+					Path:        "docs",
+					Sha:         "stu901",
+					Size:        0,
+					URL:         "https://api.github.com/repos/test/test/contents/docs",
+					HTMLURL:     "https://github.com/test/test/tree/main/docs",
+					GitURL:      "https://api.github.com/repos/test/test/git/trees/stu901",
 					DownloadURL: "",
-					Type:  "tree",
+					Type:        "tree",
 					Links: struct {
 						Self string `json:"self"`
 						Git  string `json:"git"`
@@ -343,16 +343,16 @@ func TestFormatTreeMarkdown(t *testing.T) {
 					},
 				},
 				{
-					Name:  "README.md",
-					Path:  "README.md",
-					Sha:   "vwx234",
-					Size:  2560,
-					URL:   "https://api.github.com/repos/test/test/contents/README.md",
-					HTMLURL: "https://github.com/test/test/blob/main/README.md",
-					GitURL:  "https://api.github.com/repos/test/test/git/blobs/vwx234",
+					Name:        "README.md",
+					Path:        "README.md",
+					Sha:         "vwx234",
+					Size:        2560,
+					URL:         "https://api.github.com/repos/test/test/contents/README.md",
+					HTMLURL:     "https://github.com/test/test/blob/main/README.md",
+					GitURL:      "https://api.github.com/repos/test/test/git/blobs/vwx234",
 					DownloadURL: "https://raw.githubusercontent.com/test/test/main/README.md",
-					Type:  "file",
-					Encoding: "utf-8",
+					Type:        "file",
+					Encoding:    "utf-8",
 					Links: struct {
 						Self string `json:"self"`
 						Git  string `json:"git"`
@@ -364,15 +364,15 @@ func TestFormatTreeMarkdown(t *testing.T) {
 					},
 				},
 				{
-					Name:  "pkg",
-					Path:  "pkg",
-					Sha:   "yza567",
-					Size:  0,
-					URL:   "https://api.github.com/repos/test/test/contents/pkg",
-					HTMLURL: "https://github.com/test/test/tree/main/pkg",
-					GitURL:  "https://api.github.com/repos/test/test/git/trees/yza567",
+					Name:        "pkg",
+					Path:        "pkg",
+					Sha:         "yza567",
+					Size:        0,
+					URL:         "https://api.github.com/repos/test/test/contents/pkg",
+					HTMLURL:     "https://github.com/test/test/tree/main/pkg",
+					GitURL:      "https://api.github.com/repos/test/test/git/trees/yza567",
 					DownloadURL: "",
-					Type:  "tree",
+					Type:        "tree",
 					Links: struct {
 						Self string `json:"self"`
 						Git  string `json:"git"`
@@ -384,16 +384,16 @@ func TestFormatTreeMarkdown(t *testing.T) {
 					},
 				},
 				{
-					Name:  "main.go",
-					Path:  "main.go",
-					Sha:   "bcd890",
-					Size:  1024,
-					URL:   "https://api.github.com/repos/test/test/contents/main.go",
-					HTMLURL: "https://github.com/test/test/blob/main/main.go",
-					GitURL:  "https://api.github.com/repos/test/test/git/blobs/bcd890",
+					Name:        "main.go",
+					Path:        "main.go",
+					Sha:         "bcd890",
+					Size:        1024,
+					URL:         "https://api.github.com/repos/test/test/contents/main.go",
+					HTMLURL:     "https://github.com/test/test/blob/main/main.go",
+					GitURL:      "https://api.github.com/repos/test/test/git/blobs/bcd890",
 					DownloadURL: "https://raw.githubusercontent.com/test/test/main/main.go",
-					Type:  "file",
-					Encoding: "utf-8",
+					Type:        "file",
+					Encoding:    "utf-8",
 					Links: struct {
 						Self string `json:"self"`
 						Git  string `json:"git"`
@@ -428,16 +428,16 @@ func TestFormatTreeMarkdown(t *testing.T) {
 				} `json:"_links"`
 			}{
 				{
-					Name:  "empty.txt",
-					Path:  "empty.txt",
-					Sha:   "efg123",
-					Size:  0,
-					URL:   "https://api.github.com/repos/test/test/contents/empty.txt",
-					HTMLURL: "https://github.com/test/test/blob/main/empty.txt",
-					GitURL:  "https://api.github.com/repos/test/test/git/blobs/efg123",
+					Name:        "empty.txt",
+					Path:        "empty.txt",
+					Sha:         "efg123",
+					Size:        0,
+					URL:         "https://api.github.com/repos/test/test/contents/empty.txt",
+					HTMLURL:     "https://github.com/test/test/blob/main/empty.txt",
+					GitURL:      "https://api.github.com/repos/test/test/git/blobs/efg123",
 					DownloadURL: "https://raw.githubusercontent.com/test/test/main/empty.txt",
-					Type:  "file",
-					Encoding: "utf-8",
+					Type:        "file",
+					Encoding:    "utf-8",
 					Links: struct {
 						Self string `json:"self"`
 						Git  string `json:"git"`
@@ -472,16 +472,16 @@ func TestFormatTreeMarkdown(t *testing.T) {
 				} `json:"_links"`
 			}{
 				{
-					Name:  "large.bin",
-					Path:  "large.bin",
-					Sha:   "hij456",
-					Size:  10485760, // 10 MB
-					URL:   "https://api.github.com/repos/test/test/contents/large.bin",
-					HTMLURL: "https://github.com/test/test/blob/main/large.bin",
-					GitURL:  "https://api.github.com/repos/test/test/git/blobs/hij456",
+					Name:        "large.bin",
+					Path:        "large.bin",
+					Sha:         "hij456",
+					Size:        10485760, // 10 MB
+					URL:         "https://api.github.com/repos/test/test/contents/large.bin",
+					HTMLURL:     "https://github.com/test/test/blob/main/large.bin",
+					GitURL:      "https://api.github.com/repos/test/test/git/blobs/hij456",
 					DownloadURL: "https://raw.githubusercontent.com/test/test/main/large.bin",
-					Type:  "file",
-					Encoding: "utf-8",
+					Type:        "file",
+					Encoding:    "utf-8",
 					Links: struct {
 						Self string `json:"self"`
 						Git  string `json:"git"`
