@@ -21,6 +21,8 @@ type Tool struct {
 	// RateLimit sets the maximum number of allowed tool calls within a single
 	// user request (Ask method). 0 means no limit.
 	RateLimit int
+	// IsAgent indicates that this tool launches an agent.
+	IsAgent bool
 }
 
 type ToolOption func(*Tool)
@@ -44,6 +46,15 @@ func OptionRateLimit(limit int) ToolOption {
 	return func(t *Tool) {
 		if t != nil {
 			t.RateLimit = limit
+		}
+	}
+}
+
+// OptionAgent marks the tool as an agent launcher.
+func OptionAgent() ToolOption {
+	return func(t *Tool) {
+		if t != nil {
+			t.IsAgent = true
 		}
 	}
 }

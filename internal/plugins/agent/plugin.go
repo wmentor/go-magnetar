@@ -2,6 +2,7 @@ package agentplugin
 
 import (
 	"github.com/wmentor/go-magnetar/internal/plugin"
+	"github.com/wmentor/go-magnetar/internal/tools"
 	"github.com/wmentor/go-magnetar/internal/tools/agent"
 )
 
@@ -17,6 +18,6 @@ type Plugin struct {
 func (p *Plugin) Init(state *plugin.State, hub plugin.Hub) error {
 	p.state = state
 	p.tool = agent.NewTool(state.Config, state.Printer, state.RequesterFactory, state)
-	state.ToolStore.Register(p.tool.Name(), p.tool.Description(), p.tool.Exec)
+	state.ToolStore.Register(p.tool.Name(), p.tool.Description(), p.tool.Exec, tools.OptionAgent())
 	return nil
 }
