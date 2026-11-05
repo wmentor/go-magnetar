@@ -6,10 +6,12 @@ import (
 	"os/user"
 	"path/filepath"
 	"sort"
+	"strings"
 
 	"github.com/charmbracelet/x/exp/slice"
 	"github.com/knadh/koanf/parsers/yaml"
 	"github.com/knadh/koanf/providers/confmap"
+	"github.com/knadh/koanf/providers/env/v2"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/knadh/koanf/v2"
 )
@@ -79,6 +81,25 @@ func Load(path string) (*Config, error) {
 	if err := k.Load(file.Provider(path), yaml.Parser()); err != nil {
 		return nil, fmt.Errorf("config: failed to load %q: %w", path, err)
 	}
+
+	envOpt := env.Opt{
+		Prefix: "MAGNETAR_",
+		TransformFunc: func(key, value string) (string, any) {
+			cleanedKey := strings.ReplaceAll(
+				strings.ToLower(strings.TrimPrefix(key, "MAGNETAR_")),
+				"_",
+				".",
+			)
+
+			return cleanedKey, value
+		},
+	}
+
+	if err := k.Load(env.Provider(".", envOpt), nil); err != nil {
+		return nil, fmt.Errorf("config: failed to load envs: %w", err)
+	}
+
+	fmt.Println(k.String("profile"))
 
 	if ver := k.String("version"); ver != currentVersion {
 		return nil, fmt.Errorf("config: unsupported config version %q", ver)

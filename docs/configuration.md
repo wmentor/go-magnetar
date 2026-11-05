@@ -164,20 +164,54 @@ Controls conversation history compression:
 | `threshold` | integer | Token threshold for compression; `0` = auto (80% of `llm.context`) |
 | `save_tail` | integer | Number of trailing messages to preserve unchanged in `soft` mode (default: `6`) |
 
-## Environment Variables and File Substitution
+## Environment Variables and Configuration
 
-All string parameters support the following substitution syntaxes:
+go-magnetar supports setting configuration parameters via environment variables. This provides a secure way to manage sensitive data like API keys and configuration values without hardcoding them in config files.
 
-### Environment Variables
+### Environment Variable Mapping
 
-Use `$env:VAR_NAME` to reference environment variables:
+Environment variables follow the `MAGNETAR_*` prefix convention and are mapped to configuration parameters using the transformation:
+
+```
+MAGNETAR_{SECTION}_{PARAM} -> {section}.{param}
+```
+
+For example:
+- `MAGNETAR_CONFLUENCE_READONLY` → `confluence.readonly`
+
+All environment variable names use uppercase with underscores separating hierarchical sections. The transformation converts underscores to dots and transforms the key to lowercase.
+
+### Environment Variable Usage
+
+Environment variables can be set directly or referenced in config files using `$env:VAR_NAME`:
+
+```bash
+export MAGNETAR_CONFLUENCE_READONLY=true
+export MAGNETAR_JIRA_API_KEY="your-api-key"
+```
 
 ```yaml
-llm:
-  api_key: $env:OPENAI_API_KEY
+jira:
+  enable: true
+  base_url: $env:MAGNETAR_JIRA_BASE_URL
+  api_key: $env:MAGNETAR_JIRA_API_KEY
+  readonly: $env:MAGNETAR_JIRA_READONLY
 ```
 
 If an environment variable is not set, it will be replaced with an empty string.
+
+Environment variables take precedence over values defined in configuration files, allowing easy overrides for different environments (development, production, etc.).
+
+### Environment Variables and File Substitution
+
+Environment variables also support file substitution syntax for dynamic file paths:
+
+```yaml
+llm:
+  api_key: $file:$env:API_KEY_FILE
+```
+
+The environment variable is substituted first, then the file is read.
 
 ### File Content Substitution
 
