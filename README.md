@@ -94,6 +94,8 @@ profiles:
       temperature: 0.9
 ```
 
+Environment variables with the `MAGNETAR_` prefix override corresponding configuration parameters. For example, `MAGNETAR_CONFLUENCE_READONLY` overrides `confluence.readonly`.
+
 For a complete list of options see [docs/configuration.md](./docs/configuration.md).
 
 ### 3. Run
