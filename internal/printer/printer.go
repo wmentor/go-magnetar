@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 type Icon = string
@@ -139,6 +140,9 @@ func (p *printer) Print(typeIcon string, message string, params ...any) {
 		sb.WriteString(typeIcon)
 		sb.WriteRune(' ')
 	}
+
+	sb.WriteString(time.Now().Format(" 15:04:05 > "))
+
 	sb.WriteString(message)
 
 	if len(params) > 1 {

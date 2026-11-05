@@ -54,15 +54,18 @@ func (t *Tool) Exec(ctx context.Context, params *AgentParams) (any, error) {
 		return nil, errors.New("invalid params")
 	}
 
-	t.printer.ToolCall(printer.IconRobot, "agent", "agent", params.Agent, "message", params.Message)
+	t.printer.ToolCall(printer.IconRobot, "agent", "agent", params.Agent)
+	defer t.printer.ToolCall(printer.IconDone, "agent: completed", "agent", params.Agent)
+
+	t.printer.PrintRaw(params.Message)
 
 	if params.Agent == "" {
-		t.printer.Error("agent: agent name is required", "message", params.Message)
+		t.printer.Error("agent: agent name is required")
 		return nil, errors.New("agent name is required")
 	}
 
 	if params.Message == "" {
-		t.printer.Error("agent: message is required", "agent", params.Agent)
+		t.printer.Error("agent: message is required")
 		return nil, errors.New("message is required")
 	}
 
@@ -80,7 +83,9 @@ func (t *Tool) Exec(ctx context.Context, params *AgentParams) (any, error) {
 		return nil, fmt.Errorf("failed to ask subagent %q: %w", params.Agent, err)
 	}
 
-	t.printer.ToolCall(printer.IconDone, "agent: completed", "agent", params.Agent)
+	t.printer.PrintRaw("agent response: ")
+	t.printer.PrintRaw(response)
+
 	return &tools.Response{
 		Status: tools.StatusOK,
 		Result: response,
