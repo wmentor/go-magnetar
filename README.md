@@ -8,9 +8,12 @@ An AI chat agent with an integrated knowledge base and customizable skills. A si
 - **Index** — `/index <file|url>` adds documents to your RAG knowledge base (optional)
 - **Fetch** — `/fetch <url>` retrieves and displays web content as Markdown
 - **Skills** — customize agent behavior with reusable skill files for specialized tasks
+- **Subagents** — spawn specialized agents for complex tasks (exploration, research, parallel work)
 - **Integrations** — Confluence, JIRA, GitHub, GitLab (all optional, disabled by default)
 
 Supported file formats: `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`, `.html`, `.eml`.
+
+For a complete list of supported formats and their available modes, see [docs/file_codecs.md](./docs/file_codecs.md).
 
 ## Requirements
 
@@ -148,6 +151,7 @@ Beyond answering questions, the agent has access to tools it can call automatica
 | `cve` | Look up vulnerability info from the OSV database |
 | `github_*` | Read GitHub repos, files, issues, milestones |
 | `confluence_page_edit` | Edit a Confluence page by ID with Markdown content |
+| `agent` | Spawn a specialized subagent for complex tasks (exploration, research, parallel work) |
 
 For a complete list of tools and their detailed documentation, see [docs/agent_tools.md](./docs/agent_tools.md).
 

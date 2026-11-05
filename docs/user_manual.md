@@ -8,6 +8,7 @@ go-magnetar — a knowledge base tool built on RAG (Retrieval-Augmented Generati
 - **Index command** — `/index <path|url> [-m <message>]` indexes documents directly from the chat REPL
 - **Fetch command** — `/fetch <url> [file]` retrieves and displays content from URLs
 - **Skills** — customize agent behavior with reusable skill files for specialized tasks
+- **Subagents** — spawn specialized agents for complex tasks (exploration, research, parallel work)
 
 > Web pages are cleaned of ads, navigation, and other noise, then processed through readability extraction and converted to Markdown. Confluence URLs (both standard and short links) are also supported via the `confluence` block. JIRA issues are supported via the `jira` block. GitLab merge requests (including file changes) are supported via the `gitlab` block. GitHub repositories, files, and directory trees are supported via the `github` block.
 
@@ -229,6 +230,10 @@ Use **↑/↓** arrows to navigate through previously entered commands. History 
 ### Chat tools
 
 See [docs/agent_tools.md](./agent_tools.md) for a complete list of available tools, search strategy, and search tool call limits.
+
+| Tool | Description |
+|---|---|
+| `agent` | Spawn a specialized subagent for complex tasks (exploration, research, parallel work) |
 
 ## Data Residency
 
