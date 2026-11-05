@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/charmbracelet/bubbles/textinput"
@@ -19,6 +20,7 @@ import (
 	"github.com/sashabaranov/go-openai"
 	"golang.org/x/term"
 
+	"github.com/wmentor/go-magnetar/internal/agent"
 	"github.com/wmentor/go-magnetar/internal/agent/summarizer"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/gmutex"
@@ -318,6 +320,8 @@ func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
 	alreadyDoneToolCalls := map[toolRecord]struct{}{}
 	allToolCallStat := map[string]int{}
 
+	var agentCounter atomic.Int64
+
 	for range maxAskLoopIteration {
 		reserved := 0
 		if a.cfg.ProfileParamInt("llm.context") > 0 {
@@ -376,7 +380,7 @@ func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
 
 				var result string
 				if tool, err := state.ToolStore.GetTool(name); err == nil {
-					if tool.Name != "agent" {
+					if !tool.IsAgent {
 						if tool.Sequential {
 							gmutex.Lock()
 							defer gmutex.Unlock()
@@ -384,6 +388,15 @@ func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
 							gmutex.RLock()
 							defer gmutex.RUnlock()
 						}
+					} else {
+						if err := agent.WaitCanRun(ctx, &agentCounter, false); err != nil {
+							result = fmt.Sprintf("run agent error: %s", err.Error())
+							results <- toolResult{toolCall: tc, result: result}
+							return
+						}
+						defer func() {
+							agentCounter.Add(-1)
+						}()
 					}
 					result = tool.Execute(context.Background(), []byte(args))
 				} else {
