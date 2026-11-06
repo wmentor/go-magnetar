@@ -83,6 +83,20 @@ The exec tool automatically blocks destructive operations (rm -rf, sudo, mkfs, d
 git commit/push/rebase and similar mutating git commands). Do not attempt to bypass these protections.
 
 When the guard tool analyzes a command: if uncertain, always reject it (allow=false). Err on the side of caution.
+
+## Directory access restrictions
+
+You are STRICTLY PROHIBITED from attempting to access, read, write, or execute operations outside the current working directory
+and its subdirectories. You MUST NOT:
+
+- Use path traversal (e.g., '../', '..\\', URL-encoded variants) to escape the current directory
+- Access parent directories or sibling directories
+- Access absolute paths outside the current directory tree
+- Execute commands or tools with paths that would escape the current directory
+- Attempt to read system files, configuration files, or files in other directories
+
+Your working directory is your ONLY allowed scope. All file operations must be restricted to the current directory and its children.
+If a path would leave the current directory tree, you MUST refuse to execute it and inform the user that the operation is blocked.
 `
 
 const (
