@@ -68,6 +68,7 @@ profiles:
         limit: 5
   home:
     llm:
+      base_url: "http://127.0.0.1:9999/v1"
       model: home-model
       temperature: 0.7
 `
@@ -119,6 +120,10 @@ profiles:
 	// Original should have home profile
 	if got := cfg.Profile(); got != "home" {
 		t.Errorf("After SetProfile(\"home\"), Profile() = %q, want \"home\"", got)
+	}
+
+	if cfg.ProfileParamString("llm.base_url") != "http://127.0.0.1:9999/v1" {
+		t.Errorf("invalid value llm.base_url")
 	}
 }
 
