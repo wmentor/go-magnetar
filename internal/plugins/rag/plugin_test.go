@@ -113,7 +113,7 @@ func createMockStore() rag.Store {
 	return &mockStore{}
 }
 
-func TestPlugin_Init_WithRAGEnabled(t *testing.T) {
+func TestPlugin(t *testing.T) {
 	t.Parallel()
 
 	// Create test state with RAG enabled
@@ -138,29 +138,20 @@ func TestPlugin_Init_WithRAGEnabled(t *testing.T) {
 	desc := tool.Definition().Function.Description
 	assert.Contains(t, desc, "Search")
 	assert.Contains(t, desc, "knowledge base")
-}
-
-func TestPlugin_Init_WithRAGDisabled(t *testing.T) {
-	t.Parallel()
 
 	// Create test state with RAG disabled
-	state := createTestState(t, false)
-	hub := &mockHub{}
+	state = createTestState(t, false)
 
 	// Create plugin instance
-	p := &Plugin{}
+	p = &Plugin{}
 
 	// Initialize the plugin
-	err := p.Init(state, hub)
+	err = p.Init(state, hub)
 	require.NoError(t, err)
 
 	// Verify no tool was registered when RAG is disabled
 	_, err = state.ToolStore.GetTool("rag_search")
 	require.Error(t, err, "rag_search tool should not be registered when RAG is disabled")
-}
-
-func TestPlugin_Init_WithEmptyLLMBaseURL(t *testing.T) {
-	t.Parallel()
 
 	// Create temp file for config with empty LLM base URL
 	tmpDir := t.TempDir()
@@ -178,17 +169,16 @@ rag:
 	require.NoError(t, err)
 
 	// Create printer and request factory for tests
-	p := printer.GetDefault()
 	clientFactory := requester.NewFactory()
 
-	state := &plugin.State{
+	state = &plugin.State{
 		Config:           cfgLoaded,
-		Printer:          p,
+		Printer:          printer.GetDefault(),
 		ToolStore:        tools.NewStore(),
 		RequesterFactory: clientFactory,
 	}
 
-	hub := &mockHub{}
+	hub = &mockHub{}
 
 	// Create plugin instance
 	pPlugin := &Plugin{}
@@ -200,71 +190,57 @@ rag:
 	// Verify no tool was registered when LLM base URL is empty
 	_, err = state.ToolStore.GetTool("rag_search")
 	require.Error(t, err, "rag_search tool should not be registered when LLM base URL is empty")
-}
-
-func TestPlugin_Init_WithValidLLMBaseURL(t *testing.T) {
-	t.Parallel()
 
 	// Create test state with valid LLM base URL
-	state := createTestState(t, true)
-	hub := &mockHub{}
+	state = createTestState(t, true)
 
 	// Create plugin instance
-	p := &Plugin{}
+	p = &Plugin{}
 
 	// Initialize the plugin
-	err := p.Init(state, hub)
+	err = p.Init(state, hub)
 	require.NoError(t, err)
 
 	// Verify the tool was registered
-	tool, err := state.ToolStore.GetTool("rag_search")
+	tool, err = state.ToolStore.GetTool("rag_search")
 	require.NoError(t, err, "rag_search tool should be registered when LLM base URL is valid")
 
 	// Verify tool details
 	assert.Equal(t, "rag_search", tool.Definition().Function.Name)
 	assert.Contains(t, tool.Definition().Function.Description, "Search")
-}
-
-func TestPlugin_Init_MockStoreIntegration(t *testing.T) {
-	t.Parallel()
 
 	// Create test state with RAG enabled
-	state := createTestState(t, true)
-	hub := &mockHub{}
+	state = createTestState(t, true)
 
 	// Create plugin instance
-	p := &Plugin{}
+	p = &Plugin{}
 
 	// Initialize the plugin
-	err := p.Init(state, hub)
+	err = p.Init(state, hub)
 	require.NoError(t, err)
 
 	// Verify the tool was registered
-	tool, err := state.ToolStore.GetTool("rag_search")
+	tool, err = state.ToolStore.GetTool("rag_search")
 	require.NoError(t, err)
 
 	// Verify tool can be executed (basic test)
 	// Note: This won't actually execute the tool since it requires a real store
 	// but it verifies the tool is properly registered
 	assert.NotNil(t, tool)
-}
-
-func TestPlugin_Init_ToolDefinition(t *testing.T) {
-	t.Parallel()
 
 	// Create test state with RAG enabled
-	state := createTestState(t, true)
-	hub := &mockHub{}
+	state = createTestState(t, true)
+	hub = &mockHub{}
 
 	// Create plugin instance
-	p := &Plugin{}
+	p = &Plugin{}
 
 	// Initialize the plugin
-	err := p.Init(state, hub)
+	err = p.Init(state, hub)
 	require.NoError(t, err)
 
 	// Get the registered tool
-	tool, err := state.ToolStore.GetTool("rag_search")
+	tool, err = state.ToolStore.GetTool("rag_search")
 	require.NoError(t, err)
 
 	// Check tool definition
@@ -272,31 +248,26 @@ func TestPlugin_Init_ToolDefinition(t *testing.T) {
 	assert.Equal(t, "rag_search", def.Function.Name)
 
 	// Check description
-	desc := def.Function.Description
+	desc = def.Function.Description
 	assert.Contains(t, desc, "Search")
 	assert.Contains(t, desc, "knowledge base")
-}
-
-func TestPlugin_Init_ToolParameters(t *testing.T) {
-	t.Parallel()
 
 	// Create test state with RAG enabled
-	state := createTestState(t, true)
-	hub := &mockHub{}
+	state = createTestState(t, true)
 
 	// Create plugin instance
-	p := &Plugin{}
+	p = &Plugin{}
 
 	// Initialize the plugin
-	err := p.Init(state, hub)
+	err = p.Init(state, hub)
 	require.NoError(t, err)
 
 	// Get the registered tool
-	tool, err := state.ToolStore.GetTool("rag_search")
+	tool, err = state.ToolStore.GetTool("rag_search")
 	require.NoError(t, err)
 
 	// Check tool parameters
-	def := tool.Definition()
+	def = tool.Definition()
 	assert.NotNil(t, def.Function.Parameters)
 
 	// Parameters is a *jsonschema.Schema
