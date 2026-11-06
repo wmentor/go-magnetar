@@ -15,6 +15,7 @@ type Agent struct {
 	Name           string
 	Description    string
 	Prompt         string
+	Profile        string
 	AvailableTools []string
 	Disable        bool
 	Subagents      []string
@@ -30,6 +31,7 @@ func (a *Agent) Copy() *Agent {
 		Name:           a.Name,
 		Description:    a.Description,
 		Prompt:         a.Prompt,
+		Profile:        a.Profile,
 		AvailableTools: slices.Clone(a.AvailableTools),
 		Disable:        a.Disable,
 		Subagents:      slices.Clone(a.Subagents),

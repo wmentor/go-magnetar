@@ -70,6 +70,7 @@ func (st *Store) loadAgent(filename string) {
 	var metadata struct {
 		Name        string   `yaml:"name"`
 		Description string   `yaml:"description"`
+		Profile     string   `yaml:"profile"`
 		Tools       []string `yaml:"tools"`
 		Disable     bool     `yaml:"disable"`
 		Subagents   []string `yaml:"subagents"`
@@ -84,6 +85,7 @@ func (st *Store) loadAgent(filename string) {
 		st.agents[metadata.Name] = &plugin.Agent{
 			Name:           metadata.Name,
 			Description:    metadata.Description,
+			Profile:        metadata.Profile,
 			Prompt:         texts[2],
 			AvailableTools: metadata.Tools,
 			Disable:        metadata.Disable,
