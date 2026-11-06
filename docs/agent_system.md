@@ -75,6 +75,7 @@ Agents are stored as Markdown files with YAML frontmatter:
 ---
 name: security-analyzer
 description: Analyzes GitHub repositories for security issues
+profile: default
 tools:
   - github_repo
   - github_issue
@@ -92,6 +93,7 @@ You are a security expert. Always use search tools first, then delegate to subag
 |-------|------|-------------|
 | `name` | string | Unique agent name |
 | `description` | string | Agent description |
+| `profile` | string | Profile name for agent-specific configuration (optional) |
 | `tools` | []string | List of available tools |
 | `disable` | bool | Disable the agent |
 | `subagents` | []string | List of subagents this agent can delegate to |
@@ -123,6 +125,7 @@ You are a security expert. Always use search tools first, then delegate to subag
 ---
 name: security-analyzer
 description: Analyzes GitHub repositories for security vulnerabilities
+profile: production
 tools:
   - github_repo
   - github_issue
@@ -141,6 +144,25 @@ When analyzing a GitHub repository:
 4. If code review is needed, delegate to code-reviewer subagent
 5. Provide comprehensive security analysis with actionable recommendations
 ```
+
+### Profile Configuration
+
+Agents can be configured with different profiles to customize their behavior. The `profile` field in the YAML frontmatter specifies which profile configuration to use:
+
+```markdown
+---
+name: security-analyzer
+description: Analyzes GitHub repositories for security vulnerabilities
+profile: production
+tools:
+  - github_repo
+  - github_issue
+  - web_search
+disable: false
+---
+```
+
+Profile-specific settings are loaded from the configuration file under `profiles.{profile_name}.` section. This allows agents to use different LLM models, temperature settings, or other parameters based on the profile.
 
 ## Calling Agents
 
@@ -198,6 +220,9 @@ User → security-analyzer → code-reviewer → unit-test-generator
 ```go
 // Get agent
 agent, err := state.AgentStore.Get("security-analyzer")
+
+// Check profile
+profile := agent.Profile // "production"
 
 // Check subagents
 subagents := agent.Subagents // ["code-reviewer"]
@@ -308,6 +333,7 @@ func (st *Store) Filter(agents []string) (plugin.AgentStore, error)
 ---
 name: security-analyzer
 description: Analyzes repositories for security vulnerabilities
+profile: default
 tools:
   - github_repo
   - github_issue
@@ -323,6 +349,7 @@ You are a security expert. Analyze repositories for vulnerabilities and provide 
 ---
 name: code-reviewer
 description: Performs code reviews and suggests improvements
+profile: default
 tools:
   - github_file
   - github_pull_request
@@ -338,6 +365,7 @@ You are a code review expert. Analyze code changes and suggest improvements for 
 ---
 name: unit-test-generator
 description: Generates unit tests for code
+profile: default
 tools:
   - github_file
   - file_write

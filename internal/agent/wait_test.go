@@ -98,7 +98,7 @@ func TestWaitCanRun_MultipleConcurrent(t *testing.T) {
 	results := make([]error, numGoroutines)
 
 	// Run multiple goroutines concurrently in sequential mode
-	for i := 0; i < numGoroutines; i++ {
+	for i := range numGoroutines {
 		wg.Add(1)
 		go func(index int) {
 			defer wg.Done()

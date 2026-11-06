@@ -64,6 +64,12 @@ func New(agentName string, state *plugin.State) (*Agent, error) {
 
 	cfg := state.Config.Copy()
 
+	if a.Profile != "" {
+		if err = cfg.SetProfile(a.Profile); err != nil {
+			return nil, fmt.Errorf("set profile %q error: %w", a.Profile, err)
+		}
+	}
+
 	llmCfg := openai.DefaultConfig(cfg.ProfileParamString("llm.api_key"))
 	llmCfg.BaseURL = cfg.ProfileParamString("llm.base_url")
 	llmCfg.HTTPClient = state.RequesterFactory.Get()
