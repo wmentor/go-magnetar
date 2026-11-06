@@ -139,47 +139,47 @@ func (c *Config) Profiles() []string {
 
 // String returns the string value for the given key.
 func (c *Config) String(key string) string {
-	return ResolveEnvVars(c.cfg.String(key), c.configDir)
+	return ResolveEnvVars(c.cfg.String(c.calcKey(key)), c.configDir)
 }
 
 // Bool returns the boolean value for the given key.
 func (c *Config) Bool(key string) bool {
-	return c.cfg.Bool(key)
+	return c.cfg.Bool(c.calcKey(key))
 }
 
 // Int returns the integer value for the given key.
 func (c *Config) Int(key string) int {
-	return c.cfg.Int(key)
+	return c.cfg.Int(c.calcKey(key))
 }
 
 // Float64 returns the float64 value for the given key.
 func (c *Config) Float64(key string) float64 {
-	return c.cfg.Float64(key)
+	return c.cfg.Float64(c.calcKey(key))
 }
 
 // Strings returns the string slice value for the given key.
 func (c *Config) Strings(key string) []string {
-	return c.cfg.Strings(key)
+	return c.cfg.Strings(c.calcKey(key))
 }
 
 // String returns the string value for the given key.
 func (c *Config) ProfileParamString(key string) string {
-	return ResolveEnvVars(c.cfg.String(c.makeProfileKey(key)), c.configDir)
+	return ResolveEnvVars(c.String(c.makeProfileKey(key)), c.configDir)
 }
 
 // Bool returns the boolean value for the given key.
 func (c *Config) ProfileParamBool(key string) bool {
-	return c.cfg.Bool(c.makeProfileKey(key))
+	return c.Bool(c.makeProfileKey(key))
 }
 
 // Int returns the integer value for the given key.
 func (c *Config) ProfileParamInt(key string) int {
-	return c.cfg.Int(c.makeProfileKey(key))
+	return c.Int(c.makeProfileKey(key))
 }
 
 // Float64 returns the float64 value for the given key.
 func (c *Config) ProfileParamFloat64(key string) float64 {
-	return c.cfg.Float64(c.makeProfileKey(key))
+	return c.Float64(c.makeProfileKey(key))
 }
 
 // SetProfile sets the profile name to use for parameter lookup.
@@ -208,6 +208,14 @@ func (c *Config) makeProfileKey(key string) string {
 		return key
 	}
 	return fmt.Sprintf("profiles.%s.%s", c.profile, key)
+}
+
+func (c *Config) calcKey(key string) string {
+	replaced := strings.ReplaceAll(key, "_", ".")
+	if c.cfg.Exists(replaced) {
+		return replaced
+	}
+	return key
 }
 
 // Copy creates a full copy of the current config.
