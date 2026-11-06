@@ -6,9 +6,8 @@ import (
 
 	"github.com/pkg/errors"
 
+	agentcore "github.com/wmentor/go-magnetar/internal/agent"
 	"github.com/wmentor/go-magnetar/internal/agent/subagent"
-	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
@@ -16,36 +15,35 @@ import (
 
 // AgentParams represents parameters for the agent tool.
 type AgentParams struct {
-	Agent   string `json:"agent" jsonschema_description:"Agent name to invoke"`
 	Message string `json:"message" jsonschema_description:"Message to process by the agent"`
 }
 
 // Tool provides agent invocation as LLM tool.
 type Tool struct {
-	cfg           *config.Config
-	printer       printer.Printer
-	clientFactory requester.ClientFactory
-	state         *plugin.State
+	agentName string
+	state     *plugin.State
 }
 
 // NewTool creates a new Tool instance.
-func NewTool(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory, state *plugin.State) *Tool {
+func NewTool(agentName string, state *plugin.State) *Tool {
 	return &Tool{
-		cfg:           cfg,
-		printer:       p,
-		clientFactory: clientFactory,
-		state:         state,
+		agentName: agentName,
+		state:     state,
 	}
 }
 
 // Name returns the tool name.
 func (t *Tool) Name() string {
-	return "agent"
+	return "agent_" + agentcore.NormalizeAgentName(t.agentName)
 }
 
 // Description returns the tool description.
 func (t *Tool) Description() string {
-	return "Invoke a subagent by name and process a message with it. Use this tool when you need to delegate a task to a specialized agent."
+	agentDef, err := t.state.AgentStore.Get(t.agentName)
+	if err != nil {
+		return fmt.Sprintf("Invoke agent %s", t.agentName)
+	}
+	return agentDef.Description
 }
 
 // Exec executes the agent tool and returns the result.
@@ -54,37 +52,32 @@ func (t *Tool) Exec(ctx context.Context, params *AgentParams) (any, error) {
 		return nil, errors.New("invalid params")
 	}
 
-	t.printer.ToolCall(printer.IconRobot, "agent", "agent", params.Agent)
-	defer t.printer.ToolCall(printer.IconDone, "agent: completed", "agent", params.Agent)
+	t.state.Printer.ToolCall(printer.IconRobot, "agent", "agent", t.agentName)
+	defer t.state.Printer.ToolCall(printer.IconDone, "agent: completed", "agent", t.agentName)
 
-	t.printer.PrintRaw(params.Message)
-
-	if params.Agent == "" {
-		t.printer.Error("agent: agent name is required")
-		return nil, errors.New("agent name is required")
-	}
+	t.state.Printer.PrintRaw(params.Message)
 
 	if params.Message == "" {
-		t.printer.Error("agent: message is required")
+		t.state.Printer.Error("agent: message is required")
 		return nil, errors.New("message is required")
 	}
 
 	// Create subagent
-	sa, err := subagent.New(params.Agent, t.state)
+	sa, err := subagent.New(t.agentName, t.state)
 	if err != nil {
-		t.printer.Error("agent: failed to create subagent", "agent", params.Agent, "err", err)
-		return nil, fmt.Errorf("failed to create subagent %q: %w", params.Agent, err)
+		t.state.Printer.Error("agent: failed to create subagent", "agent", t.agentName, "err", err)
+		return nil, fmt.Errorf("failed to create subagent %q: %w", t.agentName, err)
 	}
 
 	// Execute request
 	response, err := sa.Ask(params.Message)
 	if err != nil {
-		t.printer.Error("agent: failed to ask subagent", "agent", params.Agent, "err", err)
-		return nil, fmt.Errorf("failed to ask subagent %q: %w", params.Agent, err)
+		t.state.Printer.Error("agent: failed to ask subagent", "agent", t.agentName, "err", err)
+		return nil, fmt.Errorf("failed to ask subagent %q: %w", t.agentName, err)
 	}
 
-	t.printer.PrintRaw("agent response: ")
-	t.printer.PrintRaw(response)
+	t.state.Printer.PrintRaw("agent response: ")
+	t.state.Printer.PrintRaw(response)
 
 	return &tools.Response{
 		Status: tools.StatusOK,

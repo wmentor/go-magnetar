@@ -30,7 +30,7 @@ go-magnetar provides the following tools for the chat agent:
 | `gitlab_tree` | `(project_path: string, branch: string, path: string) -> string` | Lists repository contents at root or specified path. See [plugin_gitlab.md](./plugin_gitlab.md) for complete documentation |
 | `confluence_page_edit` | `(page_id: string, markdown: string) -> string` | Edits a Confluence page by converting Markdown to HTML and updating via REST API |
 | `jira_issue_create` | `(project_key: string, summary: string, description: string, issue_type: string) -> object` | Creates a new JIRA issue with Markdown-to-Jira conversion (blocked in read-only mode). See [tool_jira.md](./tool_jira.md) for complete documentation |
-| `agent` | `(agent: string, message: string) -> string` | Invokes a subagent by name and processes a message with it. Use this tool when you need to delegate a task to a specialized agent. See [tool_agent.md](./tool_agent.md) for complete documentation |
+| `agent_<name>` | `(message: string) -> string` | Dynamically generated tools for each available subagent. Each tool invokes a specific agent (e.g., `agent_code_reviewer`, `agent_security_analyzer`). See [tool_agent.md](./tool_agent.md) for complete documentation |
 
 ## File editing tools
 

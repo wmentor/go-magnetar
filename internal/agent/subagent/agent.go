@@ -35,14 +35,13 @@ const (
 
 // Agent is a subagent backed.
 type Agent struct {
-	name       string
-	cfg        *config.Config
-	llm        *openai.Client
-	messages   []openai.ChatCompletionMessage
-	root       *os.Root
-	toolStore  *tools.Store
-	agentStore plugin.AgentStore
-	printer    printer.Printer
+	name      string
+	cfg       *config.Config
+	llm       *openai.Client
+	messages  []openai.ChatCompletionMessage
+	root      *os.Root
+	toolStore *tools.Store
+	printer   printer.Printer
 }
 
 // New creates a new ChatAgent instance.
@@ -52,14 +51,18 @@ func New(agentName string, state *plugin.State) (*Agent, error) {
 		return nil, fmt.Errorf("get agent %q error: %w", agentName, err)
 	}
 
+	availableTools := slices.Clone(a.AvailableTools)
+	for _, subAgent := range a.Subagents {
+		_, err := state.AgentStore.Get(subAgent)
+		if err != nil {
+			return nil, fmt.Errorf("get subagent %q error: %w", subAgent, err)
+		}
+		availableTools = append(availableTools, "agent_"+agent.NormalizeAgentName(subAgent))
+	}
+
 	toolStore, err := state.ToolStore.CloneWith(a.AvailableTools...)
 	if err != nil {
 		return nil, errors.Wrap(err, "init tool store")
-	}
-
-	agentStore, err := state.AgentStore.Filter(a.Subagents)
-	if err != nil {
-		return nil, errors.Wrap(err, "init agent store")
 	}
 
 	cfg := state.Config.Copy()
@@ -83,14 +86,13 @@ func New(agentName string, state *plugin.State) (*Agent, error) {
 	}
 
 	return &Agent{
-		name:       agentName,
-		cfg:        cfg,
-		llm:        llmClient,
-		messages:   messages,
-		root:       state.Root,
-		toolStore:  toolStore,
-		agentStore: agentStore,
-		printer:    state.Printer,
+		name:      agentName,
+		cfg:       cfg,
+		llm:       llmClient,
+		messages:  messages,
+		root:      state.Root,
+		toolStore: toolStore,
+		printer:   state.Printer,
 	}, nil
 }
 
@@ -178,6 +180,9 @@ func (a *Agent) Ask(input string) (string, error) {
 
 	var agentCounter atomic.Int64
 
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Hour)
+	defer cancel()
+
 	for range maxAskLoopIteration {
 		reserved := 0
 		if a.cfg.ProfileParamInt("llm.context") > 0 {
@@ -190,7 +195,6 @@ func (a *Agent) Ask(input string) (string, error) {
 		// instead of attempting further tool calls (which would loop forever).
 		activeTools := tools
 
-		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Hour)
 		resp, err := a.llm.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 			Model:           a.cfg.ProfileParamString("llm.model"),
 			Messages:        trimmed,
@@ -199,8 +203,6 @@ func (a *Agent) Ask(input string) (string, error) {
 			TopP:            float32(a.cfg.ProfileParamFloat64("llm.top_p")),
 			ReasoningEffort: a.cfg.ProfileParamString("llm.reasoning_effort"),
 		})
-		cancel()
-
 		if err != nil {
 			return "", fmt.Errorf("agent: LLM request failed: %w", err)
 		}

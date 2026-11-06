@@ -36,7 +36,7 @@ go-magnetar/
 - **Specialized agents** defined in `.md` files
 - Have their own prompts and tool sets
 - Invoked through:
-  - `agent` tool (automatically when LLM determines a specialized agent is needed)
+  - `agent_<name>` tools (automatically when LLM determines a specialized agent is needed)
   - `/agent <name> [request]` (manual invocation)
 - Support recursion (one subagent can call another)
 
@@ -166,20 +166,21 @@ Profile-specific settings are loaded from the configuration file under `profiles
 
 ## Calling Agents
 
-### Method 1: Through `agent` tool (automatic)
+### Method 1: Through `agent_<name>` tools (automatic)
 
 The LLM automatically invokes specialized agents when appropriate:
 
 ```
 User: Can you analyze this GitHub repository for security issues?
-Agent: [Uses agent tool to delegate to security-analyzer agent]
+Agent: [Uses agent_security_analyzer tool to delegate to security-analyzer agent]
 ```
 
 **Mechanism:**
-1. LLM detects keywords like "security", "GitHub"
-2. Calls `agent(agent="security-analyzer", message="analyze security issues")`
-3. Subagent uses its tools (`github_repo`, `github_issue`)
-4. Returns result to main agent
+1. At startup, go-magnetar generates a dedicated tool for each available agent (e.g., `agent_security_analyzer`)
+2. LLM sees these tools in the tool schema with agent descriptions
+3. Calls the appropriate tool (e.g., `agent_security_analyzer(message="analyze security issues")`)
+4. The subagent uses its tools (`github_repo`, `github_issue`)
+5. Returns result to main agent
 
 ### Method 2: Through `/agent` command (manual)
 
