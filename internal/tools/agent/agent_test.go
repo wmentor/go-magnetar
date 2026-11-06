@@ -15,6 +15,36 @@ import (
 	"github.com/wmentor/go-magnetar/internal/tools"
 )
 
+// mockAgentStore is a mock implementation of plugin.AgentStore for testing
+type mockAgentStore struct {
+	agents map[string]*plugin.Agent
+}
+
+func (m *mockAgentStore) Get(agentName string) (*plugin.Agent, error) {
+	if agent, ok := m.agents[agentName]; ok {
+		return agent, nil
+	}
+	return nil, plugin.ErrAgentNotFound
+}
+
+func (m *mockAgentStore) List() []*plugin.Agent {
+	result := make([]*plugin.Agent, 0, len(m.agents))
+	for _, agent := range m.agents {
+		result = append(result, agent)
+	}
+	return result
+}
+
+func (m *mockAgentStore) Filter(agents []string) (plugin.AgentStore, error) {
+	filtered := &mockAgentStore{agents: make(map[string]*plugin.Agent)}
+	for _, name := range agents {
+		if agent, ok := m.agents[name]; ok {
+			filtered.agents[name] = agent
+		}
+	}
+	return filtered, nil
+}
+
 func TestTool_Exec(t *testing.T) {
 	t.Parallel()
 
@@ -34,16 +64,28 @@ func TestTool_Exec(t *testing.T) {
 	p := printer.GetDefault()
 	clientFactory := requester.NewFactory()
 
+	// Create a mock agent store
+	agentStore := &mockAgentStore{
+		agents: map[string]*plugin.Agent{
+			"test-agent": {
+				Name:        "test-agent",
+				Description: "Test agent for unit tests",
+				Disable:     false,
+			},
+		},
+	}
+
 	// Create a mock state with minimum required fields
 	state := &plugin.State{
 		Config:           cfg,
 		ReadOnly:         false,
 		Printer:          p,
 		RequesterFactory: clientFactory,
+		AgentStore:       agentStore,
 	}
 
 	// Create the tool
-	tool := NewTool(cfg, p, clientFactory, state)
+	tool := NewTool("test-agent", state)
 
 	tests := []struct {
 		name        string
@@ -59,15 +101,8 @@ func TestTool_Exec(t *testing.T) {
 			checkResult: false,
 		},
 		{
-			name:        "empty agent name",
-			params:      &AgentParams{Agent: "", Message: "test"},
-			wantErr:     true,
-			checkResult: false,
-			checkError:  "agent name is required",
-		},
-		{
 			name:        "empty message",
-			params:      &AgentParams{Agent: "default", Message: ""},
+			params:      &AgentParams{Message: ""},
 			wantErr:     true,
 			checkResult: false,
 			checkError:  "message is required",
@@ -110,4 +145,99 @@ func TestTool_Exec(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestTool_Name(t *testing.T) {
+	t.Parallel()
+
+	tmpDir := t.TempDir()
+	cfgPath := tmpDir + "/config.yml"
+	if err := os.WriteFile(cfgPath, []byte("version: \"1.0\"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.Load(cfgPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p := printer.GetDefault()
+	clientFactory := requester.NewFactory()
+	agentStore := &mockAgentStore{agents: make(map[string]*plugin.Agent)}
+
+	state := &plugin.State{
+		Config:           cfg,
+		Printer:          p,
+		RequesterFactory: clientFactory,
+		AgentStore:       agentStore,
+	}
+
+	tests := []struct {
+		name      string
+		agentName string
+		want      string
+	}{
+		{
+			name:      "simple name",
+			agentName: "reviewer",
+			want:      "agent_reviewer",
+		},
+		{
+			name:      "name with hyphens",
+			agentName: "code-reviewer",
+			want:      "agent_code_reviewer",
+		},
+		{
+			name:      "name with multiple hyphens",
+			agentName: "my-complex-agent-name",
+			want:      "agent_my_complex_agent_name",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Helper()
+			tool := NewTool(tt.agentName, state)
+			assert.Equal(t, tt.want, tool.Name())
+		})
+	}
+}
+
+func TestTool_Description(t *testing.T) {
+	t.Parallel()
+
+	tmpDir := t.TempDir()
+	cfgPath := tmpDir + "/config.yml"
+	if err := os.WriteFile(cfgPath, []byte("version: \"1.0\"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := config.Load(cfgPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	p := printer.GetDefault()
+	clientFactory := requester.NewFactory()
+
+	agentStore := &mockAgentStore{
+		agents: map[string]*plugin.Agent{
+			"test-agent": {
+				Name:        "test-agent",
+				Description: "This is a test agent description",
+				Disable:     false,
+			},
+		},
+	}
+
+	state := &plugin.State{
+		Config:           cfg,
+		Printer:          p,
+		RequesterFactory: clientFactory,
+		AgentStore:       agentStore,
+	}
+
+	tool := NewTool("test-agent", state)
+	desc := tool.Description()
+	assert.Equal(t, "This is a test agent description", desc)
 }

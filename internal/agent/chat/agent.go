@@ -2,6 +2,7 @@ package chat
 
 import (
 	"context"
+	_ "embed"
 	"errors"
 	"fmt"
 	"io"
@@ -31,73 +32,8 @@ import (
 	"github.com/wmentor/go-magnetar/internal/tools"
 )
 
-const systemPromptTemplate = `You are a helpful assistant. Answer in: %s.
-
-## How to answer
-
-- Questions about facts, documents, or knowledge → call *web_search* or *rag_search* first; base your answer exclusively on what they return.
-- File operations (read, edit, create) or shell commands → use the file/exec tools directly; do not call search tools first.
-- If *web_search* and *rag_search* return no relevant results, tell the user honestly that you don't have information on this topic.
-- Do not invent, assume, or extrapolate facts beyond what the tools return.
-- Be concise and precise.
-
-## Search
-
-- Use *web_search* for time-sensitive or general knowledge queries (current events, news, popular topics).
-- Use *rag_search* for domain-specific questions that should be answered from the knowledge base.
-- You may call each search tool multiple times with different queries to gather all necessary information.
-- You may call *web_search* and *rag_search* in parallel.
-
-## Tool call limit
-
-If ANY tool response contains "error: tool call limit reached":
-- STOP. Do NOT call that tool again under any circumstances for this request.
-- Do NOT retry with a different query or slightly modified parameters.
-- Immediately compose a final answer using only the information already gathered.
-- If you have no useful information, tell the user honestly instead of retrying.
-
-## Parallel execution
-
-- You may execute multiple independent tools in parallel within a single response.
-- NEVER combine file_write, file_edit, file_edit_multiple, or exec with each other in the same response — they run
-  sequentially and must be issued one per step.
-
-## File editing
-
-1. ALWAYS call file_read FIRST. Never guess or reconstruct file contents from memory.
-2. Then call the edit tool ALONE in the next step (no other tools in the same response).
-3. Choose the right tool:
-   - file_edit — single replacement; old_text must appear EXACTLY ONCE in the file.
-   - file_edit_multiple — multiple replacements, or when old_text appears more than once.
-   - file_write — create a new file or completely rewrite an existing one.
-4. file_edit and file_edit_multiple work ONLY with plain-text files (.go, .py, .js, .ts, .md, .yaml, .json, .txt, .csv, .tsv, .html, .htm, etc.).
-   Binary/structured formats (.docx, .pdf, .odt, .xlsx, .pptx) cannot be edited this way — use file_write instead.
-5. old_text is CASE-SENSITIVE and must match the file character-for-character, including all whitespace and newlines.
-6. Copy old_text verbatim from file_read output. Add surrounding lines if needed to make it unique.
-7. If file_edit returns "old_text appears N times" → add more context or switch to file_edit_multiple.
-8. If file_edit returns "old_text not found" → re-read the file and copy the text again exactly.
-
-## Security
-
-The exec tool automatically blocks destructive operations (rm -rf, sudo, mkfs, dd on devices, pipe to shell, heredoc file writes,
-git commit/push/rebase and similar mutating git commands). Do not attempt to bypass these protections.
-
-When the guard tool analyzes a command: if uncertain, always reject it (allow=false). Err on the side of caution.
-
-## Directory access restrictions
-
-You are STRICTLY PROHIBITED from attempting to access, read, write, or execute operations outside the current working directory
-and its subdirectories. You MUST NOT:
-
-- Use path traversal (e.g., '../', '..\\', URL-encoded variants) to escape the current directory
-- Access parent directories or sibling directories
-- Access absolute paths outside the current directory tree
-- Execute commands or tools with paths that would escape the current directory
-- Attempt to read system files, configuration files, or files in other directories
-
-Your working directory is your ONLY allowed scope. All file operations must be restricted to the current directory and its children.
-If a path would leave the current directory tree, you MUST refuse to execute it and inform the user that the operation is blocked.
-`
+//go:embed prompt.txt
+var systemPrompt []byte
 
 const (
 	maxSearchToolCalls  = 20
@@ -152,7 +88,9 @@ func New(cfg *config.Config, root *os.Root, toolStore *tools.Store) (*ChatAgent,
 	}
 
 	language := cfg.String("language")
-	systemContent := fmt.Sprintf(systemPromptTemplate, language)
+
+	systemContent := strings.ReplaceAll(string(systemPrompt), "{{LANGUAGE}}", language)
+
 	if name, content, ok := loadProjectContext(root); ok {
 		systemContent = systemContent + "\n\n# Project context (from " + name + ")\n\n" + string(content)
 		printer.ToolCall(printer.IconDone, name+" has been loaded")
@@ -336,6 +274,9 @@ func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
 
 	var agentCounter atomic.Int64
 
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Hour)
+	defer cancel()
+
 	for range maxAskLoopIteration {
 		reserved := 0
 		if a.cfg.ProfileParamInt("llm.context") > 0 {
@@ -348,7 +289,6 @@ func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
 		// instead of attempting further tool calls (which would loop forever).
 		activeTools := tools
 
-		ctx, cancel := context.WithTimeout(context.Background(), 4*time.Hour)
 		resp, err := a.llm.CreateChatCompletion(ctx, openai.ChatCompletionRequest{
 			Model:           a.cfg.ProfileParamString("llm.model"),
 			Messages:        trimmed,
@@ -357,8 +297,6 @@ func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
 			TopP:            float32(a.cfg.ProfileParamFloat64("llm.top_p")),
 			ReasoningEffort: a.cfg.ProfileParamString("llm.reasoning_effort"),
 		})
-		cancel()
-
 		if err != nil {
 			return "", fmt.Errorf("chat: LLM request failed: %w", err)
 		}

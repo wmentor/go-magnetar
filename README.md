@@ -153,7 +153,7 @@ Beyond answering questions, the agent has access to tools it can call automatica
 | `cve` | Look up vulnerability info from the OSV database |
 | `github_*` | Read GitHub repos, files, issues, milestones |
 | `confluence_page_edit` | Edit a Confluence page by ID with Markdown content |
-| `agent` | Spawn a specialized subagent for complex tasks (exploration, research, parallel work) |
+| `agent_<name>` | Spawn a specialized subagent for complex tasks (exploration, research, parallel work) |
 
 For a complete list of tools and their detailed documentation, see [docs/agent_tools.md](./docs/agent_tools.md).
 
