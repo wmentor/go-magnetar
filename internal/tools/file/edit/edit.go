@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -17,6 +18,8 @@ import (
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
 )
+
+var editStat atomic.Int64
 
 // FileEditParams represents parameters for the file_edit tool.
 type FileEditParams struct {
@@ -56,6 +59,10 @@ func NewTool(cfg *config.Config, p printer.Printer, _ any, root *os.Root, state 
 	}
 }
 
+func GetEditStat() int64 {
+	return editStat.Load()
+}
+
 // Name returns the tool name.
 func (t *Tool) Name() string {
 	return "file_edit"
@@ -77,6 +84,8 @@ func (t *Tool) FileEdit(ctx context.Context, params *FileEditParams) (any, error
 	if params == nil {
 		return nil, errors.New("invalid params")
 	}
+
+	editStat.Add(1)
 
 	t.printer.ToolCall(printer.IconSave, "file_edit", "file", params.Filename, "replacements", 1)
 
@@ -140,6 +149,8 @@ func (t *Tool) FileEditMultiple(ctx context.Context, params *FileEditParamsMulti
 	if params == nil {
 		return nil, errors.New("invalid params")
 	}
+
+	editStat.Add(1)
 
 	t.printer.ToolCall(printer.IconSave, "file_edit_multiple", "file", params.Filename, "edits_count", len(params.Edits))
 

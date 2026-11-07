@@ -10,6 +10,9 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/plugin"
+	"github.com/wmentor/go-magnetar/internal/tools/file/edit"
+	"github.com/wmentor/go-magnetar/internal/tools/file/read"
+	"github.com/wmentor/go-magnetar/internal/tools/file/write"
 )
 
 func init() {
@@ -50,6 +53,9 @@ type contextStats struct {
 	chatRequests      int64
 	embeddingRequests int64
 	failedRequests    int64
+	fileRead          int64
+	fileEdit          int64
+	fileWrite         int64
 }
 
 // collectStats computes context statistics from the conversation history and
@@ -76,6 +82,9 @@ func collectStats(msgs []openai.ChatCompletionMessage, llmModel, ragModel string
 		chatRequests:      requester.GetChatCompletionsRequests(),
 		embeddingRequests: requester.GetEmbeddingRequests(),
 		failedRequests:    requester.GetFailedRequests(),
+		fileRead:          read.GetReadStat(),
+		fileEdit:          edit.GetEditStat(),
+		fileWrite:         write.GetWriteStat(),
 	}
 }
 
@@ -96,5 +105,8 @@ func formatStatsMarkdown(s contextStats) string {
 	fmt.Fprintf(&sb, "| HTTP chat completions | %d |\n", s.chatRequests)
 	fmt.Fprintf(&sb, "| HTTP embeddings | %d |\n", s.embeddingRequests)
 	fmt.Fprintf(&sb, "| HTTP failed requests | %d |\n", s.failedRequests)
+	fmt.Fprintf(&sb, "| File read | %d |\n", s.fileRead)
+	fmt.Fprintf(&sb, "| File edit | %d |\n", s.fileEdit)
+	fmt.Fprintf(&sb, "| File write | %d |\n", s.fileWrite)
 	return sb.String()
 }
