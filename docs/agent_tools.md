@@ -38,7 +38,7 @@ go-magnetar provides the following tools for the chat agent:
 
 The `file_edit` tool performs exact string replacement with strict requirements:
 
-- **Plain-text only**: Works only with plain-text files (`.go`, `.py`, `.js`, `.ts`, `.md`, `.yaml`, `.json`, `.txt`, etc.). Files with a registered codec — `.docx`, `.pdf`, `.odt`, `.xlsx`, `.pptx`, `.csv`, `.tsv`, `.html`, `.htm` — are rejected with an error because their binary/structured format cannot be round-tripped through text replacement. Use `file_write` or a dedicated tool for those formats.
+- **Plain-text only**: Works only with plain-text files (`.go`, `.py`, `.js`, `.ts`, `.md`, `.yaml`, `.json`, `.txt`, etc.). Files with a registered codec — `.docx`, `.pdf`, `.pages`, `.odt`, `.xlsx`, `.pptx`, `.csv`, `.tsv`, `.html`, `.htm` — are rejected with an error because their binary/structured format cannot be round-tripped through text replacement. Use `file_write` or a dedicated tool for those formats.
 - **Uniqueness**: `old_text` must appear exactly once in the file. If it appears multiple times, the tool returns an error asking you to use `file_edit_multiple` or provide more context to identify a unique occurrence.
 - **Case-sensitive**: The search is case-sensitive. "Hello" will NOT match "hello".
 - **Exact match**: All whitespace, special characters, and formatting must match exactly.
@@ -49,7 +49,7 @@ Use `file_edit` when you need to make a single, precise replacement in an existi
 
 The `file_edit_multiple` tool applies multiple text replacements in one call:
 
-- **Plain-text only**: Same restriction as `file_edit` — codec-handled formats (`.docx`, `.pdf`, `.odt`, `.xlsx`, `.pptx`, `.csv`, `.tsv`, `.html`, `.htm`) are not supported.
+- **Plain-text only**: Same restriction as `file_edit` — codec-handled formats (`.docx`, `.pages`, `.pdf`, `.odt`, `.xlsx`, `.pptx`, `.csv`, `.tsv`, `.html`, `.htm`) are not supported.
 - **"all" strategy** (default): Replaces ALL occurrences of each `old_text`.
 - **"first" strategy**: Replaces only the FIRST occurrence of each `old_text`.
 
