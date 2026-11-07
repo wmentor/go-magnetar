@@ -38,6 +38,8 @@ func New() *Interceptor {
 		{Regexp: regexp.MustCompile(`(?i)\|\s*zsh\b`), Type: PatternBlock},
 		{Regexp: regexp.MustCompile(`(?i)\bsudo\b`), Type: PatternBlock},
 		{Regexp: regexp.MustCompile(`(?i)\bsu\b`), Type: PatternBlock},
+		{Regexp: regexp.MustCompile(`(?i)\bgh\b`), Type: PatternBlock},
+		{Regexp: regexp.MustCompile(`(?i)\bglab\b`), Type: PatternBlock},
 		{Regexp: regexp.MustCompile(`(?i)\bmkfs\b`), Type: PatternBlock},
 		{Regexp: regexp.MustCompile(`(?i)\bchmod\b`), Type: PatternBlock},
 		{Regexp: regexp.MustCompile(`(?i)\bchown\b`), Type: PatternBlock},
