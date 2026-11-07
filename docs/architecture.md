@@ -12,6 +12,8 @@ internal/
                                     State, LLMTool, ChatCommand, ChatCommandInput, ChatCommandResponse, ErrExit types
     registry.go                  — global registry; Register, InitAll, Stop,
                                     LLMTools, ChatCommands, SetRoot, Reset
+    agent.go                     — Agent struct and AgentStore interface
+    skill.go                     — Skill struct and SkillStore interface
   plugins/
     rag/plugin.go                — rag_save and rag_search LLM tools (init → Register)
     web/plugin.go                — web_fetch and web_search LLM tools (init → Register)
@@ -29,8 +31,20 @@ internal/
       readonly/plugin.go         — /readonly (toggle readonly mode)
       timing/plugin.go           — /timing (toggle execution time display)
       fetch/plugin.go            — /fetch (fetch URL content and display/save)
+      exec/plugin.go             — /exec (execute shell command)
+      copy/plugin.go             — /copy (copy response to clipboard)
+      revert/plugin.go           — /revert (revert to previous assistant answer)
+      session/save/plugin.go     — /session.save (save conversation session to file)
+      profile/plugin.go          — /profile (show/switch profile)
+      edit/plugin.go             — /confluence.edit (edit Confluence page)
+    agent/plugin.go              — agent_XXX LLM tools for subagents (init → Register)
+    last_response/plugin.go      — last_response LLM tool (init → Register)
     jira/plugin.go               — jira_task_get LLM tool (init → Register)
     cve/plugin.go                — cve LLM tool (init → Register)
+    system/plugin.go             — exec, ssh, system_date, system_grep LLM tools (init → Register)
+    confluence/plugin.go         — confluence_page_fetch LLM tool (init → Register)
+    github/plugin.go             — github_repo/file/issue/milestone/pull_request/release LLM tools
+    gitlab/plugin.go             — gitlab_repo/file/tree/mr LLM tools
   cmd/
     cmd.go                       — root CLI (kong); config load; plugin.InitAll; defer Stop
   store/
@@ -38,18 +52,38 @@ internal/
   tools/
     rag/rag.go                   — RAG tools: rag_save, rag_search, dispatch (rag_search not exposed to LLM)
     rag/chromem/
-    rag/chromem/
       store.go                   — Chromem vector store implementation (built-in)
       tools.go                   — Chromem utilities: ParseDataDir, Preview, CosineSimilarity
     rag/qdrant/
       store.go                   — Qdrant vector store implementation
     web/fetch.go                 — web_fetch tool; HTML fetching and conversion to Markdown
     generic/generic.go           — file_read, file_list, file_write, system_grep, tools
+    agent/agent.go               — agent_XXX tool for subagent invocation
+    lastresponse/response.go     — last_response tool for conversation history
+    system/
+      date/date.go               — system_date tool (returns current date)
+      grep/grep.go               — system_grep tool (system grep/ripgrep wrapper)
+    exec/exec.go                 — exec tool (shell command execution with security guard)
+    ssh/ssh.go                   — ssh tool (secure shell command execution)
+    confluence/
+      fetch.go                   — confluence_page_fetch tool
+      edit.go                    — confluence edit tool
+    github/
+      fetch.go                   — github_repo/file/issue/milestone/pull_request/release tools
+    gitlab/
+      fetch.go                   — gitlab_repo/file/tree/mr tools
+    jira/
+      get.go                     — jira_task_get tool
+      search.go                  — jira_task_search tool
+      create.go                  — jira create issue tool
   agent/
     guard/agent.go               — security guard for exec commands
     indexer/indexer.go           — indexer agent (used by /index command)
     chat/agent.go                — chat agent, REPL, tool-use loop, agentHandle adapter
     summarizer/summarizer.go     — history compression agent
+    subagent/agent.go            — subagent for agent_XXX tool invocation
+    tools.go                     — tool registration and tool store interface
+    store.go                     — agent and response store interfaces
 ```
 
 ### Plugin lifecycle
@@ -129,8 +163,8 @@ Project skills have priority over user skills. If a skill with the same name exi
           --> for each chunk:
                 --> rag.RagSave(chunk, prepend)
                       --> prepend + "\n" + chunk (if prepend set)
-                      --> contentUUID(chunk) -> UUID v5 (deterministic)
-                      --> embed(chunk)        -> []float32
+                      --> contentUUID(chunk) -\> UUID v5 (deterministic)
+                      --> embed(chunk)        -\> []float32
                       --> store.Upsert(id, vector, payload{text: chunk})
                             --> chromem: DB.AddDocument()  (built-in)
                             --> qdrant:  client.Upsert()    (external)
@@ -294,6 +328,7 @@ The `ChatCommand.Execute` method accepts a pointer to `ChatCommandInput` struct:
 type ChatCommandInput struct {
     AgentHandler AgentHandle
     Args         string
+    Printer      printer.Printer
     // future fields can be added here without breaking changes
 }
 ```
@@ -308,6 +343,7 @@ Example:
 func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
     args := params.Args
     agent := params.AgentHandler
+    printer := params.Printer
     
     // Access agent methods via params.AgentHandler
     msgs := agent.Messages()
@@ -404,13 +440,24 @@ project/.go-magnetar/skills/
 
 ```go
 type Plugin interface {
-    Init(s State, hub Hub) error
+    Init(s *State, hub Hub) error
+}
+
+type State struct {
+    Config           *config.Config
+    Root             *os.Root // sandboxed filesystem; nil in the indexer context.
+    Printer          printer.Printer
+    ReadOnly         bool                    // if true, disable file write operations.
+    SkillStore       SkillStore              // skill storage interface.
+    ResponseStore    ResponseStore           // response storage interface (circular buffer with capacity DefaultResponseStoreSize).
+    TimingEnabled    atomic.Bool             // if true, the chat REPL prints how long each answer took (/timing, --enable-timing).
+    ToolStore        *tools.Store            // universal tool store.
+    AgentStore       AgentStore              // agent storage interface.
+    RequesterFactory requester.ClientFactory // HTTP client factory.
 }
 
 type Hub interface {
-    RegisterTool(tool LLMTool)
     RegisterChatCommand(cmd ChatCommand)
-    RegisterCLICommand(cmd any)
     RegisterPreprocessor(fn PreprocessorFunc)
     Go(f func(ctx context.Context))  // background goroutine; started after all Init calls
     Stop()
@@ -420,20 +467,23 @@ type AgentHandle interface {
     Messages() []openai.ChatCompletionMessage
     SetMessages([]openai.ChatCompletionMessage)
     Config() *config.Config
-    Compact() error
+    Reconfigure()
+    Compact(mode ...string) error
     Reset()
 }
 
-// ChatCommandInput encapsulates all parameters for ChatCommand execution.
 type ChatCommandInput struct {
     AgentHandler AgentHandle
     Args         string
+    Printer      printer.Printer
     // future fields can be added here without breaking changes
 }
 
 type ChatCommandResponse struct {
     Content string // If not an empty string, it will be passed to the LLM.
+    Stdout  string // If not an empty string, it will be printed to stdout.
     Exit    bool   // Exit flag.
+    NoLog   bool   // Don't save response to store.
 }
 
 type ChatCommand struct {
@@ -441,6 +491,28 @@ type ChatCommand struct {
     Aliases []string
     Help    string
     Execute func(ctx context.Context, params *ChatCommandInput) (*ChatCommandResponse, error)
+}
+
+type ResponseStore interface {
+    Push(response string)
+    Last(idx int) (string, error)
+}
+
+type Agent struct {
+    Name           string
+    Description    string
+    Prompt         string
+    Profile        string
+    AvailableTools []string
+    Disable        bool
+    Subagents      []string
+}
+
+type Skill struct {
+    Name        string
+    Description string
+    Content     string
+    Enable      bool
 }
 ```
 
