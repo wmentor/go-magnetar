@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 
@@ -16,6 +17,8 @@ import (
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
 )
+
+var writeStat atomic.Int64
 
 // FileWriteParams represents parameters for the file_write tool.
 type FileWriteParams struct {
@@ -43,6 +46,10 @@ func New(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFa
 	}
 }
 
+func GetWriteStat() int64 {
+	return writeStat.Load()
+}
+
 // Name returns the tool name.
 func (t *Tool) Name() string {
 	return "file_write"
@@ -60,6 +67,8 @@ func (t *Tool) Exec(ctx context.Context, params *FileWriteParams) (any, error) {
 	if params == nil {
 		return nil, errors.New("invalid params")
 	}
+
+	writeStat.Add(1)
 
 	t.printer.ToolCall(printer.IconSave, "file_write", "file", params.Filename)
 

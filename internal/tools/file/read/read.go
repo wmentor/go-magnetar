@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 
@@ -19,6 +20,8 @@ import (
 	"github.com/wmentor/go-magnetar/internal/tools"
 	"github.com/wmentor/go-magnetar/internal/types"
 )
+
+var readStat atomic.Int64
 
 const maxDecompressedSize = 50 * 1024 * 1024 // 50MB limit to prevent decompression bomb DoS (gosec G110)
 
@@ -36,6 +39,10 @@ type Tool struct {
 	clientFactory requester.ClientFactory
 	root          *os.Root
 	state         *plugin.State
+}
+
+func GetReadStat() int64 {
+	return readStat.Load()
 }
 
 // New creates a new Tool instance.
@@ -172,6 +179,8 @@ func (t *Tool) Exec(ctx context.Context, params *FileReadParams) (any, error) {
 	if params == nil {
 		return nil, errors.New("invalid params")
 	}
+
+	readStat.Add(1)
 
 	args := []any{"filename", params.Filename}
 
