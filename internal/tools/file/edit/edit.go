@@ -78,7 +78,7 @@ func (t *Tool) FileEdit(ctx context.Context, params *FileEditParams) (any, error
 		return nil, errors.New("invalid params")
 	}
 
-	t.printer.ToolCall(printer.IconTool, "file_edit", "file", params.Filename, "replacements", 1)
+	t.printer.ToolCall(printer.IconSave, "file_edit", "file", params.Filename, "replacements", 1)
 
 	if t.state.ReadOnly {
 		t.printer.Error("file_edit: blocked by read-only mode", "file", params.Filename)
@@ -141,7 +141,7 @@ func (t *Tool) FileEditMultiple(ctx context.Context, params *FileEditParamsMulti
 		return nil, errors.New("invalid params")
 	}
 
-	t.printer.ToolCall(printer.IconTool, "file_edit_multiple", "file", params.Filename, "edits_count", len(params.Edits))
+	t.printer.ToolCall(printer.IconSave, "file_edit_multiple", "file", params.Filename, "edits_count", len(params.Edits))
 
 	if t.state.ReadOnly {
 		t.printer.Error("file_edit_multiple: blocked by read-only mode", "file", params.Filename)
