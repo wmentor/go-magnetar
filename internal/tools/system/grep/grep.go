@@ -64,7 +64,7 @@ func (t *Tool) Exec(ctx context.Context, params *SystemGrepParams) (any, error) 
 	if t.useRg {
 		extra = append(extra, "ripgrep", "on")
 	}
-	t.printer.ToolCall(printer.IconTool, "system_grep", extra...)
+	t.printer.ToolCall(printer.IconSearch, "system_grep", extra...)
 
 	// Build the full path inside the sandboxed root
 	fullPath := params.Filename

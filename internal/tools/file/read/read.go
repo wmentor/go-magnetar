@@ -186,7 +186,7 @@ func (t *Tool) Exec(ctx context.Context, params *FileReadParams) (any, error) {
 		args = append(args, "offset", offset)
 	}
 
-	t.printer.ToolCall(printer.IconTool, "file_read", args...)
+	t.printer.ToolCall(printer.IconRead, "file_read", args...)
 
 	if t.root == nil {
 		t.printer.Error("file_read: root filesystem is not set", "file", params.Filename)

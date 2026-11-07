@@ -24,6 +24,7 @@ const (
 	IconGuard   = Icon("🔒")
 	IconIam     = Icon("👨")
 	IconModule  = Icon("🛰️")
+	IconRead    = Icon("📚")
 	IconRobot   = Icon("🤖")
 	IconSave    = Icon("📝")
 	IconSearch  = Icon("🔭")
