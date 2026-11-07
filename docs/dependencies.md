@@ -18,5 +18,6 @@
 | `github.com/atotto/clipboard` | Clipboard operations (used by /copy command) |
 | `github.com/stretchr/testify` | Testing framework (test mocks and assertions) |
 | `github.com/vektra/mockery` | Mock generation for testing |
+| `github.com/wmentor/iwaread` | Apple Pages document parsing (iWork '13 and newer) |
 
 See [docs/dev_tools.md](./dev_tools.md) for development tools documentation.

@@ -11,7 +11,7 @@ An AI chat agent with an integrated knowledge base and customizable skills. A si
 - **Subagents** — spawn specialized agents for complex tasks (exploration, research, parallel work)
 - **Integrations** — Confluence, JIRA, GitHub, GitLab (all optional, disabled by default)
 
-Supported file formats: `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`, `.html`, `.eml`.
+Supported file formats: `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.pages`, `.odt`, `.pptx`, `.xlsx`, `.html`, `.eml`.
 
 For a complete list of supported formats and their available modes, see [docs/file_codecs.md](./docs/file_codecs.md).
 

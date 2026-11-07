@@ -15,6 +15,7 @@ go-magnetar supports reading multiple file formats through a unified codec inter
 | `.pptx` | `pptx.Codec` | PowerPoint presentations | ✅ | ❌ |
 | `.xlsx` | `excel.Codec` | Excel files | ✅ | ❌ |
 | `.eml` | `eml.Codec` | EML files | ✅ | ❌ |
+| `.pages` | `pages.Codec` | Apple Pages documents (iWork '13 and newer) | ✅ | ❌ |
 
 Additionally, all text-based formats are supported with read and write capabilities: `.txt`, `.md`, `.pl`, `.py`, `.go`, `.java`, `.c`, `.cpp`, `.h`, `.hpp`, `.js`, `.ts`, `.rs`, `.rb`, `.php`, `.swift`, `.kt`, `.scala`, `.r`, `.m`, `.cs`, `.vb`, `.sh`, `.bash`, `.zsh`, `.fish`, `.yaml`, `.yml`, `.json`, `.xml`, `.toml`, `.ini`, `.cfg`, `.conf`, `.properties`, `.sql`, `.graphql`, `.proto`, `.tf`, `.hcl`, `.rst`, `.asciidoc`, `.org`, `.lua`, `.tex`, `.ltx`, `.bib`, `.log`, `.env`, `.gitignore`, `.dockerignore`, `.gitattributes`, `.editorconfig`, `.license`, `.notice`, `.readme`, `.changelog`, `.contributing`, `.code-of-conduct`, `.security`, `.authors`, `.maintainers`, `.contributors`.
 
@@ -27,6 +28,8 @@ type Codec interface {
     ReadFile(filename string) (string, error)
 }
 ```
+
+**Note:** For binary formats like `.pages`, the codec uses the [github.com/wmentor/iwaread](https://github.com/wmentor/iwaread) library to extract text content from Apple Pages documents (iWork '13 and newer).
 
 ## Using Codecs
 
@@ -58,16 +61,19 @@ The indexer automatically uses codecs when reading files for indexing. Supported
 > /index path/to/document.pptx
 > /index path/to/document.xlsx
 > /index path/to/document.html
+> /index path/to/document.pages
 ```
 
 ## File Content Substitution
 
-The `{{file:filename}}` placeholder supports all codec formats:
+The `{{file:filename}}` placeholder supports all codec formats, including `.pages` documents:
 
 ```yaml
 llm:
   api_key: $file:$env:API_KEY_FILE
 ```
+
+When reading a `.pages` file, the content is extracted using the iwaread library and converted to plain text.
 
 ## Adding a New Codec
 
@@ -85,6 +91,7 @@ To add support for a new file format:
        return text, nil
    }
    ```
+   For binary formats like `.pages`, use appropriate libraries (e.g., `github.com/wmentor/iwaread` for Apple Pages documents).
 3. Register the codec in `internal/codec/codec.go`:
    ```go
    import "github.com/wmentor/go-magnetar/internal/codec/newformat"
