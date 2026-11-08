@@ -1,5 +1,72 @@
 # CHANGELOG
 
+## [1.9.0] - 2026-11-08
+
+### 🚀 Features
+
+- *(codecs)* Add Apple Pages document support (#300)
+- *(tools)* Add docx write support to file_write tool (#265)
+- *(indexer)* Index directories recursively with /index -r command (#244)
+- *(agents)* Added subagents system (#279)
+- *(chat)* Return list enabled agents when /agent has no arguments (#283)
+- *(agents)* Implement synchronous agent execution mode (#287)
+- *(config)* Add environment variable to config parameter mapping (#290)
+- *(agents)* Add profile support for agents (#294)
+- *(agents)* Agent-specific tools (#295)
+- *(stat)* Add statistics tracking for file operations (chat command /stat) (#299)
+- *(chat)* Add "Good bye!" message to exit command response (#259)
+
+### 🐛 Bug Fixes
+
+- *(chat)* Panic /confluence.edit chat command (#264)
+- *(config)* Fix environment variable mapping for fields with underscores (#292)
+
+### 🛡️ Security
+
+- *(codecs)* Add path traversal protection for file write codec (#271)
+- *(dependencies)* Bumps github.com/xuri/excelize/v2 to v2.11.1 (fixed GO-2026-6684, GO-2026-6685, GO-2026-6688, GO-2026-6689) (#272)
+- *(agents)* Add directory access restrictions and improve security constraints (#293)
+- *(guard)* Block GitHub and GitLab CLI commands (#297)
+
+### 📚 Documentation
+
+- *(tools)* Update file_write tool description (#261)
+- *(codecs)* Update file formats table with read/write support status (#270)
+- *(common)* Added CODE_OF_CONDUCT.md (#277)
+- *(agents)* Add documentation for subagents feature (#288)
+- *(common)* Update architecture.md with new interfaces and components (#301)
+
+### 🧹 Refactor
+
+- *(agents)* Improve agent tool logging and output formatting (#289)
+
+### 🎨 Styling
+
+- *(icons)* Replace generic tool icon with context-specific icons (#298)
+
+### 🧪 Testing
+
+- *(plugins)* Add unit tests for GitHub plugin (#268)
+- *(plugins)* Add confluence plugin unit tests (#269)
+- *(plugins)* Add unit tests for file plugin initialization and registration (#274)
+- *(tools)* Add comprehensive unit tests for github formatTreeMarkdown (#278)
+- *(plugins)* Add unit tests for jira plugin (#286)
+- *(plugins)* Added rag plugin unit tests (#291)
+- *(plugins)* Fix rag plugin test (#296)
+- *(plugins)* Add gitlab plugin unit tests (#302)
+- *(plugins)* Add unit tests for CVE plugin (#303)
+- *(plugins)* Add plugin unit test for /new chat command (#304)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(utils)* Add .rgignore to ignore generated go files in testdata directories (#276)
+
+### 👥 Contributors
+
+<div align="left" style="padding-left: 20px;">
+<a href="https://github.com/wmentor" data-hovercard-type="user" data-hovercard-url="/users/wmentor/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/wmentor?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@wmentor" title="@wmentor" style="border-radius: 50% !important;"></a> <a href="https://github.com/sshnox" data-hovercard-type="user" data-hovercard-url="/users/sshnox/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/sshnox?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@sshnox" title="@sshnox" style="border-radius: 50% !important;"></a> <a href="https://github.com/spayder" data-hovercard-type="user" data-hovercard-url="/users/spayder/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/spayder?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@spayder" title="@spayder" style="border-radius: 50% !important;"></a> <a href="https://github.com/Abhishek8841" data-hovercard-type="user" data-hovercard-url="/users/Abhishek8841/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/Abhishek8841?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@Abhishek8841" title="@Abhishek8841" style="border-radius: 50% !important;"></a> 
+</div><br/><br/>
+
 ## [1.8.0] - 2026-11-01
 
 ### 🚀 Features
