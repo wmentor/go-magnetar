@@ -143,7 +143,7 @@ Beyond answering questions, the agent has access to tools it can call automatica
 | `file_read` | Read local files (`.md`, `.txt`, `.pdf`, `.docx`, `.xlsx`, and more) |
 | `file_list` | List files in the current directory by glob pattern |
 | `file_write` | Write content to a file |
-| `file_edit` | Edit a plain-text file by replacing text (case-sensitive, exact match required) |
+| `edit` | Edit a plain-text file by replacing text (case-sensitive, exact match required) |
 | `exec` | Run shell commands (with a built-in safety guard) |
 | `system_grep` | Search file contents with rg (ripgrep) or grep (case-insensitive, recursive, line numbers) |
 | `web_fetch` | Fetch a URL and return its content as Markdown (transparently handles Confluence, JIRA, GitHub, GitLab, RSS feeds when corresponding plugins are enabled). See [docs/tool_web_fetch.md](./docs/tool_web_fetch.md) for complete documentation |

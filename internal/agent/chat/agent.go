@@ -359,7 +359,7 @@ func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
 			}
 
 			// Split tool calls into parallel and sequential buckets.
-			// Sequential tools (e.g. file_edit, file_write) must not run
+			// Sequential tools (e.g. edit, file_write) must not run
 			// concurrently because they mutate shared state (the filesystem).
 			var tools []openai.ToolCall
 

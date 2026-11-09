@@ -159,7 +159,7 @@ if atomic.LoadInt64(allInterationRealToolCall) == 0 {
 // LLMTool.Sequential: true
 ```
 
-Tools marked `Sequential: true` (`file_write`, `file_edit`, `file_edit_multiple`) are never run in parallel with each other or with other tools in the same LLM response batch. They execute strictly one after another, in the order the LLM listed them, after all parallel tools in the same batch have completed. This prevents lost-write races where two concurrent edits both read the original file and the second one overwrites the first.
+Tools marked `Sequential: true` (`file_write`, `edit`) are never run in parallel with each other or with other tools in the same LLM response batch. They execute strictly one after another, in the order the LLM listed them, after all parallel tools in the same batch have completed. This prevents lost-write races where two concurrent edits both read the original file and the second one overwrites the first.
 
 ### 5. Maximum Iteration Limit
 
@@ -189,8 +189,7 @@ Read-only or network tools that run in parallel without a search limit.
 File-mutating tools that run **after all parallel tools finish**, one at a time, in the order the LLM listed them. This guarantees each tool sees the result of the previous write.
 - `exec`: Execute a shell command
 - `file_write`: Write a file (create or overwrite)
-- `file_edit`: Replace a unique text fragment in a plain-text file
-- `file_edit_multiple`: Apply multiple text replacements in a plain-text file
+- `edit`: Replace a unique text fragment in a plain-text file
 
 ## Performance Notes
 
