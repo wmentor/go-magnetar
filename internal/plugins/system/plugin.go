@@ -7,6 +7,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/tools"
 	execTool "github.com/wmentor/go-magnetar/internal/tools/exec"
 	sshTool "github.com/wmentor/go-magnetar/internal/tools/ssh"
+	"github.com/wmentor/go-magnetar/internal/tools/system/changes"
 	"github.com/wmentor/go-magnetar/internal/tools/system/date"
 	"github.com/wmentor/go-magnetar/internal/tools/system/grep"
 )
@@ -16,11 +17,12 @@ func init() {
 }
 
 type Plugin struct {
-	state *plugin.State
-	exec  *execTool.Tool
-	ssh   *sshTool.Tool
-	tool  *date.Tool
-	grep  *grep.Tool
+	state   *plugin.State
+	exec    *execTool.Tool
+	ssh     *sshTool.Tool
+	tool    *date.Tool
+	grep    *grep.Tool
+	changes *changes.Tool
 }
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
@@ -48,6 +50,10 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		p.grep = grep.New(s.Config, s.Printer, s.RequesterFactory, plugin.GetRoot(), s)
 		s.ToolStore.Register(p.grep.Name(), p.grep.Description(), p.grep.Exec)
 	}
+
+	// Register system_local_changes tool
+	p.changes = changes.New(s.Config, s.Printer, s.RequesterFactory, plugin.GetRoot(), s)
+	s.ToolStore.Register(p.changes.Name(), p.changes.Description(), p.changes.Exec, tools.OptionSequential())
 
 	return nil
 }

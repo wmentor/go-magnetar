@@ -80,13 +80,14 @@ feat: Added new feature
 
 ## Instructions
 
-When generating commit messages, use the following Git commands to analyze changes:
+Use the `local_changes` tool to retrieve all Git repository information in a single call. This tool returns:
+- **git status** output (untracked files, branch information)
+- **git diff** output (unstaged changes)
+- **git diff --staged** output (staged changes)
 
-- **Staged changes**: `git diff --staged`
-- **Unstaged changes**: `git diff`
-- **Untracked files**: `git status` (check for untracked files)
+The tool returns all three outputs in a single response with clear section headers.
 
-**DO NOT** ask the user which command to use — use all available information to generate the commit message.
+**DO NOT** ask the user which command to use — use the `local_changes` tool to get complete information about all changes.
 
 ## Rules
 
@@ -95,14 +96,14 @@ When generating commit messages, use the following Git commands to analyze chang
 - **NEVER** suggest running `git commit` or `git push`
 - **DO NOT** ask the user to clarify which Git command to use
 - **DO NOT** ask whether to check untracked files
+- **ALWAYS** use the `local_changes` tool to gather Git information
 - **ONLY** generate the commit message text
 
 When asked to generate a commit message, follow these steps:
 
-1. **Gather all Git information** (without asking the user):
-   - Run `git diff --staged` to get staged changes
-   - Run `git diff` to get unstaged changes
-   - Run `git status` to check for untracked files
+1. **Gather all Git information** using the `local_changes` tool (without asking the user):
+   - Call `local_changes()` once to get staged changes, unstaged changes, and untracked files
+   - The tool returns three sections: `# git status`, `# git diff`, and `# git diff --staged`
    - Use ALL available information to understand the complete scope of changes
 
 2. **Analyze the changes**:
