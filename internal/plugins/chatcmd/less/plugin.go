@@ -26,7 +26,7 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 		Name:    "less",
 		Help:    "View the last assistant answer using less.",
 		Aliases: []string{"l"},
-		Execute: func(_ context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
+		Execute: func(ctx context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
 			msgs := params.AgentHandler.Messages()
 
 			if len(msgs) < 2 {
@@ -48,7 +48,7 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 			stdin := bytes.NewBuffer(nil)
 			stdin.WriteString(content)
 
-			cmd := exec.Command("less")
+			cmd := exec.CommandContext(ctx, "less")
 			cmd.Stdin = stdin
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
