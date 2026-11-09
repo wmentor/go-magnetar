@@ -81,7 +81,7 @@ func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (
 		stdin := bytes.NewBuffer(nil)
 		stdin.WriteString(content)
 
-		cmd := exec.Command("less")
+		cmd := exec.CommandContext(ctx, "less")
 		cmd.Stdin = stdin
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr

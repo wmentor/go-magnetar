@@ -82,7 +82,7 @@ func (t *Tool) Exec(ctx context.Context, params *SystemGrepParams) (any, error) 
 		cmd = []string{"grep", "-n", "-i", "-r", "-E", params.Pattern, fullPath}
 	}
 
-	output, err := exec.Command(cmd[0], cmd[1:]...).CombinedOutput() //nolint:gosec // it's ok.
+	output, err := exec.CommandContext(ctx, cmd[0], cmd[1:]...).CombinedOutput() //nolint:gosec // it's ok.
 	if err != nil {
 		var exitErr *exec.ExitError
 		if errors.As(err, &exitErr) {
