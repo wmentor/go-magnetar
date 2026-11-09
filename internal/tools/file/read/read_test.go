@@ -68,7 +68,7 @@ func TestFileReadGzipCSV(t *testing.T) {
 	}
 
 	var content string
-	if resp, ok := result.(tools.Response); ok {
+	if resp, ok := result.(*tools.Response); ok {
 		content = resp.Result
 	} else {
 		content = result.(string)
@@ -108,7 +108,7 @@ func TestFileReadGzipPDF(t *testing.T) {
 	}
 
 	var content string
-	if resp, ok := result.(tools.Response); ok {
+	if resp, ok := result.(*tools.Response); ok {
 		content = resp.Result
 	} else {
 		content = result.(string)
@@ -138,7 +138,7 @@ func TestFileReadUncompressedSupported(t *testing.T) {
 	}
 
 	var content string
-	if resp, ok := result.(tools.Response); ok {
+	if resp, ok := result.(*tools.Response); ok {
 		content = resp.Result
 	} else {
 		content = result.(string)
@@ -169,7 +169,7 @@ func TestFileReadNonGzFilenameWithGzipContent(t *testing.T) {
 	}
 
 	var content string
-	if resp, ok := result.(tools.Response); ok {
+	if resp, ok := result.(*tools.Response); ok {
 		content = resp.Result
 	} else {
 		content = result.(string)
@@ -277,7 +277,7 @@ func TestFileReadPlainTextLimitAndOffset(t *testing.T) {
 			}
 
 			var got string
-			if resp, ok := result.(tools.Response); ok {
+			if resp, ok := result.(*tools.Response); ok {
 				got = resp.Result
 			} else {
 				got = result.(string)
@@ -308,7 +308,7 @@ func TestFileReadPlainTextLimitAndOffset(t *testing.T) {
 			}
 
 			var got string
-			if resp, ok := result.(tools.Response); ok {
+			if resp, ok := result.(*tools.Response); ok {
 				got = resp.Result
 			} else {
 				got = result.(string)
@@ -339,7 +339,7 @@ func TestFileReadUnrecoverableExtension(t *testing.T) {
 	}
 
 	var content string
-	if resp, ok := result.(tools.Response); ok {
+	if resp, ok := result.(*tools.Response); ok {
 		content = resp.Result
 	} else {
 		content = result.(string)

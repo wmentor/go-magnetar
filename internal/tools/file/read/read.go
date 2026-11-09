@@ -134,7 +134,7 @@ func (t *Tool) readGzip(filename string, br *bufio.Reader, limit int, offset int
 			t.printer.Error("file_read: decompressed content exceeds size limit", "file", filename, "max_size", maxDecompressedSize)
 			return "", errors.New("decompressed content exceeds size limit")
 		}
-		return tools.Response{
+		return &tools.Response{
 			Status: tools.StatusOK,
 			Result: string(data),
 		}, nil
@@ -168,7 +168,7 @@ func (t *Tool) readGzip(filename string, br *bufio.Reader, limit int, offset int
 		return "", errors.New("decompressed content exceeds size limit")
 	}
 
-	return tools.Response{
+	return &tools.Response{
 		Status: tools.StatusOK,
 		Result: sb.String(),
 	}, nil
@@ -197,12 +197,14 @@ func (t *Tool) Exec(ctx context.Context, params *FileReadParams) (any, error) {
 
 	t.printer.ToolCall(printer.IconRead, "file_read", args...)
 
-	if t.root == nil {
-		t.printer.Error("file_read: root filesystem is not set", "file", params.Filename)
-		return nil, errors.New("root filesystem is not set")
-	}
+	var f *os.File
+	var err error
 
-	f, err := t.root.Open(params.Filename)
+	if t.root == nil {
+		f, err = os.Open(params.Filename)
+	} else {
+		f, err = t.root.Open(params.Filename)
+	}
 	if err != nil {
 		t.printer.Error("file_read: failed to open file", "file", params.Filename, "err", err)
 		return nil, err
@@ -239,7 +241,7 @@ func (t *Tool) Exec(ctx context.Context, params *FileReadParams) (any, error) {
 			t.printer.Error("file_read: failed to read file", "file", params.Filename, "err", err)
 			return nil, err
 		}
-		return tools.Response{
+		return &tools.Response{
 			Status: tools.StatusOK,
 			Result: string(data),
 		}, nil
@@ -268,7 +270,7 @@ func (t *Tool) Exec(ctx context.Context, params *FileReadParams) (any, error) {
 		return nil, err
 	}
 
-	return tools.Response{
+	return &tools.Response{
 		Status: tools.StatusOK,
 		Result: sb.String(),
 	}, nil
