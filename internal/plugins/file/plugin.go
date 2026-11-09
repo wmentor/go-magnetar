@@ -31,10 +31,8 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	writeTool := write.New(s.Config, s.Printer, s.RequesterFactory, plugin.GetRoot(), s)
 	s.ToolStore.Register(writeTool.Name(), writeTool.Description(), writeTool.Exec, tools.OptionSequential())
 
-	// Register file_edit and file_edit_multiple tools
+	// Register edit tool
 	editTool := edit.NewTool(s.Config, s.Printer, s.RequesterFactory, plugin.GetRoot(), s)
-	s.ToolStore.Register(editTool.Name(), editTool.Description(), editTool.FileEdit)
-	s.ToolStore.Register(editTool.Name()+"_multiple", editTool.Description()+" (multiple edits)",
-		editTool.FileEditMultiple, tools.OptionSequential())
+	s.ToolStore.Register(editTool.Name(), editTool.Description(), editTool.FileEdit, tools.OptionSequential())
 	return nil
 }

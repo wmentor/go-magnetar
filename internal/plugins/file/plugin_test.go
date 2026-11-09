@@ -53,7 +53,7 @@ func TestPlugin_ToolRegistration(t *testing.T) {
 	require.NoError(t, err)
 
 	registeredTools := state.ToolStore.Tools()
-	require.Len(t, registeredTools, 5, "expected exactly 5 tools to be registered")
+	require.Len(t, registeredTools, 4, "expected exactly 4 tools to be registered")
 
 	tests := []struct {
 		name           string
@@ -76,13 +76,8 @@ func TestPlugin_ToolRegistration(t *testing.T) {
 			wantSequential: true,
 		},
 		{
-			name:           "file_edit tool",
-			toolName:       "file_edit",
-			wantSequential: false,
-		},
-		{
-			name:           "file_edit_multiple tool is sequential",
-			toolName:       "file_edit_multiple",
+			name:           "edit tool is sequential",
+			toolName:       "edit",
 			wantSequential: true,
 		},
 	}

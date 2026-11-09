@@ -26,7 +26,7 @@ If ANY tool response contains "error: tool call limit reached":
 ## Parallel execution
 
 - You may execute multiple independent tools in parallel within a single response.
-- NEVER combine file_write, file_edit, file_edit_multiple, or exec with each other in the same response — they run
+- NEVER combine file_write, edit, or exec with each other in the same response — they run
   sequentially and must be issued one per step.
 
 ## File editing
@@ -34,15 +34,14 @@ If ANY tool response contains "error: tool call limit reached":
 1. ALWAYS call file_read FIRST. Never guess or reconstruct file contents from memory.
 2. Then call the edit tool ALONE in the next step (no other tools in the same response).
 3. Choose the right tool:
-   - file_edit — single replacement; old_text must appear EXACTLY ONCE in the file.
-   - file_edit_multiple — multiple replacements, or when old_text appears more than once.
+   - edit — single replacement; old_text must appear EXACTLY ONCE in the file.
    - file_write — create a new file or completely rewrite an existing one.
-4. file_edit and file_edit_multiple work ONLY with plain-text files (.go, .py, .js, .ts, .md, .yaml, .json, .txt, .csv, .tsv, .html, .htm, etc.).
+4. edit works ONLY with plain-text files (.go, .py, .js, .ts, .md, .yaml, .json, .txt, .csv, .tsv, .html, .htm, etc.).
    Binary/structured formats (.docx, .pdf, .odt, .xlsx, .pptx) cannot be edited this way — use file_write instead.
 5. old_text is CASE-SENSITIVE and must match the file character-for-character, including all whitespace and newlines.
 6. Copy old_text verbatim from file_read output. Add surrounding lines if needed to make it unique.
-7. If file_edit returns "old_text appears N times" → add more context or switch to file_edit_multiple.
-8. If file_edit returns "old_text not found" → re-read the file and copy the text again exactly.
+7. If edit returns "old_text appears N times" → add more context.
+8. If edit returns "old_text not found" → re-read the file and copy the text again exactly.
 
 ## Security
 

@@ -7,8 +7,7 @@ go-magnetar provides the following tools for the chat agent:
 | `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem; supports `.txt`, `.md`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`, `.html`, `.htm`, and `.gz` (transparent decompression); `limit` and `offset` specify line range (0 = read all). See [docs/file_codecs.md](./file_codecs.md) for complete format support and codec details |
 | `file_list` | `(filter: string) -> []string` | Recursively lists files in the current directory using glob pattern (e.g. `*.go`) |
 | `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem (blocked in read-only mode); transparently converts Markdown to DOCX when writing `.docx` files |
-| `file_edit` | `(filename: string, old_text: string, new_text: string) -> string` | Edits a **plain-text** file by replacing text. **CRITICAL**: `old_text` must appear EXACTLY ONCE in the file. Returns error if `old_text` appears multiple times. Case-sensitive search. Not supported for `.docx`, `.pdf`, `.odt`, `.xlsx`, `.pptx`, `.csv`, `.tsv`, `.html`, `.htm` — use `file_write` for those. |
-| `file_edit_multiple` | `(filename: string, edits: [{old_text, new_text}], strategy: "first"\|"all") -> string` | Edits a **plain-text** file by applying multiple text replacements. Strategy `"all"` (default) replaces all occurrences; `"first"` replaces only the first. Not supported for codec-handled formats (same as `file_edit`). |
+| `edit` | `(filename: string, old_text: string, new_text: string) -> string` | Edits a **plain-text** file by replacing text. **CRITICAL**: `old_text` must appear EXACTLY ONCE in the file. Returns error if `old_text` appears multiple times. Case-sensitive search. Not supported for `.docx`, `.pdf`, `.odt`, `.xlsx`, `.pptx`, `.csv`, `.tsv`, `.html`, `.htm` — use `file_write` for those. |
 | `exec` | `(command: string, stdin: string) -> string` | Executes a shell command via `sh -c` with clean environment, current working directory, and built-in safety guard |
 | `ssh` | `(command: string, stdin: string, addr: string, user: string, dir: string) -> string` | Execute a shell command on a remote server via SSH. Connection parameters loaded from config. `user` and `dir` are optional; if not provided, uses `ssh.user` and `ssh.remote_dir` from config |
 | `system_date` | `() -> string` | Returns the current date in the "Mon Jan _2 15:04:05 MST 2006" format |
@@ -34,33 +33,20 @@ go-magnetar provides the following tools for the chat agent:
 
 ## File editing tools
 
-### file_edit behavior
+### edit behavior
 
-The `file_edit` tool performs exact string replacement with strict requirements:
+The `edit` tool performs exact string replacement with strict requirements:
 
 - **Plain-text only**: Works only with plain-text files (`.go`, `.py`, `.js`, `.ts`, `.md`, `.yaml`, `.json`, `.txt`, etc.). Files with a registered codec — `.docx`, `.pdf`, `.pages`, `.odt`, `.xlsx`, `.pptx`, `.csv`, `.tsv`, `.html`, `.htm` — are rejected with an error because their binary/structured format cannot be round-tripped through text replacement. Use `file_write` or a dedicated tool for those formats.
-- **Uniqueness**: `old_text` must appear exactly once in the file. If it appears multiple times, the tool returns an error asking you to use `file_edit_multiple` or provide more context to identify a unique occurrence.
+- **Uniqueness**: `old_text` must appear exactly once in the file. If it appears multiple times, the tool returns an error asking you to provide more context to identify a unique occurrence.
 - **Case-sensitive**: The search is case-sensitive. "Hello" will NOT match "hello".
 - **Exact match**: All whitespace, special characters, and formatting must match exactly.
 
-Use `file_edit` when you need to make a single, precise replacement in an existing plain-text file.
-
-### file_edit_multiple behavior
-
-The `file_edit_multiple` tool applies multiple text replacements in one call:
-
-- **Plain-text only**: Same restriction as `file_edit` — codec-handled formats (`.docx`, `.pages`, `.pdf`, `.odt`, `.xlsx`, `.pptx`, `.csv`, `.tsv`, `.html`, `.htm`) are not supported.
-- **"all" strategy** (default): Replaces ALL occurrences of each `old_text`.
-- **"first" strategy**: Replaces only the FIRST occurrence of each `old_text`.
-
-Use `file_edit_multiple` when:
-- You need to make multiple different replacements in one file.
-- The string you want to replace appears multiple times and you want to replace all of them.
-- You want to replace only the first occurrence of multiple strings.
+Use `edit` when you need to make a single, precise replacement in an existing plain-text file.
 
 ### Sequential execution guarantee
 
-`file_write`, `file_edit`, and `file_edit_multiple` are marked `Sequential: true` in the agent's tool execution loop. This means:
+`file_write` and `edit` are marked `Sequential: true` in the agent's tool execution loop. This means:
 
 - They are **never executed in parallel** with each other or with other tools in the same LLM response.
 - They run **one at a time**, in the order the LLM listed them, after all parallel tools (reads, searches) in the same batch have finished.
@@ -77,11 +63,9 @@ When writing content to a `.docx` file using `file_write`, the content is treate
 ### Guidelines
 
 1. Use `file_read` first to see the file contents before editing
-2. Use `file_edit` for single, unique replacements
-3. Use `file_edit_multiple` with "all" for replacing multiple occurrences
-4. Use `file_edit_multiple` with "first" for replacing only the first occurrence of multiple strings
-5. Use `file_write` when you need to create a new file or completely rewrite an existing one
-6. Use `file_write` with `.docx` extension to create DOCX files from Markdown content (automatic conversion)
+2. Use `edit` for single, unique replacements
+3. Use `file_write` when you need to create a new file or completely rewrite an existing one
+4. Use `file_write` with `.docx` extension to create DOCX files from Markdown content (automatic conversion)
 
 ## Search Tools
 
