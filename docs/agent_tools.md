@@ -11,6 +11,7 @@ go-magnetar provides the following tools for the chat agent:
 | `exec` | `(command: string, stdin: string) -> string` | Executes a shell command via `sh -c` with clean environment, current working directory, and built-in safety guard |
 | `ssh` | `(command: string, stdin: string, addr: string, user: string, dir: string) -> string` | Execute a shell command on a remote server via SSH. Connection parameters loaded from config. `user` and `dir` are optional; if not provided, uses `ssh.user` and `ssh.remote_dir` from config |
 | `system_date` | `() -> string` | Returns the current date in the "Mon Jan _2 15:04:05 MST 2006" format |
+| `system_uuid` | `() -> string` | Generates a cryptographically secure UUID v4 identifier |
 | `system_grep` | `(filename: string, pattern: string) -> string` | Executes system grep or rg (ripgrep) command with safe parameters: -n (always), -i (case-insensitive for both), -r (recursive for grep, implicit for rg), -E (extended regex for grep, implicit for rg). Uses rg if available, otherwise falls back to grep. |
 | `local_changes` | `() -> string` | Returns local Git repository changes: git status, git diff, and git diff --staged output. Useful for reviewing uncommitted changes before pushing to remote repository. |
 | `web_fetch` | `(url: string) -> string` | Fetches a web page and returns Markdown content (also fetches Confluence pages, JIRA issues, GitHub repositories/Issues/milestones, GitLab merge requests, RSS feeds). See [tool_web_fetch.md](./tool_web_fetch.md) for complete documentation |
@@ -101,3 +102,4 @@ When results from either tool are relevant, the answer is formed exclusively bas
 To prevent infinite loops, each user request is limited to a maximum number of search-related tool calls. Each search tool (`web_search` and `rag_search`) counts as 1 search call independently. By default, the limit is 20 calls per request. When the limit is exceeded, an error message is sent to the LLM and no more search tools are invoked for that request.
 
 See [chat_agent_ask.md](./chat_agent_ask.md) for complete documentation on the Ask method, including tool categorization, protection mechanisms, and full algorithm description.
+
