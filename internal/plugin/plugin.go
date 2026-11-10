@@ -43,6 +43,13 @@ type Plugin interface {
 	Init(s *State, hub Hub) error
 }
 
+// Store interface defines RAG operations.
+type VectorStore interface {
+	Name() string
+	RagSearch(query string) string
+	RagSave(content string, prepend string, part int) bool
+}
+
 // State carries shared infrastructure injected into every plugin at Init time.
 // Named State (not Context) to avoid confusion with context.Context.
 type State struct {
@@ -56,6 +63,7 @@ type State struct {
 	ToolStore        *tools.Store            // universal tool store.
 	AgentStore       AgentStore              // agent storage interface.
 	RequesterFactory requester.ClientFactory // HTTP client factory.
+	VectorStore      VectorStore             // RAG vector store if RAG enabled
 }
 
 // PreprocessorFunc is a function that preprocesses text.

@@ -22,6 +22,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/response"
 	"github.com/wmentor/go-magnetar/internal/skill"
+	"github.com/wmentor/go-magnetar/internal/store"
 	"github.com/wmentor/go-magnetar/internal/template"
 	"github.com/wmentor/go-magnetar/internal/tools"
 )
@@ -117,6 +118,15 @@ func Execute() error {
 		AgentStore:       agentStore,
 	}
 	state.TimingEnabled.Store(root.Timing)
+
+	if cfg.Bool("rag.enable") && cfg.String("rag.llm.base_url") != "" {
+		// Create store instance
+		vecStore, err := store.NewStore(cfg)
+		if err != nil {
+			return err
+		}
+		state.VectorStore = vecStore
+	}
 
 	if err := plugin.InitAll(state); err != nil {
 		return err
