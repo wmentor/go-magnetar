@@ -9,7 +9,7 @@ The tool provides a unique identifier when the agent needs to create an ID for a
 ## Features
 
 - **UUID v4**: Sets the version and RFC 4122 variant bits required by the standard
-- **Cryptographically secure**: Uses Go's `crypto/rand` through `github.com/google/uuid`
+- **Cryptographically secure**: Uses the Go standard library `uuid` package
 - **No Parameters**: The tool takes no input parameters
 - **Standard format**: Returns a lowercase, hyphenated UUID string in the 8-4-4-4-12 format
 
@@ -28,10 +28,6 @@ The tool returns a 36-character UUID v4 string, for example:
 ```text
 550e8400-e29b-41d4-a716-446655440000
 ```
-
-## Errors
-
-If the secure random source fails, the tool returns a wrapped error. It does not return an empty or fabricated identifier.
 
 ## Example
 

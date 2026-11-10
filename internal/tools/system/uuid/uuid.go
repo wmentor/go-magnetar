@@ -2,12 +2,10 @@ package uuid
 
 import (
 	"context"
-	"crypto/rand"
-	"fmt"
-	"io"
 	"os"
 
-	googleuuid "github.com/google/uuid"
+	stduuid "uuid"
+
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/plugin"
@@ -54,21 +52,8 @@ func (t *Tool) Description() string {
 func (t *Tool) Exec(ctx context.Context, params *SystemUUIDParams) (any, error) {
 	t.printer.ToolCall(printer.IconTool, "system_uuid")
 
-	id, err := generateUUID(rand.Reader)
-	if err != nil {
-		return nil, fmt.Errorf("system_uuid: failed to generate UUID: %w", err)
-	}
-
 	return &tools.Response{
 		Status: tools.StatusOK,
-		Result: id,
+		Result: stduuid.NewV4().String(),
 	}, nil
-}
-
-func generateUUID(reader io.Reader) (string, error) {
-	id, err := googleuuid.NewRandomFromReader(reader)
-	if err != nil {
-		return "", fmt.Errorf("generate UUID v4: %w", err)
-	}
-	return id.String(), nil
 }

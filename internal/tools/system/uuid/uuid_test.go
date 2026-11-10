@@ -1,8 +1,7 @@
 package uuid
 
 import (
-	"bytes"
-	"errors"
+	"regexp"
 	"testing"
 
 	"github.com/wmentor/go-magnetar/internal/http/requester"
@@ -10,33 +9,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/tools"
 )
 
-var errRandomSource = errors.New("random source failed")
-
-type failingReader struct{}
-
-func (failingReader) Read([]byte) (int, error) { return 0, errRandomSource }
-
-func TestGenerateUUID(t *testing.T) {
-	t.Parallel()
-	got, err := generateUUID(bytes.NewReader(bytes.Repeat([]byte{0x42}, 16)))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got != "42424242-4242-4242-8242-424242424242" {
-		t.Fatalf("generateUUID() = %q", got)
-	}
-}
-
-func TestGenerateUUIDReaderFailure(t *testing.T) {
-	t.Parallel()
-	got, err := generateUUID(failingReader{})
-	if !errors.Is(err, errRandomSource) {
-		t.Fatalf("generateUUID() error = %v", err)
-	}
-	if got != "" {
-		t.Fatalf("generateUUID() = %q, want empty string", got)
-	}
-}
+var uuidV4Pattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
 
 func TestExec(t *testing.T) {
 	t.Parallel()
@@ -58,8 +31,11 @@ func TestExec(t *testing.T) {
 			if !ok {
 				t.Fatalf("Exec() result type = %T", result)
 			}
-			if response.Status != tools.StatusOK || response.Result == "" {
-				t.Fatalf("Exec() response = %+v", response)
+			if response.Status != tools.StatusOK {
+				t.Fatalf("Exec() status = %q", response.Status)
+			}
+			if !uuidV4Pattern.MatchString(response.Result) {
+				t.Fatalf("Exec() result = %q, want UUID v4 format", response.Result)
 			}
 		})
 	}
