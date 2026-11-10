@@ -19,7 +19,7 @@ type Plugin struct{}
 func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name:    "revert",
-		Aliases: []string{"r"},
+		Aliases: nil,
 		Help:    "Revert to the previous assistant answer and display it again.",
 		Execute: func(_ context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
 			messages := params.AgentHandler.Messages()
