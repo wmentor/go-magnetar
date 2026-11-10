@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/plugin"
 )
 
 var (
@@ -12,11 +13,7 @@ var (
 )
 
 // Store interface defines RAG operations.
-type Store interface {
-	Name() string
-	RagSearch(query string) string
-	RagSave(content string, prepend string, part int) bool
-}
+type Store = plugin.VectorStore
 
 // Deprecated: Use the Tool struct with Exec method instead.
 // RAGTools provides RAG operations as LLM tools.

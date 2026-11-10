@@ -14,7 +14,6 @@ import (
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
-	"github.com/wmentor/go-magnetar/internal/store"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
 	"github.com/wmentor/go-magnetar/internal/tools/web/webfetch"
 )
@@ -59,16 +58,11 @@ var plainTextExts = map[string]struct{}{
 
 // New creates a new Indexer instance.
 func New(cfg *config.Config, root *os.Root, state *plugin.State) (*Indexer, error) {
-	vecStore, err := store.NewStore(cfg)
-	if err != nil {
-		return nil, fmt.Errorf("init RAG store error: %w", err)
-	}
-
 	fetchTool := webfetch.NewTool(cfg, state.Printer, state.RequesterFactory, state)
 
 	return &Indexer{
 		cfg:   cfg,
-		store: vecStore,
+		store: state.VectorStore,
 		fetch: fetchTool,
 	}, nil
 }
