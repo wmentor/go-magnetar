@@ -64,36 +64,36 @@ confluence:
 			tools: nil,
 		},
 		{
-			name: "enabled with base_url only (fetch and edit tools by default)",
+			name: "enabled with base_url only (fetch, edit and search tools by default)",
 			yaml: `version: "1.0"
 confluence:
   enable: true
   base_url: https://example.atlassian.net
 `,
-			tools: []string{"confluence_page_fetch", "confluence_page_edit"},
+			tools: []string{"confluence_page_fetch", "confluence_page_edit", "confluence_search"},
 		},
 		{
-			name: "enabled with readonly=false (fetch and edit tools)",
+			name: "enabled with readonly=false (fetch, edit and search tools)",
 			yaml: `version: "1.0"
 confluence:
   enable: true
   base_url: https://example.atlassian.net
   readonly: false
 `,
-			tools: []string{"confluence_page_fetch", "confluence_page_edit"},
+			tools: []string{"confluence_page_fetch", "confluence_page_edit", "confluence_search"},
 		},
 		{
-			name: "enabled with readonly=true (fetch tool only)",
+			name: "enabled with readonly=true (fetch and search tools)",
 			yaml: `version: "1.0"
 confluence:
   enable: true
   base_url: https://example.atlassian.net
   readonly: true
 `,
-			tools: []string{"confluence_page_fetch"},
+			tools: []string{"confluence_page_fetch", "confluence_search"},
 		},
 		{
-			name: "enabled with api_key and readonly=true (fetch tool only)",
+			name: "enabled with api_key and readonly=true (fetch and search tools)",
 			yaml: `version: "1.0"
 confluence:
   enable: true
@@ -101,10 +101,10 @@ confluence:
   api_key: test-key
   readonly: true
 `,
-			tools: []string{"confluence_page_fetch"},
+			tools: []string{"confluence_page_fetch", "confluence_search"},
 		},
 		{
-			name: "enabled with api_key and readonly=false (both tools)",
+			name: "enabled with api_key and readonly=false (all tools)",
 			yaml: `version: "1.0"
 confluence:
   enable: true
@@ -112,7 +112,7 @@ confluence:
   api_key: test-key
   readonly: false
 `,
-			tools: []string{"confluence_page_fetch", "confluence_page_edit"},
+			tools: []string{"confluence_page_fetch", "confluence_page_edit", "confluence_search"},
 		},
 	}
 
@@ -177,6 +177,14 @@ confluence:
 	assert.Equal(t, "confluence_page_edit", editDef.Function.Name)
 	assert.Contains(t, editDef.Function.Description, "Edit a Confluence page")
 	assert.Contains(t, editDef.Function.Description, "Markdown")
+
+	// Check search tool
+	searchTool, err := state.ToolStore.GetTool("confluence_search")
+	require.NoError(t, err)
+	searchDef := searchTool.Definition()
+	assert.Equal(t, "confluence_search", searchDef.Function.Name)
+	assert.Contains(t, searchDef.Function.Description, "Confluence")
+	assert.Contains(t, searchDef.Function.Description, "search")
 }
 
 func TestInitToolParametersExist(t *testing.T) {
@@ -209,6 +217,12 @@ confluence:
 	require.NoError(t, err)
 	editDef := editTool.Definition()
 	require.NotNil(t, editDef.Function.Parameters)
+
+	// Check search tool parameters exist
+	searchTool, err := state.ToolStore.GetTool("confluence_search")
+	require.NoError(t, err)
+	searchDef := searchTool.Definition()
+	require.NotNil(t, searchDef.Function.Parameters)
 }
 
 func TestInitWithGlobalReadOnlyFlag(t *testing.T) {
@@ -258,25 +272,25 @@ func TestInitToolCallCounts(t *testing.T) {
 			expectedEdit:  false,
 		},
 		{
-			name: "fetch only (readonly mode)",
+			name: "fetch and search tools (readonly mode)",
 			yaml: `version: "1.0"
 confluence:
   enable: true
   base_url: "https://example.atlassian.net"
   readonly: true
 `,
-			expectedTools: 1,
+			expectedTools: 2,
 			expectedEdit:  false,
 		},
 		{
-			name: "both tools",
+			name: "all tools",
 			yaml: `version: "1.0"
 confluence:
   enable: true
   base_url: "https://example.atlassian.net"
   readonly: false
 `,
-			expectedTools: 2,
+			expectedTools: 3,
 			expectedEdit:  true,
 		},
 	}
@@ -304,6 +318,15 @@ confluence:
 			} else {
 				_, err := state.ToolStore.GetTool("confluence_page_edit")
 				assert.Error(t, err)
+			}
+
+			// Check search tool is always registered
+			_, errSearch := state.ToolStore.GetTool("confluence_search")
+			if tt.expectedTools > 0 {
+				assert.NoError(t, errSearch)
+			} else {
+				assert.Error(t, errSearch)
+				assert.Contains(t, errSearch.Error(), "tool not found")
 			}
 		})
 	}
