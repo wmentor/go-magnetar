@@ -11,9 +11,12 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/chunk"
 	"github.com/wmentor/go-magnetar/internal/codec"
+	"github.com/wmentor/go-magnetar/internal/common"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
+	"github.com/wmentor/go-magnetar/internal/tools"
+	"github.com/wmentor/go-magnetar/internal/tools/file/read"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
 	"github.com/wmentor/go-magnetar/internal/tools/web/webfetch"
 )
@@ -23,6 +26,7 @@ type Indexer struct {
 	cfg   *config.Config
 	store rag.Store
 	fetch *webfetch.Tool
+	state *plugin.State
 }
 
 // excludedDirNames are directories that should not be indexed.
@@ -38,6 +42,7 @@ var plainTextExts = map[string]struct{}{
 	".go":   {},
 	".js":   {},
 	".jsx":  {},
+	".lua":  {},
 	".ts":   {},
 	".tsx":  {},
 	".php":  {},
@@ -45,9 +50,11 @@ var plainTextExts = map[string]struct{}{
 	".rs":   {},
 	".py":   {},
 	".c":    {},
+	".cxx":  {},
 	".h":    {},
 	".cpp":  {},
 	".hpp":  {},
+	".hxx":  {},
 	".java": {},
 	".sh":   {},
 	".yaml": {},
@@ -64,6 +71,7 @@ func New(cfg *config.Config, root *os.Root, state *plugin.State) (*Indexer, erro
 		cfg:   cfg,
 		store: state.VectorStore,
 		fetch: fetchTool,
+		state: state,
 	}, nil
 }
 
@@ -77,24 +85,17 @@ func (idx *Indexer) IndexFile(filename string, msg string) error {
 func (idx *Indexer) indexFileChunks(filename, msg string) (int, error) {
 	printer.Print(printer.IconFile, "indexer: indexing file", "file", filename)
 
-	ext := strings.ToLower(filepath.Ext(filename))
+	reader := read.New(idx.cfg, idx.state.Printer, idx.state.RequesterFactory, nil, idx.state)
 
-	var data []byte
-	var err error
-
-	if reader, e := codec.GetCodec(ext); e == nil {
-		text, err := reader.ReadFile(filename)
-		if err != nil {
-			return 0, fmt.Errorf("indexer: failed to read %s file %q: %w", ext, filename, err)
-		}
-		data = []byte(text)
-	} else {
-		data, err = os.ReadFile(filename)
-		if err != nil {
-			return 0, fmt.Errorf("indexer: failed to read file %q: %w", filename, err)
-		}
+	result, err := reader.Exec(context.TODO(), &read.FileReadParams{Filename: common.ExpandHome(filename)})
+	if err != nil {
+		return 0, fmt.Errorf("indexer: failed to read file %q: %w", filename, err)
 	}
-	return idx.chunkAndSave(string(data), msg)
+
+	if data, ok := result.(*tools.Response); ok {
+		return idx.chunkAndSave(data.Result, msg)
+	}
+	return 0, fmt.Errorf("indexer: invalid result value of read file tool: %w", err)
 }
 
 // IndexURL fetches content from a URL, chunks it, and stores it in the RAG knowledge base.
