@@ -105,6 +105,9 @@ func TestRevertCommand(t *testing.T) {
 			if cmd == nil {
 				t.Fatal("no command registered")
 			}
+			if len(cmd.Aliases) != 0 {
+				t.Errorf("Aliases = %v, want none", cmd.Aliases)
+			}
 
 			response, err := cmd.Execute(context.Background(), &plugin.ChatCommandInput{
 				AgentHandler: &mockAgent{messages: tt.messages},
