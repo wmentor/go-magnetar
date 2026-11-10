@@ -46,7 +46,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 
 	// Register system_uuid tool
 	p.uuidTool = uuidTool.New(s.Config, s.Printer, s.RequesterFactory, plugin.GetRoot(), s)
-	s.ToolStore.Register(p.uuidTool.Name(), p.uuidTool.Description(), p.uuidTool.Exec)
+	s.ToolStore.Register(p.uuidTool.Name(), p.uuidTool.Description(), p.uuidTool.Exec, tools.OptionRateLimit(10))
 
 	// Register system_grep tool (only if grep or rg is available)
 	if _, err := exec.LookPath("grep"); err == nil {
