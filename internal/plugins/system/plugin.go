@@ -10,6 +10,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/tools/system/changes"
 	"github.com/wmentor/go-magnetar/internal/tools/system/date"
 	"github.com/wmentor/go-magnetar/internal/tools/system/grep"
+	uuidTool "github.com/wmentor/go-magnetar/internal/tools/system/uuid"
 )
 
 func init() {
@@ -17,12 +18,13 @@ func init() {
 }
 
 type Plugin struct {
-	state   *plugin.State
-	exec    *execTool.Tool
-	ssh     *sshTool.Tool
-	tool    *date.Tool
-	grep    *grep.Tool
-	changes *changes.Tool
+	state    *plugin.State
+	exec     *execTool.Tool
+	ssh      *sshTool.Tool
+	tool     *date.Tool
+	uuidTool *uuidTool.Tool
+	grep     *grep.Tool
+	changes  *changes.Tool
 }
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
@@ -41,6 +43,10 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	// Register system_date tool
 	p.tool = date.New(s.Config, s.Printer, s.RequesterFactory, plugin.GetRoot(), s)
 	s.ToolStore.Register(p.tool.Name(), p.tool.Description(), p.tool.Exec)
+
+	// Register system_uuid tool
+	p.uuidTool = uuidTool.New(s.Config, s.Printer, s.RequesterFactory, plugin.GetRoot(), s)
+	s.ToolStore.Register(p.uuidTool.Name(), p.uuidTool.Description(), p.uuidTool.Exec)
 
 	// Register system_grep tool (only if grep or rg is available)
 	if _, err := exec.LookPath("grep"); err == nil {
