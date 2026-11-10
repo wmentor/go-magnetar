@@ -28,7 +28,9 @@ go-magnetar provides the following tools for the chat agent:
 | `gitlab_repo` | `(project_path: string) -> string` | Fetches GitLab repository information and returns its details in Markdown format. See [plugin_gitlab.md](./plugin_gitlab.md) for complete documentation |
 | `gitlab_file` | `(project_path: string, branch: string, file: string) -> string` | Fetches a file from GitLab repository and returns its content. See [plugin_gitlab.md](./plugin_gitlab.md) for complete documentation |
 | `gitlab_tree` | `(project_path: string, branch: string, path: string) -> string` | Lists repository contents at root or specified path. See [plugin_gitlab.md](./plugin_gitlab.md) for complete documentation |
+| `confluence_page_fetch` | `(page_id: string) -> string` | Fetches a Confluence page by ID and returns its content in Markdown format |
 | `confluence_page_edit` | `(page_id: string, markdown: string) -> string` | Edits a Confluence page by converting Markdown to HTML and updating via REST API |
+| `confluence_search` | `(query: string, limit: int) -> string` | Search Confluence pages using CQL (Confluence Query Language) and return results in Markdown format. See [tool_confluence_search.md](./tool_confluence_search.md) for complete documentation |
 | `jira_issue_create` | `(project_key: string, summary: string, description: string, issue_type: string) -> object` | Creates a new JIRA issue with Markdown-to-Jira conversion (blocked in read-only mode). See [tool_jira.md](./tool_jira.md) for complete documentation |
 | `agent_<name>` | `(message: string) -> string` | Dynamically generated tools for each available subagent. Each tool invokes a specific agent (e.g., `agent_code_reviewer`, `agent_security_analyzer`). See [tool_agent.md](./tool_agent.md) for complete documentation |
 

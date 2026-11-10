@@ -9,11 +9,12 @@ func init() {
 	plugin.Register("confluence", &Plugin{})
 }
 
-// Plugin wraps the Confluence tools and exposes confluence_page_fetch and confluence_page_edit as LLM tools.
+// Plugin wraps the Confluence tools and exposes confluence_page_fetch, confluence_page_edit, and confluence_search as LLM tools.
 type Plugin struct {
-	state     *plugin.State
-	fetchTool *confluence.FetchTool
-	editTool  *confluence.EditTool
+	state      *plugin.State
+	fetchTool  *confluence.FetchTool
+	editTool   *confluence.EditTool
+	searchTool *confluence.SearchTool
 }
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
@@ -32,6 +33,10 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		p.editTool = confluence.NewEditTool(s.Config, s.Printer, s.RequesterFactory, s)
 		s.ToolStore.Register(p.editTool.Name(), p.editTool.Description(), p.editTool.Exec)
 	}
+
+	// Initialize and register search tool
+	p.searchTool = confluence.NewSearchTool(s.Config, s.Printer, s.RequesterFactory)
+	s.ToolStore.Register(p.searchTool.Name(), p.searchTool.Description(), p.searchTool.Exec)
 
 	return nil
 }
