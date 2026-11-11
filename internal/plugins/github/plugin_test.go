@@ -10,6 +10,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/mask"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
@@ -53,11 +54,12 @@ func createTestState(t *testing.T, configYaml string, enableGithub bool) *plugin
 	// Create printer and request factory for tests
 	p := printer.GetDefault()
 	clientFactory := requester.NewFactory()
+	maskService := mask.NewService(cfg)
 
 	return &plugin.State{
 		Config:           cfg,
 		Printer:          p,
-		ToolStore:        tools.NewStore(),
+		ToolStore:        tools.NewStore(maskService),
 		RequesterFactory: clientFactory,
 	}
 }
@@ -157,11 +159,12 @@ func TestPlugin_Init_MissingGitHubSection(t *testing.T) {
 	// Create printer and request factory for tests
 	p := printer.GetDefault()
 	clientFactory := requester.NewFactory()
+	maskService := mask.NewService(cfgLoaded)
 
 	state := &plugin.State{
 		Config:           cfgLoaded,
 		Printer:          p,
-		ToolStore:        tools.NewStore(),
+		ToolStore:        tools.NewStore(maskService),
 		RequesterFactory: clientFactory,
 	}
 	hub := &mockHub{}
@@ -195,11 +198,12 @@ github:
 	// Create printer and request factory for tests
 	p := printer.GetDefault()
 	clientFactory := requester.NewFactory()
+	maskService := mask.NewService(cfgLoaded)
 
 	state := &plugin.State{
 		Config:           cfgLoaded,
 		Printer:          p,
-		ToolStore:        tools.NewStore(),
+		ToolStore:        tools.NewStore(maskService),
 		RequesterFactory: clientFactory,
 	}
 	hub := &mockHub{}

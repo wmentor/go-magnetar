@@ -73,7 +73,7 @@ type ChatAgent struct {
 }
 
 // New creates a new ChatAgent instance.
-func New(cfg *config.Config, root *os.Root, toolStore *tools.Store) (*ChatAgent, error) {
+func New(cfg *config.Config, root *os.Root, toolStore *tools.Store, maskService plugin.MaskService) (*ChatAgent, error) {
 	llmCfg := openai.DefaultConfig(cfg.ProfileParamString("llm.api_key"))
 	llmCfg.BaseURL = cfg.ProfileParamString("llm.base_url")
 	llmCfg.HTTPClient = requester.Get()
@@ -100,7 +100,7 @@ func New(cfg *config.Config, root *os.Root, toolStore *tools.Store) (*ChatAgent,
 	messages := []openai.ChatCompletionMessage{
 		{
 			Role:    openai.ChatMessageRoleSystem,
-			Content: systemContent,
+			Content: maskService.Process(context.Background(), systemContent),
 		},
 	}
 
@@ -248,11 +248,14 @@ type toolRecord struct {
 
 // ask sends the user input to the LLM, handles tool calls, and returns the final answer.
 func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Hour)
+	defer cancel()
+
 	a.compactIfNeeded()
 
 	a.messages = append(a.messages, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleUser,
-		Content: userInput,
+		Content: state.MaskService.Process(ctx, userInput),
 	})
 
 	beginIndex := len(a.messages)
@@ -273,9 +276,6 @@ func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
 	allToolCallStat := map[string]int{}
 
 	var agentCounter atomic.Int64
-
-	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Hour)
-	defer cancel()
 
 	for range maxAskLoopIteration {
 		reserved := 0

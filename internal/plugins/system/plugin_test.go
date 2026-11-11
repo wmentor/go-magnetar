@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/mask"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
@@ -25,7 +26,8 @@ func stateWithTools(t *testing.T) *tools.Store {
 	cfg, err := config.Load(configPath)
 	require.NoError(t, err)
 
-	store := tools.NewStore()
+	maskService := mask.NewService(cfg)
+	store := tools.NewStore(maskService)
 	state := &plugin.State{
 		Config:    cfg,
 		Printer:   printer.GetDefault(),

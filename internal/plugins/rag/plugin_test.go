@@ -11,6 +11,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/mask"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
@@ -99,11 +100,12 @@ rag:
 	// Create printer and request factory for tests
 	p := printer.GetDefault()
 	clientFactory := requester.NewFactory()
+	maskService := mask.NewService(cfgLoaded)
 
 	return &plugin.State{
 		Config:           cfgLoaded,
 		Printer:          p,
-		ToolStore:        tools.NewStore(),
+		ToolStore:        tools.NewStore(maskService),
 		RequesterFactory: clientFactory,
 	}
 }
@@ -170,11 +172,12 @@ rag:
 
 	// Create printer and request factory for tests
 	clientFactory := requester.NewFactory()
+	maskService := mask.NewService(cfgLoaded)
 
 	state = &plugin.State{
 		Config:           cfgLoaded,
 		Printer:          printer.GetDefault(),
-		ToolStore:        tools.NewStore(),
+		ToolStore:        tools.NewStore(maskService),
 		RequesterFactory: clientFactory,
 	}
 

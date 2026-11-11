@@ -11,6 +11,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/mask"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
@@ -34,7 +35,8 @@ gitlab:
 
 	p := printer.GetDefault()
 	clientFactory := requester.NewFactory()
-	toolStore := tools.NewStore()
+	maskService := mask.NewService(cfg)
+	toolStore := tools.NewStore(maskService)
 
 	// Create a mock hub
 	hub := &mockHub{}
@@ -71,7 +73,8 @@ gitlab:
 
 	p := printer.GetDefault()
 	clientFactory := requester.NewFactory()
-	toolStore := tools.NewStore()
+	maskService := mask.NewService(cfg)
+	toolStore := tools.NewStore(maskService)
 	hub := &mockHub{}
 
 	pluginInstance := &Plugin{
@@ -105,7 +108,8 @@ gitlab:
 
 	p := printer.GetDefault()
 	clientFactory := requester.NewFactory()
-	toolStore := tools.NewStore()
+	maskService := mask.NewService(cfg)
+	toolStore := tools.NewStore(maskService)
 	hub := &mockHub{}
 
 	pluginInstance := &Plugin{
@@ -139,7 +143,8 @@ gitlab:
 
 	p := printer.GetDefault()
 	clientFactory := requester.NewFactory()
-	toolStore := tools.NewStore()
+	maskService := mask.NewService(cfg)
+	toolStore := tools.NewStore(maskService)
 	hub := &mockHub{}
 
 	pluginInstance := &Plugin{

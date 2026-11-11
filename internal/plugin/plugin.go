@@ -63,7 +63,8 @@ type State struct {
 	ToolStore        *tools.Store            // universal tool store.
 	AgentStore       AgentStore              // agent storage interface.
 	RequesterFactory requester.ClientFactory // HTTP client factory.
-	VectorStore      VectorStore             // RAG vector store if RAG enabled
+	VectorStore      VectorStore             // RAG vector store if RAG enabled.
+	MaskService      MaskService             // Mask service.
 }
 
 // PreprocessorFunc is a function that preprocesses text.

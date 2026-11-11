@@ -1,0 +1,5 @@
+# sensitive data masking plugin settings
+mask:
+  enable: true # enable make sensitive data
+  skip:
+    email: true # skipping email masking

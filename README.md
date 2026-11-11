@@ -311,6 +311,7 @@ See [docs/security.md](./docs/security.md) for complete security information.
 - **Read-only mode** — toggle with `/readonly` to block all file writes and shell modifications for the session.
 - **Root user** — go-magnetar refuses to run as root.
 - **Sensitive env vars** — variables matching patterns like `TOKEN`, `KEY`, `PASS`, `SECRET` are stripped from the command environment before execution.
+- **Automatic sensitive data masking** — chat inputs and tool responses are automatically masked to prevent leakage of secrets and personal information.
 
 See [docs/security.md](./docs/security.md) for details.
 

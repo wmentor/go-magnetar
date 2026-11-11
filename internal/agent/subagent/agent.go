@@ -35,13 +35,14 @@ const (
 
 // Agent is a subagent backed.
 type Agent struct {
-	name      string
-	cfg       *config.Config
-	llm       *openai.Client
-	messages  []openai.ChatCompletionMessage
-	root      *os.Root
-	toolStore *tools.Store
-	printer   printer.Printer
+	name        string
+	cfg         *config.Config
+	llm         *openai.Client
+	messages    []openai.ChatCompletionMessage
+	root        *os.Root
+	toolStore   *tools.Store
+	printer     printer.Printer
+	maskService plugin.MaskService
 }
 
 // New creates a new ChatAgent instance.
@@ -81,18 +82,19 @@ func New(agentName string, state *plugin.State) (*Agent, error) {
 	messages := []openai.ChatCompletionMessage{
 		{
 			Role:    openai.ChatMessageRoleSystem,
-			Content: a.Prompt,
+			Content: state.MaskService.Process(context.Background(), a.Prompt),
 		},
 	}
 
 	return &Agent{
-		name:      agentName,
-		cfg:       cfg,
-		llm:       llmClient,
-		messages:  messages,
-		root:      state.Root,
-		toolStore: toolStore,
-		printer:   state.Printer,
+		name:        agentName,
+		cfg:         cfg,
+		llm:         llmClient,
+		messages:    messages,
+		root:        state.Root,
+		toolStore:   toolStore,
+		printer:     state.Printer,
+		maskService: state.MaskService,
 	}, nil
 }
 
@@ -156,9 +158,12 @@ type toolRecord struct {
 func (a *Agent) Ask(input string) (string, error) {
 	a.printer.ToolCall(printer.IconRobot, "run subagent "+a.name)
 
+	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Hour)
+	defer cancel()
+
 	a.messages = append(a.messages, openai.ChatCompletionMessage{
 		Role:    openai.ChatMessageRoleUser,
-		Content: input,
+		Content: a.maskService.Process(ctx, input),
 	})
 
 	beginIndex := len(a.messages)
@@ -179,9 +184,6 @@ func (a *Agent) Ask(input string) (string, error) {
 	allToolCallStat := map[string]int{}
 
 	var agentCounter atomic.Int64
-
-	ctx, cancel := context.WithTimeout(context.Background(), 4*time.Hour)
-	defer cancel()
 
 	for range maxAskLoopIteration {
 		reserved := 0
