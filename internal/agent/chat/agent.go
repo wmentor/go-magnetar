@@ -365,16 +365,6 @@ func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
 
 			for _, toolCall := range choice.Message.ToolCalls {
 				toolKey := toolRecord{Name: toolCall.Function.Name, Args: toolCall.Function.Arguments}
-				if _, has := alreadyDoneToolCalls[toolKey]; has {
-					a.messages = append(a.messages, openai.ChatCompletionMessage{
-						Role:       openai.ChatMessageRoleTool,
-						Content:    "error: this tool was called earlier with the same parameters",
-						ToolCallID: toolCall.ID,
-					})
-					printer.Warn("llm require double tool call", "tool", toolKey.Name, "args", toolKey.Args)
-					continue
-				}
-				alreadyDoneToolCalls[toolKey] = struct{}{}
 
 				tool, err := state.ToolStore.GetTool(toolCall.Function.Name)
 				if err != nil {
@@ -386,6 +376,20 @@ func (a *ChatAgent) Ask(state *plugin.State, userInput string) (string, error) {
 					printer.Error("unknown tool call", "tool", toolKey.Name, "args", toolKey.Args)
 					continue
 				}
+
+				if tool.RateLimit == 0 {
+					if _, has := alreadyDoneToolCalls[toolKey]; has {
+						a.messages = append(a.messages, openai.ChatCompletionMessage{
+							Role:       openai.ChatMessageRoleTool,
+							Content:    "error: this tool was called earlier with the same parameters",
+							ToolCallID: toolCall.ID,
+						})
+						printer.Warn("llm require double tool call", "tool", toolKey.Name, "args", toolKey.Args)
+						continue
+					}
+					alreadyDoneToolCalls[toolKey] = struct{}{}
+				}
+
 				allToolCallStat[tool.Name]++
 				if tool.RateLimit > 0 && tool.RateLimit < allToolCallStat[tool.Name] {
 					a.messages = append(a.messages, openai.ChatCompletionMessage{
