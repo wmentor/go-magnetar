@@ -8,10 +8,18 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+// mockMaskService is a mock implementation of MaskService for testing
+type mockMaskService struct{}
+
+func (m *mockMaskService) Process(_ context.Context, input string) string {
+	return input
+}
+
 func TestNewStore(t *testing.T) {
 	t.Parallel()
 
-	store := NewStore()
+	maskService := &mockMaskService{}
+	store := NewStore(maskService)
 	assert.NotNil(t, store)
 	assert.NotNil(t, store.tools)
 	assert.Len(t, store.Tools(), 0)
@@ -20,7 +28,8 @@ func TestNewStore(t *testing.T) {
 func TestStore_Register_Success(t *testing.T) {
 	t.Parallel()
 
-	store := NewStore()
+	maskService := &mockMaskService{}
+	store := NewStore(maskService)
 
 	type TestRequest struct {
 		Name string `json:"name"`
@@ -50,7 +59,8 @@ func TestStore_Register_Success(t *testing.T) {
 func TestStore_Register_DuplicateToolName(t *testing.T) {
 	t.Parallel()
 
-	store := NewStore()
+	maskService := &mockMaskService{}
+	store := NewStore(maskService)
 
 	store.Register(
 		"test_tool",
@@ -80,7 +90,8 @@ func TestStore_Register_DuplicateToolName(t *testing.T) {
 func TestStore_GetTool_Success(t *testing.T) {
 	t.Parallel()
 
-	store := NewStore()
+	maskService := &mockMaskService{}
+	store := NewStore(maskService)
 
 	store.Register(
 		"existing_tool",
@@ -99,7 +110,8 @@ func TestStore_GetTool_Success(t *testing.T) {
 func TestStore_GetTool_NotFound(t *testing.T) {
 	t.Parallel()
 
-	store := NewStore()
+	maskService := &mockMaskService{}
+	store := NewStore(maskService)
 
 	tool, err := store.GetTool("nonexistent_tool")
 	assert.ErrorIs(t, err, ErrToolNotFound)
@@ -109,7 +121,8 @@ func TestStore_GetTool_NotFound(t *testing.T) {
 func TestStore_CloneWith_Success(t *testing.T) {
 	t.Parallel()
 
-	store := NewStore()
+	maskService := &mockMaskService{}
+	store := NewStore(maskService)
 
 	store.Register(
 		"tool1",
@@ -155,7 +168,8 @@ func TestStore_CloneWith_Success(t *testing.T) {
 func TestStore_CloneWith_NotFound(t *testing.T) {
 	t.Parallel()
 
-	store := NewStore()
+	maskService := &mockMaskService{}
+	store := NewStore(maskService)
 
 	store.Register(
 		"tool1",
@@ -181,7 +195,8 @@ func TestStore_CloneWith_NotFound(t *testing.T) {
 func TestStore_CloneWith_EmptyList(t *testing.T) {
 	t.Parallel()
 
-	store := NewStore()
+	maskService := &mockMaskService{}
+	store := NewStore(maskService)
 
 	store.Register(
 		"tool1",
@@ -219,7 +234,8 @@ func TestTool_GetName(t *testing.T) {
 func TestStore_CloneWith_Isolation(t *testing.T) {
 	t.Parallel()
 
-	store := NewStore()
+	maskService := &mockMaskService{}
+	store := NewStore(maskService)
 
 	store.Register(
 		"tool1",
@@ -255,7 +271,8 @@ func TestStore_CloneWith_Isolation(t *testing.T) {
 func TestStore_Tools(t *testing.T) {
 	t.Parallel()
 
-	store := NewStore()
+	maskService := &mockMaskService{}
+	store := NewStore(maskService)
 
 	store.Register(
 		"tool1",
@@ -280,7 +297,8 @@ func TestStore_Tools(t *testing.T) {
 func TestStore_Tools_Concurrent(t *testing.T) {
 	t.Parallel()
 
-	store := NewStore()
+	maskService := &mockMaskService{}
+	store := NewStore(maskService)
 
 	// Register some tools
 	for i := range 10 {
@@ -311,7 +329,8 @@ func TestStore_Tools_Concurrent(t *testing.T) {
 func TestStore_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
-	store := NewStore()
+	maskService := &mockMaskService{}
+	store := NewStore(maskService)
 
 	// Concurrent register and read
 	done := make(chan bool, 100)

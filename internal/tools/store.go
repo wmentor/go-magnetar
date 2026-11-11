@@ -26,6 +26,10 @@ type Response struct {
 	Errors map[string]string `json:"errors,omitempty"`
 }
 
+type MaskService interface {
+	Process(ctx context.Context, input string) string
+}
+
 // Validatable — интерфейс для ozzo-validation.
 type Validatable interface {
 	Validate() error
@@ -34,13 +38,15 @@ type Validatable interface {
 type ToolFunc func(ctx context.Context, rawJSON []byte) string
 
 type Store struct {
-	tools map[string]Tool
-	mtx   sync.RWMutex
+	tools       map[string]Tool
+	maskService MaskService
+	mtx         sync.RWMutex
 }
 
-func NewStore() *Store {
+func NewStore(maskServ MaskService) *Store {
 	return &Store{
-		tools: make(map[string]Tool),
+		tools:       make(map[string]Tool),
+		maskService: maskServ,
 	}
 }
 
@@ -94,6 +100,11 @@ func (s *Store) Register[T any](name, description string, execFunc func(ctx cont
 			return formatLLMError(map[string]string{"internal_error": err.Error()})
 		}
 
+		if res, ok := bizResult.(*Response); ok {
+			res.Result = s.maskService.Process(ctx, res.Result)
+			bizResult = res
+		}
+
 		successJSON, marshalErr := json.Marshal(bizResult)
 		if marshalErr != nil {
 			return formatLLMError(map[string]string{"internal_error": "failed to marshal response object"})
@@ -140,7 +151,7 @@ func (s *Store) CloneWith(toolNames ...string) (*Store, error) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
-	cloned := NewStore()
+	cloned := NewStore(s.maskService)
 
 	missing := make([]string, 0)
 

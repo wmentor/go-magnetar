@@ -16,6 +16,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/agent/chat"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/mask"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	skillplugin "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/skill"
 	version "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/version"
@@ -105,7 +106,8 @@ func Execute() error {
 
 	printer.Verbose(cfg.Bool("verbose") && root.File == "")
 
-	toolStore := tools.NewStore()
+	maskService := mask.NewService(cfg)
+	toolStore := tools.NewStore(maskService)
 
 	state := &plugin.State{
 		Config:           cfg,
@@ -116,6 +118,7 @@ func Execute() error {
 		RequesterFactory: requester.NewFactory(),
 		Printer:          printer.GetDefault(),
 		AgentStore:       agentStore,
+		MaskService:      maskService,
 	}
 	state.TimingEnabled.Store(root.Timing)
 
@@ -134,7 +137,7 @@ func Execute() error {
 
 	defer plugin.Stop()
 
-	agent, err := chat.New(cfg, rootFS, toolStore)
+	agent, err := chat.New(cfg, rootFS, toolStore, state.MaskService)
 	if err != nil {
 		return err
 	}

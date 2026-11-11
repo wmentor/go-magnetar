@@ -11,6 +11,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/mask"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
@@ -121,9 +122,10 @@ confluence:
 			t.Parallel()
 			cfg := loadConfig(t, tt.yaml)
 			hub := &mockHub{}
+			maskService := mask.NewService(cfg)
 			state := &plugin.State{
 				Config:           cfg,
-				ToolStore:        tools.NewStore(),
+				ToolStore:        tools.NewStore(maskService),
 				RequesterFactory: requester.NewFactory(),
 				Printer:          printer.GetDefault(),
 			}
@@ -153,9 +155,10 @@ confluence:
   readonly: false
 `)
 	hub := &mockHub{}
+	maskService := mask.NewService(cfg)
 	state := &plugin.State{
 		Config:           cfg,
-		ToolStore:        tools.NewStore(),
+		ToolStore:        tools.NewStore(maskService),
 		RequesterFactory: requester.NewFactory(),
 		Printer:          printer.GetDefault(),
 	}
@@ -197,9 +200,10 @@ confluence:
   readonly: false
 `)
 	hub := &mockHub{}
+	maskService := mask.NewService(cfg)
 	state := &plugin.State{
 		Config:           cfg,
-		ToolStore:        tools.NewStore(),
+		ToolStore:        tools.NewStore(maskService),
 		RequesterFactory: requester.NewFactory(),
 		Printer:          printer.GetDefault(),
 	}
@@ -235,9 +239,10 @@ confluence:
   readonly: true
 `)
 	hub := &mockHub{}
+	maskService := mask.NewService(cfg)
 	state := &plugin.State{
 		Config:           cfg,
-		ToolStore:        tools.NewStore(),
+		ToolStore:        tools.NewStore(maskService),
 		RequesterFactory: requester.NewFactory(),
 		Printer:          printer.GetDefault(),
 		ReadOnly:         false, // global flag is false
@@ -300,9 +305,10 @@ confluence:
 			t.Parallel()
 			cfg := loadConfig(t, tt.yaml)
 			hub := &mockHub{}
+			maskService := mask.NewService(cfg)
 			state := &plugin.State{
 				Config:           cfg,
-				ToolStore:        tools.NewStore(),
+				ToolStore:        tools.NewStore(maskService),
 				RequesterFactory: requester.NewFactory(),
 				Printer:          printer.GetDefault(),
 			}
@@ -342,9 +348,10 @@ confluence:
   base_url: https://example.atlassian.net
 `)
 	hub := &mockHub{}
+	maskService := mask.NewService(cfg)
 	state := &plugin.State{
 		Config:           cfg,
-		ToolStore:        tools.NewStore(),
+		ToolStore:        tools.NewStore(maskService),
 		RequesterFactory: requester.NewFactory(),
 		Printer:          printer.GetDefault(),
 	}
@@ -360,7 +367,7 @@ confluence:
 `)
 	state = &plugin.State{
 		Config:           cfg,
-		ToolStore:        tools.NewStore(),
+		ToolStore:        tools.NewStore(maskService),
 		RequesterFactory: requester.NewFactory(),
 		Printer:          printer.GetDefault(),
 	}

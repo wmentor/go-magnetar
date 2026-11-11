@@ -1,0 +1,7 @@
+version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: true

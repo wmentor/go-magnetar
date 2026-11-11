@@ -11,6 +11,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/mask"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/response"
@@ -39,9 +40,10 @@ func TestInitRegistersTool(t *testing.T) {
 	cfg := loadConfig(t, "version: \"1.0\"\n")
 	hub := &mockHub{}
 	responseStore := response.New(plugin.DefaultResponseStoreSize)
+	maskService := mask.NewService(cfg)
 	state := &plugin.State{
 		Config:           cfg,
-		ToolStore:        tools.NewStore(),
+		ToolStore:        tools.NewStore(maskService),
 		RequesterFactory: requester.NewFactory(),
 		Printer:          printer.GetDefault(),
 		ResponseStore:    responseStore,
@@ -64,7 +66,7 @@ func TestToolDefinition(t *testing.T) {
 	responseStore := response.New(plugin.DefaultResponseStoreSize)
 	state := &plugin.State{
 		Config:           cfg,
-		ToolStore:        tools.NewStore(),
+		ToolStore:        tools.NewStore(mask.NewService(cfg)),
 		RequesterFactory: requester.NewFactory(),
 		Printer:          printer.GetDefault(),
 		ResponseStore:    responseStore,
@@ -94,7 +96,7 @@ func TestToolExecute(t *testing.T) {
 	responseStore := response.New(plugin.DefaultResponseStoreSize)
 	state := &plugin.State{
 		Config:           cfg,
-		ToolStore:        tools.NewStore(),
+		ToolStore:        tools.NewStore(mask.NewService(cfg)),
 		RequesterFactory: requester.NewFactory(),
 		Printer:          printer.GetDefault(),
 		ResponseStore:    responseStore,
@@ -135,7 +137,7 @@ func TestToolExecuteInvalidIndex(t *testing.T) {
 	responseStore := response.New(plugin.DefaultResponseStoreSize)
 	state := &plugin.State{
 		Config:           cfg,
-		ToolStore:        tools.NewStore(),
+		ToolStore:        tools.NewStore(mask.NewService(cfg)),
 		RequesterFactory: requester.NewFactory(),
 		Printer:          printer.GetDefault(),
 		ResponseStore:    responseStore,
@@ -166,7 +168,7 @@ func TestToolExecuteInvalidJSON(t *testing.T) {
 	responseStore := response.New(plugin.DefaultResponseStoreSize)
 	state := &plugin.State{
 		Config:           cfg,
-		ToolStore:        tools.NewStore(),
+		ToolStore:        tools.NewStore(mask.NewService(cfg)),
 		RequesterFactory: requester.NewFactory(),
 		Printer:          printer.GetDefault(),
 		ResponseStore:    responseStore,

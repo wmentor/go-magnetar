@@ -10,6 +10,7 @@ include:
   - plugins/github.yml
   - plugins/confluence.yml
   - plugins/gitlab.yml
+  - plugins/mask.yml
   - plugins/rag.yml
   - plugins/guard.yml
   - plugins/ssh.yml

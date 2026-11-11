@@ -65,3 +65,45 @@ The application **cannot be run as root user**. If the current user is `root` (u
 ## Data Residency
 
 See [docs/data_residency.md](./data_residency.md) for complete information about local data processing, Chromem architecture, and privacy guarantees.
+
+## Sensitive Data Masking
+
+go-magnetar automatically masks sensitive data in both user inputs and tool responses to prevent accidental leakage of secrets and personal information.
+
+### How It Works
+
+The built-in `internal/mask.Service` automatically processes:
+
+1. **System prompts** - The initial system prompt is masked before being sent to the LLM
+2. **User inputs** - All user messages are masked before being added to conversation history
+3. **Tool responses** - Results from all tools are masked before being returned to the LLM
+
+### What Gets Masked
+
+The mask service automatically detects and replaces the following patterns:
+
+| Pattern | Replacement |
+|---------|-------------|
+| Email addresses | `[MASKED_EMAIL]` |
+| GitHub tokens | `[GITHUB_TOKEN]` |
+| GitLab tokens | `[GITLAB_TOKEN]` |
+
+### Configuration
+
+Sensitive data masking is enabled by default via the mask plugin. You can configure it in your config file:
+
+```yaml
+mask:
+  enable: true          # Set to false to disable masking (not recommended)
+  skip:
+    email: false        # Set to true to skip email masking
+```
+
+### Important Notes
+
+- **Always enabled**: Masking runs automatically for all inputs and outputs - there's no way to disable it per-request
+- **Non-intrusive**: Masked data is only replaced in the conversation history; original values are never stored
+- **Persists across sessions**: Masked data remains masked even when loading saved conversation sessions
+- **Tool-specific**: Each tool receives its own masked context, ensuring proper isolation
+
+See [Configuration > Mask Plugin](./configuration.md#mask-plugin) for more details on configuring the mask plugin.

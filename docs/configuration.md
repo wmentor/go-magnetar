@@ -125,6 +125,19 @@ All plugins are disabled by default. Enable a plugin by setting `enable: true`:
 | `base_url` | string | GitHub API base URL (default: `https://api.github.com`) |
 | `access_key` | string | GitHub access token |
 
+#### Mask (`mask`)
+
+| Key | Type | Description |
+|---|---|---|
+| `enable` | boolean | Enable/disable automatic sensitive data masking (default: `true`) |
+| `skip.email` | boolean | Skip email address masking (default: `false`) |
+
+The mask plugin automatically redacts sensitive data (email addresses, GitHub tokens, GitLab tokens) from all user inputs and tool responses to prevent accidental data leakage. Masking is applied to system prompts, user messages, and tool results.
+
+These live in `plugins/mask.yml`. Add `plugins/mask.yml` to the `include` list of an existing `config.yml`; new configurations include it already.
+
+See [Security > Sensitive Data Masking](./security.md#sensitive-data-masking) for more details about the masking mechanism.
+
 #### Guard (`guard`)
 
 | Key | Type | Description |

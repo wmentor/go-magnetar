@@ -2,11 +2,15 @@ package fileplugin
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/mask"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/tools"
 )
@@ -23,8 +27,18 @@ func (h *mockHub) Stop()                                        {}
 func newTestState(t *testing.T) *plugin.State {
 	t.Helper()
 
+	// Create temp file for config
+	tmpDir := t.TempDir()
+	configPath := filepath.Join(tmpDir, "config.yml")
+	require.NoError(t, os.WriteFile(configPath, []byte(`version: "1.0"`), 0o644))
+
+	cfg, err := config.Load(configPath)
+	require.NoError(t, err)
+
+	maskService := mask.NewService(cfg)
 	return &plugin.State{
-		ToolStore: tools.NewStore(),
+		Config:    cfg,
+		ToolStore: tools.NewStore(maskService),
 	}
 }
 

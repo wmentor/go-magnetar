@@ -13,6 +13,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/mask"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
@@ -76,8 +77,9 @@ profiles:
 	// Create a mock printer
 	mockPrt := &mockPrinter{}
 
-	// Create a mock tool store
-	toolStore := tools.NewStore()
+	// Create a mock tool store with mask service
+	maskService := mask.NewService(cfg)
+	toolStore := tools.NewStore(maskService)
 
 	// Create a mock requester factory
 	requesterFactory := requester.NewFactory()
@@ -135,8 +137,9 @@ profiles:
 	// Create a mock printer
 	mockPrt := &mockPrinter{}
 
-	// Create a mock tool store
-	toolStore := tools.NewStore()
+	// Create a mock tool store with mask service
+	maskService := mask.NewService(cfg)
+	toolStore := tools.NewStore(maskService)
 
 	// Create a mock requester factory
 	requesterFactory := requester.NewFactory()
@@ -197,8 +200,9 @@ profiles:
 	// Create a mock printer
 	mockPrt := &mockPrinter{}
 
-	// Create a mock tool store
-	toolStore := tools.NewStore()
+	// Create a mock tool store with mask service
+	maskService := mask.NewService(cfg)
+	toolStore := tools.NewStore(maskService)
 
 	// Create a mock requester factory
 	requesterFactory := requester.NewFactory()
@@ -250,8 +254,9 @@ profiles:
 	// Create a mock printer
 	mockPrt := &mockPrinter{}
 
-	// Create a mock tool store
-	toolStore := tools.NewStore()
+	// Create a mock tool store with mask service
+	maskService := mask.NewService(cfg)
+	toolStore := tools.NewStore(maskService)
 
 	// Create a mock requester factory
 	requesterFactory := requester.NewFactory()
@@ -312,8 +317,9 @@ profiles:
 	// Create a mock printer
 	mockPrt := &mockPrinter{}
 
-	// Create a mock tool store
-	toolStore := tools.NewStore()
+	// Create a mock tool store with mask service
+	maskService := mask.NewService(cfg)
+	toolStore := tools.NewStore(maskService)
 
 	// Create a mock requester factory
 	requesterFactory := requester.NewFactory()
