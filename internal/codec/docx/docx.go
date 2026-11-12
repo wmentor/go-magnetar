@@ -391,6 +391,30 @@ func (c *Codec) addTemplateFiles(zipWriter *zip.Writer) error {
 			continue // Skip, we already wrote our own
 		}
 
+		// Replace theme with our own (go-docx uses Chinese fonts which are not widely available)
+		if zf.Name == "word/theme/theme1.xml" {
+			writer, err := zipWriter.Create(zf.Name)
+			if err != nil {
+				return errors.Wrapf(err, "create %q in zip error", zf.Name)
+			}
+			if _, err := writer.Write(generateThemeXML()); err != nil {
+				return errors.Wrapf(err, "write %q error", zf.Name)
+			}
+			continue
+		}
+
+		// Replace fontTable with our own (go-docx includes Chinese fonts like 宋体)
+		if zf.Name == "word/fontTable.xml" {
+			writer, err := zipWriter.Create(zf.Name)
+			if err != nil {
+				return errors.Wrapf(err, "create %q in zip error", zf.Name)
+			}
+			if _, err := writer.Write(generateFontTableXML()); err != nil {
+				return errors.Wrapf(err, "write %q error", zf.Name)
+			}
+			continue
+		}
+
 		rc, err := zf.Open()
 		if err != nil {
 			return errors.Wrapf(err, "open %q in template error", zf.Name)

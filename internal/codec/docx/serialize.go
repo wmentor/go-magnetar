@@ -20,8 +20,8 @@ type Document struct {
 	XMLNSR      string          `xml:"xmlns:r,attr"`
 	XMLNSWP     string          `xml:"xmlns:wp,attr"`
 	Body        Body            `xml:"w:body"`
-	Hyperlinks  []HyperlinkInfo // Track hyperlinks for relationships
-	hyperlinkID int             // Counter for generating unique hyperlink IDs
+	Hyperlinks  []HyperlinkInfo `xml:"-"` // Track hyperlinks for relationships (excluded from XML)
+	hyperlinkID int             `xml:"-"` // Counter for generating unique hyperlink IDs
 }
 
 // HyperlinkInfo stores information about a hyperlink for relationship generation.
