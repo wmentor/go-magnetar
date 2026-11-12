@@ -37,8 +37,11 @@ The mask service automatically detects and replaces the following patterns:
 | Pattern | Replacement |
 |---------|-------------|
 | Email addresses | `[MASKED_EMAIL]` |
-| GitHub tokens | `[GITHUB_TOKEN]` |
-| GitLab tokens | `[GITLAB_TOKEN]` |
+| GitHub tokens | `[MASKED_TOKEN]` |
+| GitLab tokens | `[MASKED_TOKEN]` |
+| Russian passport | `[MASKED_PASSPORT]` |
+| Russian SNILS | `[MASKED_SNILS]` |
+| US Social Security Number (SSN) | `[MASK_SSN]` |
 
 ## Important Notes
 

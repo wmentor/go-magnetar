@@ -9,7 +9,15 @@ import (
 
 const (
 	defaultAlloc = 32
+
+	// ssnPattern matches US Social Security Numbers in the
+	// XXX-XX-XXXX (dashes) and XXX XX XXXX (spaces) formats.
+	ssnPattern = `\b\d{3}[-\s]\d{2}[-\s]\d{4}\b`
+	// ssnMasked is the replacement text used for every detected SSN variant.
+	ssnMasked = "[MASK_SSN]"
 )
+
+var ssnRe = regexp.MustCompile(ssnPattern)
 
 type record struct {
 	name        string
@@ -43,7 +51,16 @@ func NewService(cfg *config.Config) *Service {
 	// SNILS: 123-456-789 01 or 123-456-789-01 (3-3-3-2 format with dashes and optional space)
 	srv.register("snils", `\b\d{3}-\d{3}-\d{3}[-\s]\d{2}\b`, "[MASKED_SNILS]")
 
+	// US Social Security Number: XXX-XX-XXXX or XXX XX XXXX
+	srv.register("ssn", ssnPattern, ssnMasked)
+
 	return srv
+}
+
+// SSN masks every Social Security Number found in input, covering both the
+// XXX-XX-XXXX and XXX XX XXXX formats, replacing each match with [MASK_SSN].
+func SSN(input string) string {
+	return ssnRe.ReplaceAllString(input, ssnMasked)
 }
 
 func (srv *Service) Process(_ context.Context, input string) string {
