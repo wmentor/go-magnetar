@@ -56,9 +56,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 3 records: email, github_token, gitlab_token
-	if len(srv.records) != 3 {
-		t.Errorf("expected 3 records when mask is enabled, got %d", len(srv.records))
+	// Service should have 5 records: email, github_token, gitlab_token, passport, snils
+	if len(srv.records) != 5 {
+		t.Errorf("expected 5 records when mask is enabled, got %d", len(srv.records))
 	}
 }
 
@@ -77,9 +77,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 2 records: github_token, gitlab_token (no email)
-	if len(srv.records) != 2 {
-		t.Errorf("expected 2 records when email is skipped, got %d", len(srv.records))
+	// Service should have 4 records: github_token, gitlab_token, passport, snils (no email)
+	if len(srv.records) != 4 {
+		t.Errorf("expected 4 records when email is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -195,7 +195,7 @@ mask:
     email: false
 `,
 			input: "Token: ghp_" + repeatChar('x', 36),
-			want:  "Token: [GITHUB_TOKEN]",
+			want:  "Token: [MASKED_TOKEN]",
 		},
 		{
 			name: "github token github_pat_",
@@ -208,7 +208,7 @@ mask:
     email: false
 `,
 			input: "Token: github_pat_" + repeatChar('x', 22) + "_" + repeatChar('x', 59),
-			want:  "Token: [GITHUB_TOKEN]",
+			want:  "Token: [MASKED_TOKEN]",
 		},
 		{
 			name: "multiple github tokens",
@@ -221,7 +221,7 @@ mask:
     email: false
 `,
 			input: "ghp_" + repeatChar('x', 36) + " ghp_" + repeatChar('y', 36) + " github_pat_" + repeatChar('a', 22) + "_" + repeatChar('a', 59),
-			want:  "[GITHUB_TOKEN] [GITHUB_TOKEN] [GITHUB_TOKEN]",
+			want:  "[MASKED_TOKEN] [MASKED_TOKEN] [MASKED_TOKEN]",
 		},
 		{
 			name: "no github tokens",
@@ -287,7 +287,7 @@ mask:
     email: false
 `,
 			input: "Token: glpat-" + repeatChar('x', 20),
-			want:  "Token: [GITLAB_TOKEN]",
+			want:  "Token: [MASKED_TOKEN]",
 		},
 		{
 			name: "gitlab token gldt_",
@@ -300,7 +300,7 @@ mask:
     email: false
 `,
 			input: "Token: gldt-" + repeatChar('x', 20),
-			want:  "Token: [GITLAB_TOKEN]",
+			want:  "Token: [MASKED_TOKEN]",
 		},
 		{
 			name: "multiple gitlab tokens",
@@ -313,7 +313,7 @@ mask:
     email: false
 `,
 			input: "glpat-" + repeatChar('a', 20) + " gldt-" + repeatChar('b', 20),
-			want:  "[GITLAB_TOKEN] [GITLAB_TOKEN]",
+			want:  "[MASKED_TOKEN] [MASKED_TOKEN]",
 		},
 		{
 			name: "no gitlab tokens",
@@ -352,7 +352,7 @@ mask:
     email: false
 `,
 			input: "glpat-" + repeatChar('x', 20) + " gldt-" + repeatChar('x', 20) + " glft-" + repeatChar('x', 20) + " gloas-" + repeatChar('x', 20) + " glrt-" + repeatChar('x', 20) + " glptt-" + repeatChar('x', 20) + " glimt-" + repeatChar('x', 20) + " glcbt-" + repeatChar('x', 20) + " glagent-" + repeatChar('x', 20),
-			want:  "[GITLAB_TOKEN] [GITLAB_TOKEN] [GITLAB_TOKEN] [GITLAB_TOKEN] [GITLAB_TOKEN] [GITLAB_TOKEN] [GITLAB_TOKEN] [GITLAB_TOKEN] [GITLAB_TOKEN]",
+			want:  "[MASKED_TOKEN] [MASKED_TOKEN] [MASKED_TOKEN] [MASKED_TOKEN] [MASKED_TOKEN] [MASKED_TOKEN] [MASKED_TOKEN] [MASKED_TOKEN] [MASKED_TOKEN]",
 		},
 	}
 
@@ -432,6 +432,241 @@ mask:
 
 	if got != want {
 		t.Errorf("Process(\"\") = %q, want %q", got, want)
+	}
+}
+
+func TestProcessRussianPassportMasking(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		yaml  string
+		input string
+		want  string
+	}{
+		{
+			name: "passport with space",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "Passport: 1234 567890",
+			want:  "Passport: [MASKED_PASSPORT]",
+		},
+		{
+			name: "passport with dash",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "Passport: 1234-567890",
+			want:  "Passport: [MASKED_PASSPORT]",
+		},
+		{
+			name: "passport with double spaces (11 22 666666 format)",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "Passport: 11 22 666666",
+			want:  "Passport: [MASKED_PASSPORT]",
+		},
+		{
+			name: "multiple passports",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "Passports: 1234 567890, 9876 123456",
+			want:  "Passports: [MASKED_PASSPORT], [MASKED_PASSPORT]",
+		},
+		{
+			name: "no passport",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "No passport here",
+			want:  "No passport here",
+		},
+		{
+			name: "invalid passport (wrong format)",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "Passport: 123 567890",
+			want:  "Passport: 123 567890",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Helper()
+
+			cfg := loadTestConfig(t, tt.yaml)
+			srv := NewService(cfg)
+
+			got := srv.Process(context.Background(), tt.input)
+
+			if got != tt.want {
+				t.Errorf("Process() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestProcessSNILSMasking(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		yaml  string
+		input string
+		want  string
+	}{
+		{
+			name: "snils with space",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "SNILS: 123-456-789 01",
+			want:  "SNILS: [MASKED_SNILS]",
+		},
+		{
+			name: "snils without space",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "SNILS: 123-456-789-01",
+			want:  "SNILS: [MASKED_SNILS]",
+		},
+		{
+			name: "multiple snils",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "SNILS: 123-456-789 01, 987-654-321 99",
+			want:  "SNILS: [MASKED_SNILS], [MASKED_SNILS]",
+		},
+		{
+			name: "no snils",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "No SNILS here",
+			want:  "No SNILS here",
+		},
+		{
+			name: "invalid snils (wrong format)",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "SNILS: 12-456-789 01",
+			want:  "SNILS: 12-456-789 01",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Helper()
+
+			cfg := loadTestConfig(t, tt.yaml)
+			srv := NewService(cfg)
+
+			got := srv.Process(context.Background(), tt.input)
+
+			if got != tt.want {
+				t.Errorf("Process() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestProcessRussianDocumentsMixed(t *testing.T) {
+	t.Parallel()
+
+	yaml := `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`
+
+	cfg := loadTestConfig(t, yaml)
+	srv := NewService(cfg)
+
+	input := `User data:
+Passport: 1234 567890
+SNILS: 123-456-789 01
+Normal text here`
+
+	output := srv.Process(context.Background(), input)
+
+	// Verify all sensitive data is masked
+	if contains(output, "1234 567890") {
+		t.Error("passport was not masked")
+	}
+	if contains(output, "123-456-789 01") {
+		t.Error("snils was not masked")
+	}
+	// Verify non-sensitive text is preserved
+	if !contains(output, "User data:") {
+		t.Error("text 'User data:' was removed")
+	}
+	if !contains(output, "Normal text here") {
+		t.Error("non-sensitive text was removed")
 	}
 }
 
