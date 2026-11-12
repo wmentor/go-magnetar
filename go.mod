@@ -32,7 +32,7 @@ require (
 	github.com/sergi/go-diff v1.4.0
 	github.com/stretchr/testify v1.12.1
 	github.com/wmentor/html v1.0.5
-	github.com/wmentor/iwaread v1.0.0
+	github.com/wmentor/iwaread v1.1.0
 	github.com/xuri/excelize/v2 v2.11.1
 	github.com/yuin/goldmark v1.8.6
 	go.yaml.in/yaml/v3 v3.0.5

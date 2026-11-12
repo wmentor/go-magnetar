@@ -170,8 +170,8 @@ github.com/tiendc/go-deepcopy v1.7.2 h1:Ut2yYR7W9tWjTQitganoIue4UGxZwCcJy3orjrrI
 github.com/tiendc/go-deepcopy v1.7.2/go.mod h1:4bKjNC2r7boYOkD2IOuZpYjmlDdzjbpTRyCx+goBCJQ=
 github.com/wmentor/html v1.0.5 h1:PwYHgoJbLJqfbPgXNKrY7OMc5/v/fzIccw4QC74iR0M=
 github.com/wmentor/html v1.0.5/go.mod h1:pGZ9PUE93dwPL3ahrnX2hiAuXgh8kDGS+mAaL9QdgD4=
-github.com/wmentor/iwaread v1.0.0 h1:SCfc4RTjuJwSI9na3j15A5Cr4BOvLvxiZOc2O1dumDM=
-github.com/wmentor/iwaread v1.0.0/go.mod h1:zkix0Q7fHHvqNMs2PwF6HMf/2GLtm7u3jtflZ8Ekv+o=
+github.com/wmentor/iwaread v1.1.0 h1:N3/BcFzcRFlMlFbHgRItXXipWg28/4AaJ3DudB1x7dc=
+github.com/wmentor/iwaread v1.1.0/go.mod h1:zkix0Q7fHHvqNMs2PwF6HMf/2GLtm7u3jtflZ8Ekv+o=
 github.com/xo/terminfo v1.2.0 h1:d0ZTOCpuGE0lwSAOs0zcJjwz3jWQyqcRt9XbGJpCOl4=
 github.com/xo/terminfo v1.2.0/go.mod h1:lGzkSo8Fe7IRh/w+Gqz7n5mDog4FVXCj3gy/DYTBqio=
 github.com/xuri/efp v0.0.3-0.20260924042702-217b81952dec h1:sZZokRLgr8nyrzkDDCQcvEYBsTrZr6eqXa/R9qALoQA=
