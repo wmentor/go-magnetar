@@ -65,7 +65,7 @@ install: build
 setup/tools:
 	@echo "Installing development tools..."
 	@go install gotest.tools/gotestsum@latest
-	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
+	@go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
 	@go install golang.org/x/vuln/cmd/govulncheck@latest
 	@go install github.com/vektra/mockery/v3@v3.8.1
 	@go install github.com/goreleaser/goreleaser/v2@latest

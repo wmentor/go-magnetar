@@ -9,7 +9,7 @@ This document describes all available Makefile targets for go-magnetar.
 Install all development tools required for working on go-magnetar into `$(go env GOPATH)/bin`:
 
 - **gotestsum** (`gotest.tools/gotestsum@latest`) — improved test output used by `make test`
-- **golangci-lint** (`github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0`) — matches CI `GOLANGCI_LINT_VERSION`, used by `make check/lint`
+- **golangci-lint** (`github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0`) — matches CI `GOLANGCI_LINT_VERSION`, used by `make check/lint`
 - **govulncheck** (`golang.org/x/vuln/cmd/govulncheck@latest`) — vulnerability scanner used in CI
 - **mockery** (`github.com/vektra/mockery/v3@v3.8.1`) — mock generation used by `make generate`
 - **goreleaser** (`github.com/goreleaser/goreleaser/v2@latest`) — optional release builder

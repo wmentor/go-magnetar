@@ -6,7 +6,7 @@ Prefer installing all of these at once with:
 make setup/tools
 ```
 
-That target runs `go install` for gotestsum, golangci-lint v2.14.0 (matching CI), govulncheck, mockery, goreleaser, lefthook, gci, and gofumpt into `$(go env GOPATH)/bin`. Manual installs below remain available if you only need one tool.
+That target runs `go install` for gotestsum, golangci-lint v2.15.0 (matching CI), govulncheck, mockery, goreleaser, lefthook, gci, and gofumpt into `$(go env GOPATH)/bin`. Manual installs below remain available if you only need one tool.
 
 ## gotestsum
 
@@ -42,10 +42,10 @@ go install github.com/vektra/mockery/v3@v3.8.1
 
 golangci-lint is used for linting Go code. Run via `make check/lint`.
 
-Install golangci-lint v2.14.0 (matches CI `GOLANGCI_LINT_VERSION`):
+Install golangci-lint v2.15.0 (matches CI `GOLANGCI_LINT_VERSION`):
 
 ```bash
-go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
+go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
 ```
 
 Or download from [GitHub Releases](https://github.com/golangci/golangci-lint/releases).
