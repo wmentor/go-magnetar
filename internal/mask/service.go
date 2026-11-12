@@ -43,7 +43,22 @@ func NewService(cfg *config.Config) *Service {
 	// SNILS: 123-456-789 01 or 123-456-789-01 (3-3-3-2 format with dashes and optional space)
 	srv.register("snils", `\b\d{3}-\d{3}-\d{3}[-\s]\d{2}\b`, "[MASKED_SNILS]")
 
+	// US Social Security Number: XXX-XX-XXXX or XXX XX XXXX
+	srv.register("ssn", ssnPattern, MaskSSN)
+
 	return srv
+}
+
+const (
+	MaskSSN    = "[MASK_SSN]"
+	ssnPattern = `\b\d{3}[-\s]\d{2}[-\s]\d{4}\b`
+)
+
+var ssnRegex = regexp.MustCompile(ssnPattern)
+
+// SSN detects and masks Social Security Number (SSN) patterns in text with [MASK_SSN].
+func SSN(input string) string {
+	return ssnRegex.ReplaceAllString(input, MaskSSN)
 }
 
 func (srv *Service) Process(_ context.Context, input string) string {
