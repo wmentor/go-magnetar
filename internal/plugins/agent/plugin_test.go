@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/http/requester/testdata"
 	"github.com/wmentor/go-magnetar/internal/mask"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
@@ -82,7 +82,7 @@ func createTestState(t *testing.T) *plugin.State {
 
 	// Create printer and request factory for tests
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := testdata.NewClientFactory(t)
 	maskService := mask.NewService(cfgLoaded)
 
 	// Create mock agent store with test agents
@@ -216,7 +216,7 @@ func TestPlugin_InitNoAgents(t *testing.T) {
 	require.NoError(t, err)
 
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := testdata.NewClientFactory(t)
 	maskService := mask.NewService(cfgLoaded)
 
 	// Create empty agent store

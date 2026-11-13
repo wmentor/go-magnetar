@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/http/requester/testdata"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/response"
@@ -36,7 +36,7 @@ func newTestTools(t *testing.T) *Tool {
 
 	// Create a valid printer and request factory for tests
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := testdata.NewClientFactory(t)
 	return New(cfg, p, clientFactory, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
 }
 
@@ -98,7 +98,7 @@ func TestSSHExecReadOnlyMode(t *testing.T) {
 
 	// Create a valid printer and request factory for tests
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := testdata.NewClientFactory(t)
 	g := New(cfg, p, clientFactory, rootFS, &plugin.State{Config: cfg, ReadOnly: true, ResponseStore: responseStore})
 
 	params := &SSHParams{
@@ -136,7 +136,7 @@ func TestSSHExecDisabled(t *testing.T) {
 
 	// Create a valid printer and request factory for tests
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := testdata.NewClientFactory(t)
 	g := New(cfg, p, clientFactory, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
 
 	params := &SSHParams{

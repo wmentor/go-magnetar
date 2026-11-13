@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/http/requester/testdata"
 	"github.com/wmentor/go-magnetar/internal/mask"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
@@ -99,7 +99,7 @@ rag:
 
 	// Create printer and request factory for tests
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := testdata.NewClientFactory(t)
 	maskService := mask.NewService(cfgLoaded)
 
 	return &plugin.State{
@@ -171,7 +171,7 @@ rag:
 	require.NoError(t, err)
 
 	// Create printer and request factory for tests
-	clientFactory := requester.NewFactory()
+	clientFactory := testdata.NewClientFactory(t)
 	maskService := mask.NewService(cfgLoaded)
 
 	state = &plugin.State{

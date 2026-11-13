@@ -9,31 +9,13 @@ import (
 	"testing"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/http/requester/testdata"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/response"
 	"github.com/wmentor/go-magnetar/internal/tools"
 	"github.com/wmentor/go-magnetar/internal/types"
 )
-
-func newTestTools(t *testing.T, yaml string, readOnly bool) *Tool {
-	t.Helper()
-
-	path := filepath.Join(t.TempDir(), "config.yml")
-	if err := os.WriteFile(path, []byte("version: \"1.0\"\n"+yaml), 0o600); err != nil {
-		t.Fatal(err)
-	}
-
-	cfg, err := config.Load(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	responseStore := response.New(plugin.DefaultResponseStoreSize)
-
-	return New(cfg, nil, nil, nil, &plugin.State{Config: cfg, ReadOnly: readOnly, ResponseStore: responseStore})
-}
 
 func gzipCompress(t *testing.T, data []byte) []byte {
 	t.Helper()
@@ -397,6 +379,6 @@ func newTestToolsWithRoot(t *testing.T) (*Tool, *os.Root) {
 	responseStore := response.New(plugin.DefaultResponseStoreSize)
 	// Create a valid printer and request factory for tests
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := testdata.NewClientFactory(t)
 	return New(cfg, p, clientFactory, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore}), rootFS
 }

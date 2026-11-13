@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/http/requester/testdata"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
 )
@@ -13,7 +13,7 @@ var uuidV4Pattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[8
 
 func TestExec(t *testing.T) {
 	t.Parallel()
-	tool := New(nil, printer.GetDefault(), requester.NewFactory(), nil, nil)
+	tool := New(nil, printer.GetDefault(), testdata.NewClientFactory(t), nil, nil)
 	tests := []struct {
 		name   string
 		params *SystemUUIDParams

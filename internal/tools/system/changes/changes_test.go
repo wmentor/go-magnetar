@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/http/requester/testdata"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/response"
@@ -38,7 +38,7 @@ func newTestTool(t *testing.T) *Tool {
 
 	responseStore := response.New(plugin.DefaultResponseStoreSize)
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := testdata.NewClientFactory(t)
 	return New(cfg, p, clientFactory, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
 }
 
@@ -124,7 +124,7 @@ func TestLocalChangesSuccess(t *testing.T) {
 
 	responseStore := response.New(plugin.DefaultResponseStoreSize)
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := testdata.NewClientFactory(t)
 	g := New(cfg, p, clientFactory, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
 
 	result, err := g.Exec(t.Context(), &Params{})

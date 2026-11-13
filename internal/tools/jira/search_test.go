@@ -173,7 +173,7 @@ jira:
 			printer := printer.New(&buf, true)
 
 			// Create tool
-			tool := NewSearchTool(config, printer, requester.NewFactory())
+			tool := NewSearchTool(config, printer, requester.NewFactory(config))
 
 			// Create params
 			params := &JiraTaskSearchParams{
@@ -222,7 +222,7 @@ jira:
 	printer := printer.New(&buf, true)
 
 	// Create factory
-	factory := requester.NewFactory()
+	factory := requester.NewFactory(config)
 
 	// Create tool
 	tool := NewSearchTool(config, printer, factory)
@@ -302,7 +302,7 @@ jira:
 	printer := printer.New(&buf, true)
 
 	// Create factory
-	factory := requester.NewFactory()
+	factory := requester.NewFactory(config)
 
 	// Create tool
 	tool := NewSearchTool(config, printer, factory)
@@ -336,7 +336,7 @@ jira:
 	printer := printer.New(&buf, true)
 
 	// Create factory
-	factory := requester.NewFactory()
+	factory := requester.NewFactory(config)
 
 	// Create tool
 	tool := NewSearchTool(config, printer, factory)
