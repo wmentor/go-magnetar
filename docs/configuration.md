@@ -132,7 +132,7 @@ All plugins are disabled by default. Enable a plugin by setting `enable: true`:
 | `enable` | boolean | Enable/disable automatic sensitive data masking (default: `true`) |
 | `skip.email` | boolean | Skip email address masking (default: `false`) |
 
-The mask plugin automatically redacts sensitive data (email addresses, GitHub tokens, GitLab tokens) from all user inputs and tool responses to prevent accidental data leakage. Masking is applied to system prompts, user messages, and tool results.
+The mask plugin automatically redacts sensitive data (email addresses, GitHub tokens, GitLab tokens, Russian passports, Russian SNILS, US Social Security Numbers) from all user inputs and tool responses to prevent accidental data leakage. Masking is applied to system prompts, user messages, and tool results.
 
 These live in `plugins/mask.yml`. Add `plugins/mask.yml` to the `include` list of an existing `config.yml`; new configurations include it already.
 
