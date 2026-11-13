@@ -26,6 +26,23 @@ go-magnetar provides several built-in chat commands accessible from the interact
 | `/skill` | `/sk` | List available skills or load/activate a skill |
 | `/agent [agent_name] [request]` | — | List available subagents or switch to a named subagent |
 
+## Shell Command Direct Execution
+
+If your message starts with a shell command (e.g., `ls`, `git`, `cat`, `grep`), the agent automatically detects it and executes it in your shell without requiring the `/exec` prefix. This allows you to combine the chat interface with your terminal interpreter without switching contexts.
+
+**Examples:**
+```
+> ls -la
+> git status
+> grep pattern file.txt
+> cat config.yml
+```
+
+This feature works seamlessly with the agent's tool calling capabilities, enabling you to:
+- Execute shell commands naturally in your conversation flow
+- Combine shell commands with RAG search and other tools
+- Avoid context switching between chat and terminal
+
 ## /agent Command
 
 Run `/agent` without arguments to list enabled subagents from the agent store.

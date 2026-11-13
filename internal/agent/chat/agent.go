@@ -1,12 +1,14 @@
 package chat
 
 import (
+	"bytes"
 	"context"
 	_ "embed"
 	"errors"
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -595,8 +597,41 @@ func (a *ChatAgent) printAnswer(state *plugin.State, answer string, noLog bool) 
 // handleCommand processes a slash-command entered by the user.
 // Returns (*plugin.ChatCommandResponse, error).
 func (a *ChatAgent) handleCommand(line string, knownCommands []plugin.ChatCommand) (*plugin.ChatCommandResponse, error) {
+	trimLine := strings.TrimSpace(line)
+
+	if !strings.HasPrefix(line, "/") && trimLine != "exit" && trimLine != "quit" {
+		parts := strings.SplitN(trimLine, " ", 2)
+		name := parts[0]
+
+		if _, err := exec.LookPath(name); err != nil {
+			return nil, plugin.ErrNoCommand
+		}
+
+		cmd := exec.CommandContext(context.Background(), "/bin/sh", "-c", line)
+		buffer := bytes.NewBuffer(nil)
+
+		sout := io.MultiWriter(os.Stdout, buffer)
+		serr := io.MultiWriter(os.Stderr, buffer)
+
+		cmd.Stdout = sout
+		cmd.Stderr = serr
+
+		err := cmd.Run()
+		if err != nil {
+			if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
+				fmt.Fprintf(sout, "\n[Exit code: %d]\n", exitErr.ExitCode())
+			} else {
+				fmt.Fprintf(sout, "\n[Error: %v]\n", err)
+			}
+		}
+
+		fmt.Println("")
+
+		return plugin.NopChatCommandResponse, nil
+	}
+
 	// Strip leading "/" and split into name + args.
-	trimmed := strings.TrimPrefix(strings.TrimSpace(line), "/")
+	trimmed := strings.TrimPrefix(trimLine, "/")
 	parts := strings.SplitN(trimmed, " ", 2)
 	name := strings.ToLower(parts[0])
 	args := ""

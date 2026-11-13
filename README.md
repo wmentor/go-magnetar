@@ -275,6 +275,7 @@ The agent will now search the knowledge base before answering any question.
 | `/confluence.edit <url> <content>` | — | Edit a Confluence page by URL with Markdown content |
 | `/idxtab <file>` | — | Index multiple documents from a JSON lines file |
 | `/session.save <file>` | — | Save conversation to a JSON file |
+| `<shell command>` | — | If your message starts with a shell command (e.g., `ls`, `git`, `cat`), the agent automatically detects it and executes it in your shell, allowing you to combine the chat interface with your terminal interpreter without switching contexts |
 
 Use **↑/↓** arrow keys to navigate command history (stored in `~/.go-magnetar-history.json`).
 
