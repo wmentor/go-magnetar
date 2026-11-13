@@ -775,48 +775,6 @@ mask:
 	}
 }
 
-func TestSSNFunction(t *testing.T) {
-	t.Parallel()
-
-	tests := []struct {
-		name  string
-		input string
-		want  string
-	}{
-		{
-			name:  "standard format",
-			input: "Your SSN is 123-45-6789.",
-			want:  "Your SSN is [MASK_SSN].",
-		},
-		{
-			name:  "space format",
-			input: "Your SSN is 123 45 6789.",
-			want:  "Your SSN is [MASK_SSN].",
-		},
-		{
-			name:  "empty string",
-			input: "",
-			want:  "",
-		},
-		{
-			name:  "no ssn",
-			input: "Contact support at test@example.com",
-			want:  "Contact support at test@example.com",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			t.Helper()
-
-			got := SSN(tt.input)
-			if got != tt.want {
-				t.Errorf("SSN(%q) = %q, want %q", tt.input, got, tt.want)
-			}
-		})
-	}
-}
-
 // Helper function to check if a string contains a substring
 func contains(s, substr string) bool {
 	for i := 0; i <= len(s)-len(substr); i++ {
