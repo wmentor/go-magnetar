@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/http/requester/testdata"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
@@ -62,7 +62,7 @@ func TestTool_Exec(t *testing.T) {
 
 	// Create a valid printer and request factory for tests
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := testdata.NewClientFactory(t)
 
 	// Create a mock agent store
 	agentStore := &mockAgentStore{
@@ -162,7 +162,7 @@ func TestTool_Name(t *testing.T) {
 	}
 
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := testdata.NewClientFactory(t)
 	agentStore := &mockAgentStore{agents: make(map[string]*plugin.Agent)}
 
 	state := &plugin.State{
@@ -218,7 +218,7 @@ func TestTool_Description(t *testing.T) {
 	}
 
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := testdata.NewClientFactory(t)
 
 	agentStore := &mockAgentStore{
 		agents: map[string]*plugin.Agent{

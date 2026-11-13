@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/http/requester/testdata"
 	"github.com/wmentor/go-magnetar/internal/mask"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
@@ -82,7 +82,7 @@ profiles:
 	toolStore := tools.NewStore(maskService)
 
 	// Create a mock requester factory
-	requesterFactory := requester.NewFactory()
+	requesterFactory := testdata.NewClientFactory(t)
 
 	// Create the plugin state with all dependencies
 	state := &plugin.State{
@@ -142,7 +142,7 @@ profiles:
 	toolStore := tools.NewStore(maskService)
 
 	// Create a mock requester factory
-	requesterFactory := requester.NewFactory()
+	requesterFactory := testdata.NewClientFactory(t)
 
 	// Create the plugin state
 	state := &plugin.State{
@@ -205,7 +205,7 @@ profiles:
 	toolStore := tools.NewStore(maskService)
 
 	// Create a mock requester factory
-	requesterFactory := requester.NewFactory()
+	requesterFactory := testdata.NewClientFactory(t)
 
 	// Create the plugin state
 	state := &plugin.State{
@@ -259,7 +259,7 @@ profiles:
 	toolStore := tools.NewStore(maskService)
 
 	// Create a mock requester factory
-	requesterFactory := requester.NewFactory()
+	requesterFactory := testdata.NewClientFactory(t)
 
 	// Create the plugin state
 	state := &plugin.State{
@@ -322,7 +322,7 @@ profiles:
 	toolStore := tools.NewStore(maskService)
 
 	// Create a mock requester factory
-	requesterFactory := requester.NewFactory()
+	requesterFactory := testdata.NewClientFactory(t)
 
 	// Create the plugin state
 	state := &plugin.State{

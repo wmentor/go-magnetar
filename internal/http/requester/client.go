@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"sync/atomic"
 	"time"
+
+	"github.com/wmentor/go-magnetar/internal/config"
 )
 
 const (
@@ -95,11 +97,15 @@ func GetFailedRequests() int64 {
 	return failedRequests.Load()
 }
 
-func NewFactory() ClientFactory {
-	return &factory{}
+func NewFactory(cfg *config.Config) ClientFactory {
+	return &factory{
+		cfg: cfg,
+	}
 }
 
-type factory struct{}
+type factory struct {
+	cfg *config.Config
+}
 
 func (f *factory) Get() Client {
 	return agent

@@ -136,7 +136,7 @@ confluence:
 	p := printer.GetDefault()
 
 	// Create client factory
-	clientFactory := requester.NewFactory()
+	clientFactory := requester.NewFactory(cfg)
 
 	// Create search tool
 	tool := NewSearchTool(cfg, p, clientFactory)

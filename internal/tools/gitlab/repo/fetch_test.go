@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/http/requester/testdata"
 	"github.com/wmentor/go-magnetar/internal/printer"
 )
 
@@ -22,7 +22,7 @@ func TestGitLabRepoNew(t *testing.T) {
 		t.Fatal(err)
 	}
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := testdata.NewClientFactory(t)
 
 	tool := New(cfg, p, clientFactory)
 	if tool == nil {
@@ -50,7 +50,7 @@ func TestGitLabRepoParamsValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := testdata.NewClientFactory(t)
 
 	tool := New(cfg, p, clientFactory)
 

@@ -22,7 +22,7 @@ func TestGet(t *testing.T) {
 func TestNewFactory(t *testing.T) {
 	t.Parallel()
 
-	factory := requester.NewFactory()
+	factory := requester.NewFactory(nil)
 	require.NotNil(t, factory)
 
 	// Verify that factory implements ClientFactory interface
@@ -32,7 +32,7 @@ func TestNewFactory(t *testing.T) {
 func TestFactory_Get(t *testing.T) {
 	t.Parallel()
 
-	factory := requester.NewFactory()
+	factory := requester.NewFactory(nil)
 
 	// Test that Get() returns a non-nil client
 	client := factory.Get()
@@ -58,7 +58,7 @@ func TestFactory_Get(t *testing.T) {
 func TestFactory_Put(t *testing.T) {
 	t.Parallel()
 
-	factory := requester.NewFactory()
+	factory := requester.NewFactory(nil)
 
 	// Test that Put() does not panic
 	client := factory.Get()

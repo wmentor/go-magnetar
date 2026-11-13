@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/http/requester/testdata"
 	"github.com/wmentor/go-magnetar/internal/mask"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
@@ -53,7 +53,7 @@ func createTestState(t *testing.T, configYaml string, enableGithub bool) *plugin
 
 	// Create printer and request factory for tests
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := testdata.NewClientFactory(t)
 	maskService := mask.NewService(cfg)
 
 	return &plugin.State{
@@ -158,7 +158,7 @@ func TestPlugin_Init_MissingGitHubSection(t *testing.T) {
 
 	// Create printer and request factory for tests
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := testdata.NewClientFactory(t)
 	maskService := mask.NewService(cfgLoaded)
 
 	state := &plugin.State{
@@ -197,7 +197,7 @@ github:
 
 	// Create printer and request factory for tests
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := testdata.NewClientFactory(t)
 	maskService := mask.NewService(cfgLoaded)
 
 	state := &plugin.State{

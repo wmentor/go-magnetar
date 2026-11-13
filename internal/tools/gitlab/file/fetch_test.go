@@ -29,7 +29,7 @@ func TestGitLabFileNew(t *testing.T) {
 		t.Fatal(err)
 	}
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := requester.NewFactory(cfg)
 
 	tool := New(cfg, p, clientFactory)
 	if tool == nil {
@@ -58,7 +58,7 @@ func TestGitLabFileParamsValidation(t *testing.T) {
 		t.Fatal(err)
 	}
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := requester.NewFactory(cfg)
 
 	tool := New(cfg, p, clientFactory)
 
@@ -132,7 +132,7 @@ gitlab:
 	}
 
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := requester.NewFactory(cfg)
 	tool := New(cfg, p, clientFactory)
 
 	// Test params
@@ -208,7 +208,7 @@ gitlab:
 	}
 
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := requester.NewFactory(cfg)
 	tool := New(cfg, p, clientFactory)
 
 	// Test params
@@ -286,7 +286,7 @@ gitlab:
 	}
 
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := requester.NewFactory(cfg)
 	tool := New(cfg, p, clientFactory)
 
 	// Test params without branch (should default to 'main')
@@ -337,7 +337,7 @@ gitlab:
 	}
 
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := requester.NewFactory(cfg)
 	tool := New(cfg, p, clientFactory)
 
 	params := &GitLabFileParams{
@@ -393,7 +393,7 @@ gitlab:
 	}
 
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := requester.NewFactory(cfg)
 	tool := New(cfg, p, clientFactory)
 
 	params := &GitLabFileParams{
@@ -449,7 +449,7 @@ gitlab:
 	}
 
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := requester.NewFactory(cfg)
 	tool := New(cfg, p, clientFactory)
 
 	params := &GitLabFileParams{
@@ -493,7 +493,7 @@ gitlab:
 	}
 
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := requester.NewFactory(cfg)
 	tool := New(cfg, p, clientFactory)
 
 	params := &GitLabFileParams{
@@ -536,7 +536,7 @@ gitlab:
 	}
 
 	p := printer.GetDefault()
-	clientFactory := requester.NewFactory()
+	clientFactory := requester.NewFactory(cfg)
 	tool := New(cfg, p, clientFactory)
 
 	params := &GitLabFileParams{

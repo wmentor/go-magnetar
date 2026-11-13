@@ -115,7 +115,7 @@ func Execute() error {
 		SkillStore:       skillStore,
 		ResponseStore:    responseStore,
 		ToolStore:        toolStore,
-		RequesterFactory: requester.NewFactory(),
+		RequesterFactory: requester.NewFactory(cfg),
 		Printer:          printer.GetDefault(),
 		AgentStore:       agentStore,
 		MaskService:      maskService,

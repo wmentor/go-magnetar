@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/http/requester/testdata"
 	"github.com/wmentor/go-magnetar/internal/mask"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
@@ -126,7 +126,7 @@ confluence:
 			state := &plugin.State{
 				Config:           cfg,
 				ToolStore:        tools.NewStore(maskService),
-				RequesterFactory: requester.NewFactory(),
+				RequesterFactory: testdata.NewClientFactory(t),
 				Printer:          printer.GetDefault(),
 			}
 			err := (&Plugin{}).Init(state, hub)
@@ -159,7 +159,7 @@ confluence:
 	state := &plugin.State{
 		Config:           cfg,
 		ToolStore:        tools.NewStore(maskService),
-		RequesterFactory: requester.NewFactory(),
+		RequesterFactory: testdata.NewClientFactory(t),
 		Printer:          printer.GetDefault(),
 	}
 	err := (&Plugin{}).Init(state, hub)
@@ -204,7 +204,7 @@ confluence:
 	state := &plugin.State{
 		Config:           cfg,
 		ToolStore:        tools.NewStore(maskService),
-		RequesterFactory: requester.NewFactory(),
+		RequesterFactory: testdata.NewClientFactory(t),
 		Printer:          printer.GetDefault(),
 	}
 	err := (&Plugin{}).Init(state, hub)
@@ -243,7 +243,7 @@ confluence:
 	state := &plugin.State{
 		Config:           cfg,
 		ToolStore:        tools.NewStore(maskService),
-		RequesterFactory: requester.NewFactory(),
+		RequesterFactory: testdata.NewClientFactory(t),
 		Printer:          printer.GetDefault(),
 		ReadOnly:         false, // global flag is false
 	}
@@ -309,7 +309,7 @@ confluence:
 			state := &plugin.State{
 				Config:           cfg,
 				ToolStore:        tools.NewStore(maskService),
-				RequesterFactory: requester.NewFactory(),
+				RequesterFactory: testdata.NewClientFactory(t),
 				Printer:          printer.GetDefault(),
 			}
 			err := (&Plugin{}).Init(state, hub)
@@ -352,7 +352,7 @@ confluence:
 	state := &plugin.State{
 		Config:           cfg,
 		ToolStore:        tools.NewStore(maskService),
-		RequesterFactory: requester.NewFactory(),
+		RequesterFactory: testdata.NewClientFactory(t),
 		Printer:          printer.GetDefault(),
 	}
 	err := (&Plugin{}).Init(state, hub)
@@ -368,7 +368,7 @@ confluence:
 	state = &plugin.State{
 		Config:           cfg,
 		ToolStore:        tools.NewStore(maskService),
-		RequesterFactory: requester.NewFactory(),
+		RequesterFactory: testdata.NewClientFactory(t),
 		Printer:          printer.GetDefault(),
 	}
 	err = (&Plugin{}).Init(state, hub)
