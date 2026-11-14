@@ -23,6 +23,7 @@ go-magnetar provides several built-in chat commands accessible from the interact
 | `/session.save` | — | Save current conversation session to a file |
 | `/profile` | — | Show current profile or switch to a different profile |
 | `/timing` | — | Toggle execution time display (on\|off) |
+| `/tools` | `/t` | List all available tools and their descriptions |
 | `/skill` | `/sk` | List available skills or load/activate a skill |
 | `/agent [agent_name] [request]` | — | List available subagents or switch to a named subagent |
 
@@ -343,6 +344,20 @@ Timing is displayed after each response as a single line:
 Duration is Go's `time.Duration` text:
 - rounded to the millisecond below 10 seconds (`850ms`, `1.234s`)
 - rounded to the second from 10 seconds up (`12s`, `1m16s`)
+
+## /tools Command
+
+Run `/tools` (or alias `/t`) without arguments to list all registered tools with their names and descriptions:
+
+```
+> /tools
+Available tools:
+  * confluence_page_get - Get content of Confluence page by ID
+  * file_read - Read file content
+  * web_search - Search web using DuckDuckGo
+```
+
+Tools are sorted alphabetically by their name for easy discovery.
 
 ## Command Syntax
 
