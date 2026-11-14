@@ -45,6 +45,10 @@ const (
 	// charsPerToken is a rough approximation used for context-window budget estimation.
 	// OpenAI models average ~4 UTF-8 characters per token.
 	charsPerToken = 4
+
+	// doubleTabInterval is the maximum time between two Tab presses to trigger
+	// showing completion suggestions (like bash/zsh double-tab behavior).
+	doubleTabInterval = 500 * time.Millisecond
 )
 
 // projectContextFiles lists project context files in priority order; the first one found is loaded.
@@ -490,9 +494,12 @@ func loadHistory() {
 // inputModel is a minimal bubbletea model used solely to collect one line of
 // user input with a styled prompt.
 type inputModel struct {
-	input textinput.Model
-	done  bool
-	quit  bool
+	input       textinput.Model
+	done        bool
+	quit        bool
+	suggestions []string
+	lastTabTime time.Time
+	commands    []plugin.ChatCommand
 }
 
 var (
@@ -512,7 +519,7 @@ func getTerminalWidth() int {
 	return width
 }
 
-func newInputModel() inputModel {
+func newInputModel(commands []plugin.ChatCommand) inputModel {
 	ti := textinput.New()
 	ti.Placeholder = "Ask anything... (Enter to submit)"
 	ti.PlaceholderStyle = lipgloss.NewStyle().Faint(true)
@@ -520,7 +527,7 @@ func newInputModel() inputModel {
 	ti.Focus()
 	ti.CharLimit = 0
 	ti.Width = getTerminalWidth() - len(promptSymbol) - 2
-	return inputModel{input: ti}
+	return inputModel{input: ti, commands: commands}
 }
 
 func (m inputModel) Init() tea.Cmd {
@@ -533,6 +540,7 @@ func (m *inputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.Type { //nolint:exhaustive // ok.
 		case tea.KeyEnter:
 			m.done = true
+			m.suggestions = nil
 			text := m.input.Value()
 			if text != "" {
 				history.Add(text)
@@ -540,14 +548,17 @@ func (m *inputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		case tea.KeyCtrlC, tea.KeyCtrlD:
 			m.quit = true
+			m.suggestions = nil
 			return m, tea.Quit
 		case tea.KeyUp:
+			m.suggestions = nil
 			if record := history.Prev(); record != "" {
 				m.input.SetValue(record)
 				m.input.CursorEnd()
 			}
 			return m, nil
 		case tea.KeyDown:
+			m.suggestions = nil
 			if record := history.Next(); record != "" {
 				m.input.SetValue(record)
 				m.input.CursorEnd()
@@ -555,6 +566,12 @@ func (m *inputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.input.SetValue("")
 			}
 			return m, nil
+		case tea.KeyTab:
+			m.handleTabCompletion()
+			return m, nil
+		default:
+			// Clear suggestions on any other key press
+			m.suggestions = nil
 		}
 	}
 	var cmd tea.Cmd
@@ -563,12 +580,434 @@ func (m *inputModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m *inputModel) View() string {
-	return m.input.View()
+	var view strings.Builder
+	view.WriteString(m.input.View())
+
+	// Render suggestions below the input if there are any
+	if len(m.suggestions) > 0 {
+		view.WriteString("\n")
+		for _, suggestion := range m.suggestions {
+			view.WriteString("  " + suggestion + "\n")
+		}
+	}
+
+	return view.String()
+}
+
+// handleTabCompletion provides shell command completion when Tab is pressed.
+// For chat commands (starting with /), it completes command names and file paths for arguments.
+// For regular commands, it completes executable names from PATH for the first word.
+// For subsequent words, it completes file paths.
+// Double Tab (within 500ms) shows all available completion suggestions.
+func (m *inputModel) handleTabCompletion() {
+	now := time.Now()
+
+	// Check if this is a double-tab (second tab within interval)
+	isDoubleTab := !m.lastTabTime.IsZero() && now.Sub(m.lastTabTime) < doubleTabInterval && len(m.suggestions) > 0
+
+	// If double-tab and we have suggestions, just show them (they're already set)
+	if isDoubleTab {
+		m.lastTabTime = time.Time{} // Reset to prevent third tab from showing again
+		return
+	}
+
+	text := m.input.Value()
+	if text == "" {
+		m.suggestions = nil
+		return
+	}
+
+	// Check if we're completing a chat command (starts with /)
+	if strings.HasPrefix(text, "/") {
+		m.handleChatCommandCompletion(text)
+		m.lastTabTime = now
+		return
+	}
+
+	// Check if we're completing the first word (executable) or subsequent words (file paths)
+	endsWithSpace := len(text) > 0 && text[len(text)-1] == ' '
+	parts := strings.Fields(text)
+
+	// Determine if we're completing the first word (command name)
+	completingFirstWord := len(parts) == 0 || (len(parts) == 1 && !endsWithSpace)
+
+	var prefix string
+	var completions []string
+
+	if completingFirstWord {
+		// Complete executable name from PATH
+		if len(parts) == 1 {
+			prefix = parts[0]
+		}
+		completions = completeExecutable(prefix)
+	} else {
+		// Complete file path for the current word
+		if endsWithSpace {
+			prefix = ""
+		} else if len(parts) > 0 {
+			prefix = parts[len(parts)-1]
+		}
+		completions = completeFilePath(prefix)
+	}
+
+	// Save completions as suggestions for potential double-tab
+	m.suggestions = completions
+	m.lastTabTime = now
+
+	// Apply the completion
+	if len(completions) == 1 { //nolint:nestif // later.
+		completion := completions[0]
+
+		// For file paths, append "/" if it's a directory, " " if it's a file
+		if !completingFirstWord {
+			// Expand ~ for stat check
+			statPath := completion
+			if strings.HasPrefix(completion, "~") {
+				if expanded, err := expandTilde(completion); err == nil {
+					statPath = expanded
+				}
+			}
+			if info, err := os.Stat(statPath); err == nil {
+				if info.IsDir() && !strings.HasSuffix(completion, string(filepath.Separator)) {
+					completion += string(filepath.Separator)
+				} else if !info.IsDir() {
+					completion += " "
+				}
+			}
+		} else {
+			// For executables, just add a space
+			completion += " "
+		}
+
+		if completingFirstWord {
+			if endsWithSpace || len(parts) == 0 {
+				m.input.SetValue(text + completion)
+			} else {
+				m.input.SetValue(completion)
+			}
+		} else {
+			if endsWithSpace {
+				m.input.SetValue(text + completion)
+			} else {
+				// Replace the last word
+				parts[len(parts)-1] = completion
+				m.input.SetValue(strings.Join(parts, " "))
+			}
+		}
+		m.input.CursorEnd()
+		m.suggestions = nil // Single completion, no need to show suggestions
+	} else if len(completions) > 1 {
+		// Multiple completions - find and apply common prefix
+		commonPrefix := findCommonPrefix(completions)
+		if commonPrefix != "" && commonPrefix != prefix {
+			if completingFirstWord {
+				if endsWithSpace || len(parts) == 0 {
+					m.input.SetValue(text + commonPrefix)
+				} else {
+					m.input.SetValue(commonPrefix)
+				}
+			} else {
+				if endsWithSpace {
+					m.input.SetValue(text + commonPrefix)
+				} else {
+					parts[len(parts)-1] = commonPrefix
+					m.input.SetValue(strings.Join(parts, " "))
+				}
+			}
+			m.input.CursorEnd()
+		}
+	}
+}
+
+// handleChatCommandCompletion handles completion for chat commands (starting with /).
+// It completes command names when completing the first word, and file paths for arguments.
+func (m *inputModel) handleChatCommandCompletion(text string) {
+	endsWithSpace := len(text) > 0 && text[len(text)-1] == ' '
+	parts := strings.Fields(text)
+
+	// Determine if we're completing the command name or an argument
+	completingCommandName := len(parts) <= 1 && !endsWithSpace
+
+	var prefix string
+	var completions []string
+
+	if completingCommandName {
+		// Complete chat command name
+		if len(parts) == 1 {
+			prefix = strings.TrimPrefix(parts[0], "/")
+		}
+		completions = m.completeChatCommand(prefix)
+	} else {
+		// Complete file path for command argument
+		if endsWithSpace {
+			prefix = ""
+		} else if len(parts) > 1 {
+			prefix = parts[len(parts)-1]
+		}
+		completions = completeFilePath(prefix)
+	}
+
+	// Save completions as suggestions for potential double-tab
+	m.suggestions = completions
+
+	// Apply the completion
+	if len(completions) == 1 { //nolint:nestif // later.
+		completion := completions[0]
+
+		if completingCommandName {
+			// For command names, add space after completion
+			// Always replace the entire input since text starts with /
+			m.input.SetValue("/" + completion + " ")
+		} else {
+			// For file paths, append "/" if it's a directory, " " if it's a file
+			statPath := completion
+			if strings.HasPrefix(completion, "~") {
+				if expanded, err := expandTilde(completion); err == nil {
+					statPath = expanded
+				}
+			}
+			if info, err := os.Stat(statPath); err == nil {
+				if info.IsDir() && !strings.HasSuffix(completion, string(filepath.Separator)) {
+					completion += string(filepath.Separator)
+				} else if !info.IsDir() {
+					completion += " "
+				}
+			}
+
+			if endsWithSpace {
+				m.input.SetValue(text + completion)
+			} else {
+				// Replace the last word
+				parts[len(parts)-1] = completion
+				// Reconstruct with the command name (parts[0] already contains /)
+				m.input.SetValue(strings.Join(parts, " "))
+			}
+		}
+		m.input.CursorEnd()
+		m.suggestions = nil // Single completion, no need to show suggestions
+	} else if len(completions) > 1 {
+		// Multiple completions - find and apply common prefix
+		commonPrefix := findCommonPrefix(completions)
+		if commonPrefix != "" && commonPrefix != prefix {
+			if completingCommandName {
+				// Always replace the entire input since text starts with /
+				m.input.SetValue("/" + commonPrefix)
+			} else {
+				if endsWithSpace {
+					m.input.SetValue(text + commonPrefix)
+				} else {
+					parts[len(parts)-1] = commonPrefix
+					// Reconstruct with the command name (parts[0] already contains /)
+					m.input.SetValue(strings.Join(parts, " "))
+				}
+			}
+			m.input.CursorEnd()
+		}
+	}
+}
+
+// completeChatCommand returns chat command names that match the prefix.
+func (m *inputModel) completeChatCommand(prefix string) []string {
+	var completions []string
+
+	for _, cmd := range m.commands {
+		// Check main name
+		if strings.HasPrefix(strings.ToLower(cmd.Name), strings.ToLower(prefix)) {
+			completions = append(completions, cmd.Name)
+		} else {
+			// Check aliases
+			for _, alias := range cmd.Aliases {
+				if strings.HasPrefix(strings.ToLower(alias), strings.ToLower(prefix)) {
+					completions = append(completions, alias)
+					break
+				}
+			}
+		}
+	}
+
+	slices.Sort(completions)
+	return completions
+}
+
+// completeExecutable returns executable names from PATH that match the prefix.
+func completeExecutable(prefix string) []string {
+	pathDirs := filepath.SplitList(os.Getenv("PATH"))
+	seen := make(map[string]bool)
+	var completions []string
+
+	for _, dir := range pathDirs {
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			continue
+		}
+
+		for _, entry := range entries {
+			name := entry.Name()
+			if !strings.HasPrefix(name, prefix) {
+				continue
+			}
+
+			// Check if executable
+			fullPath := filepath.Join(dir, name)
+			info, err := os.Stat(fullPath)
+			if err != nil {
+				continue
+			}
+
+			if info.Mode()&0o111 != 0 {
+				if !seen[name] {
+					seen[name] = true
+					completions = append(completions, name)
+				}
+			}
+		}
+	}
+
+	slices.Sort(completions)
+	return completions
+}
+
+// expandTilde replaces ~ with the user's home directory.
+func expandTilde(path string) (string, error) {
+	if !strings.HasPrefix(path, "~") {
+		return path, nil
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	if path == "~" {
+		return home, nil
+	}
+
+	if strings.HasPrefix(path, "~/") {
+		return filepath.Join(home, path[2:]), nil
+	}
+
+	return path, nil
+}
+
+// completeFilePath returns file paths that match the prefix.
+func completeFilePath(prefix string) []string {
+	if prefix == "" {
+		// List all files in current directory
+		entries, err := os.ReadDir(".")
+		if err != nil {
+			return nil
+		}
+
+		var completions []string
+		for _, entry := range entries {
+			completions = append(completions, entry.Name())
+		}
+
+		slices.Sort(completions)
+		return completions
+	}
+
+	// Handle ~ expansion
+	hasTilde := strings.HasPrefix(prefix, "~")
+	expandedPrefix := prefix
+	if hasTilde {
+		var err error
+		expandedPrefix, err = expandTilde(prefix)
+		if err != nil {
+			return nil
+		}
+	}
+
+	// Check if prefix ends with separator (completing inside a directory)
+	if strings.HasSuffix(expandedPrefix, string(filepath.Separator)) {
+		entries, err := os.ReadDir(expandedPrefix)
+		if err != nil {
+			return nil
+		}
+
+		var completions []string
+		for _, entry := range entries {
+			completion := expandedPrefix + entry.Name()
+			// Restore ~ in the completion if it was in the prefix
+			if hasTilde {
+				completion = restoreTilde(completion, prefix)
+			}
+			completions = append(completions, completion)
+		}
+
+		slices.Sort(completions)
+		return completions
+	}
+
+	// Complete the last component of the path
+	dir := filepath.Dir(expandedPrefix)
+	base := filepath.Base(expandedPrefix)
+
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil
+	}
+
+	var completions []string
+	for _, entry := range entries {
+		name := entry.Name()
+		if strings.HasPrefix(name, base) {
+			fullPath := filepath.Join(dir, name)
+			// Restore ~ in the completion if it was in the prefix
+			if hasTilde {
+				fullPath = restoreTilde(fullPath, prefix)
+			}
+			completions = append(completions, fullPath)
+		}
+	}
+
+	slices.Sort(completions)
+	return completions
+}
+
+// restoreTilde replaces the home directory prefix with ~ if the original prefix had it.
+func restoreTilde(expandedPath, originalPrefix string) string {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return expandedPath
+	}
+
+	// Check if the original prefix started with ~/
+	if strings.HasPrefix(originalPrefix, "~/") {
+		if strings.HasPrefix(expandedPath, home) {
+			return "~" + expandedPath[len(home):]
+		}
+	} else if originalPrefix == "~" {
+		if expandedPath == home {
+			return "~"
+		}
+	}
+
+	return expandedPath
+}
+
+// findCommonPrefix finds the longest common prefix among the given strings.
+func findCommonPrefix(strs []string) string {
+	if len(strs) == 0 {
+		return ""
+	}
+
+	prefix := strs[0]
+	for _, s := range strs[1:] {
+		for !strings.HasPrefix(s, prefix) {
+			prefix = prefix[:len(prefix)-1]
+			if prefix == "" {
+				return ""
+			}
+		}
+	}
+
+	return prefix
 }
 
 // readInput launches a bubbletea program to collect one line from the user.
-func readInput() (string, bool, error) {
-	m := newInputModel()
+func readInput(commands []plugin.ChatCommand) (string, bool, error) {
+	m := newInputModel(commands)
 	p := tea.NewProgram(&m, tea.WithOutput(os.Stderr))
 	result, err := p.Run()
 	if err != nil {
@@ -684,7 +1123,7 @@ func (a *ChatAgent) Run(state *plugin.State, skillName string) error {
 			line = "/skill " + skillName
 			skillName = ""
 		} else {
-			line, quit, err = readInput()
+			line, quit, err = readInput(plugin.ChatCommands())
 		}
 
 		if err != nil {
