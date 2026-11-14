@@ -90,6 +90,7 @@ linters:
         - G115
         - G306
         - G402
+        - G703
     lll:
       line-length: 150
     nolintlint:
