@@ -1,0 +1,15 @@
+version: "1.0"
+profile: default
+
+profiles:
+  default:
+    llm:
+      model: test-model
+    confluence:
+      enable: false
+    jira:
+      enable: false
+    gitlab:
+      enable: false
+    github:
+      enable: false
