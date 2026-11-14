@@ -23,8 +23,8 @@ If applicable, add screenshots.
 
 **Environment**
 - OS: [e.g. macOS 14.0]
-- go-magnetar version: [e.g. v1.2.0, commit hash, or build date]
-- Go version: [e.g. go1.27.0]
+- go-magnetar version: [e.g. v1.9.0, commit hash, or build date]
+- Go version: [e.g. go1.27.4]
 - Qdrant version: [if applicable]
 - LLM provider and model: [e.g. OpenAI GPT-4o]
 

@@ -17,7 +17,7 @@ For a complete list of supported formats and their available modes, see [docs/fi
 
 ## Requirements
 
-- Go 1.27.3 (or download a pre-built binary)
+- Go 1.27.4 (or download a pre-built binary)
 - API key for any OpenAI-compatible provider (OpenAI, Azure OpenAI, Ollama, etc.)
 
 **Note:** Qdrant is **no longer required**. The default vector store is **Chromem** (built-in, in-memory with optional persistence). Qdrant is available as an optional external store for production deployments.
