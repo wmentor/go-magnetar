@@ -25,6 +25,7 @@ import (
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/skill"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/stat"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/timing"
+	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/tools"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/version"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/write"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/confluence"
