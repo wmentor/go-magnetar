@@ -3,3 +3,4 @@ mask:
   enable: true # enable make sensitive data
   skip:
     email: true # skipping email masking
+    phone: false # skipping phone masking
