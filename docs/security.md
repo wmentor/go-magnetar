@@ -90,6 +90,7 @@ The mask service automatically detects and replaces the following patterns:
 | Russian passport | `[MASKED_PASSPORT]` |
 | Russian SNILS | `[MASKED_SNILS]` |
 | US Social Security Number (SSN) | `[MASK_SSN]` |
+| Credit card number (16 digits in groups of 4, separated by spaces or dashes) | `[MASK_CARD]` |
 
 ### Configuration
 
