@@ -66,7 +66,10 @@ func New(agentName string, state *plugin.State) (*Agent, error) {
 		return nil, errors.Wrap(err, "init tool store")
 	}
 
-	cfg := state.Config.Copy()
+	var cfg *config.Config
+	if c, ok := state.Config.(*config.Config); ok && c != nil {
+		cfg = c.Copy()
+	}
 
 	if a.Profile != "" {
 		if err = cfg.SetProfile(a.Profile); err != nil {

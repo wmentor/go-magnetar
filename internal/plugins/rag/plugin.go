@@ -19,7 +19,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	cfg := s.Config
 	if cfg.Bool("rag.enable") && cfg.String("rag.llm.base_url") != "" {
 		// Create RAG tool with the store instance
-		p.tool = rag.New(cfg, s.Printer, s.VectorStore, s)
+		p.tool = rag.New(s.ConcreteConfig(), s.Printer, s.VectorStore, s)
 		s.ToolStore.Register(p.tool.Name(), p.tool.Description(), p.tool.Exec, tools.OptionRateLimit(5))
 	}
 	return nil

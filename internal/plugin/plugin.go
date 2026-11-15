@@ -67,6 +67,17 @@ type State struct {
 	MaskService      MaskService             // Mask service.
 }
 
+// ConcreteConfig returns the underlying *config.Config if s.Config is of that type.
+func (s *State) ConcreteConfig() *config.Config {
+	if s == nil || s.Config == nil {
+		return nil
+	}
+	if cfg, ok := s.Config.(*config.Config); ok {
+		return cfg
+	}
+	return nil
+}
+
 // PreprocessorFunc is a function that preprocesses text.
 // It is called with the raw text and should return the processed text.
 type PreprocessorFunc func(ctx context.Context, text string) (string, error)
