@@ -282,3 +282,78 @@ rag:
 	assert.True(t, ok, "schema should have 'query' property")
 	assert.NotNil(t, queryParam, "query parameter should not be nil")
 }
+
+func TestRagSearchCommand(t *testing.T) {
+	t.Parallel()
+
+	// 1. When RAG is enabled, command should be registered in hub
+	state := createTestState(t, true)
+	store := &mockStore{
+		searchFunc: func(query string) string {
+			if query == "test query" {
+				return "search result for test query"
+			}
+			return ""
+		},
+	}
+	state.VectorStore = store
+	hub := &mockHub{}
+	p := &Plugin{}
+
+	err := p.Init(state, hub)
+	require.NoError(t, err)
+
+	require.Len(t, hub.chatCommands, 1, "rag.search command should be registered")
+	cmd := hub.chatCommands[0]
+	assert.Equal(t, "rag.search", cmd.Name)
+	assert.Empty(t, cmd.Aliases)
+	assert.NotEmpty(t, cmd.Help)
+
+	// 2. Command execution with empty args returns error
+	resp, err := cmd.Execute(context.Background(), &plugin.ChatCommandInput{
+		Args: "",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "usage: /rag.search <search_text>")
+	assert.Nil(t, resp)
+
+	// 3. Command execution with whitespace returns error
+	resp, err = cmd.Execute(context.Background(), &plugin.ChatCommandInput{
+		Args: "   ",
+	})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "usage: /rag.search <search_text>")
+	assert.Nil(t, resp)
+
+	// 4. Command execution with valid query returns search results in Stdout
+	resp, err = cmd.Execute(context.Background(), &plugin.ChatCommandInput{
+		Args: "test query",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, "search result for test query", resp.Stdout)
+	assert.Empty(t, resp.Content)
+
+	// 5. Command execution with query yielding no results
+	resp, err = cmd.Execute(context.Background(), &plugin.ChatCommandInput{
+		Args: "nonexistent",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, "no relevant information found", resp.Stdout)
+
+	// 6. When RAG is disabled, command should NOT be registered
+	disabledState := createTestState(t, false)
+	disabledHub := &mockHub{}
+	disabledP := &Plugin{}
+	err = disabledP.Init(disabledState, disabledHub)
+	require.NoError(t, err)
+	assert.Empty(t, disabledHub.chatCommands, "rag.search command should not be registered when RAG is disabled")
+
+	// 7. When tool is not initialized, executeSearch returns error
+	uninitP := &Plugin{}
+	resp, err = uninitP.executeSearch(context.Background(), &plugin.ChatCommandInput{Args: "query"})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "tool is not initialized")
+	assert.Nil(t, resp)
+}
