@@ -121,8 +121,8 @@ func TestCodec_ReadFile_SpineOrdering(t *testing.T) {
     <itemref idref="first"/>
   </spine>
 </package>`,
-		"first.xhtml":  `<html><body><p>FIRST_PARAGRAPH</p></body></html>`,
-		"second.xhtml": `<html><body><p>SECOND_PARAGRAPH</p></body></html>`,
+		"first.xhtml":  `<html><body><p>FIRST PARAGRAPH</p></body></html>`,
+		"second.xhtml": `<html><body><p>SECOND PARAGRAPH</p></body></html>`,
 	}
 
 	epubPath := createTestEPUB(t, files)
@@ -133,14 +133,14 @@ func TestCodec_ReadFile_SpineOrdering(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	idxSecond := strings.Index(content, "SECOND_PARAGRAPH")
-	idxFirst := strings.Index(content, "FIRST_PARAGRAPH")
+	idxSecond := strings.Index(content, "SECOND PARAGRAPH")
+	idxFirst := strings.Index(content, "FIRST PARAGRAPH")
 
 	if idxSecond == -1 || idxFirst == -1 {
 		t.Fatalf("expected both paragraphs, got:\n%s", content)
 	}
 	if idxSecond >= idxFirst {
-		t.Errorf("expected SECOND_PARAGRAPH to appear before FIRST_PARAGRAPH due to spine order, got:\n%s", content)
+		t.Errorf("expected SECOND PARAGRAPH to appear before FIRST PARAGRAPH due to spine order, got:\n%s", content)
 	}
 }
 
