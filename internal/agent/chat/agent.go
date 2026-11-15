@@ -1035,7 +1035,7 @@ func (a *ChatAgent) printAnswer(state *plugin.State, answer string, noLog bool) 
 
 // handleCommand processes a slash-command entered by the user.
 // Returns (*plugin.ChatCommandResponse, error).
-func (a *ChatAgent) handleCommand(line string, knownCommands []plugin.ChatCommand) (*plugin.ChatCommandResponse, error) {
+func (a *ChatAgent) handleCommand(line string, knownCommands []plugin.ChatCommand, state *plugin.State) (*plugin.ChatCommandResponse, error) {
 	trimLine := strings.TrimSpace(line)
 
 	if !strings.HasPrefix(line, "/") && trimLine != "exit" && trimLine != "quit" {
@@ -1063,6 +1063,8 @@ func (a *ChatAgent) handleCommand(line string, knownCommands []plugin.ChatComman
 				fmt.Fprintf(sout, "\n[Error: %v]\n", err)
 			}
 		}
+
+		state.ResponseStore.Push(buffer.String())
 
 		fmt.Println("")
 
@@ -1151,7 +1153,7 @@ func (a *ChatAgent) Run(state *plugin.State, skillName string) error {
 		}
 
 		start := time.Now()
-		cmdResponse, err := a.handleCommand(line, plugin.ChatCommands())
+		cmdResponse, err := a.handleCommand(line, plugin.ChatCommands(), state)
 		elapsed := time.Since(start)
 		if err == nil {
 			if cmdResponse != nil {
