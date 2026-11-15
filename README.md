@@ -9,7 +9,7 @@ An AI smart shell with an integrated knowledge base and customizable skills. A s
 ## What it does
 
 - **Chat** — interactive REPL with multi-turn conversation and automatic context compaction
-- **Shell** — execute shell commands directly in the same line as your chat message (e.g., `ls -la`, `git status`, `cat file.txt`)
+- **Shell** — execute shell commands directly without LLM in the same line as your chat message (e.g., `ls -la`, `git status`, `cat file.txt`)
 - **Index** — `/index <file|url>` adds documents to your RAG knowledge base; documents become immediately available to the AI agent for answering questions
 - **Skills** — customize agent behavior with reusable skill files for specialized tasks
 - **Subagents** — spawn specialized agents for complex tasks (exploration, research, parallel work)
