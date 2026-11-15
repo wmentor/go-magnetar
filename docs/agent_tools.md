@@ -4,10 +4,10 @@ go-magnetar provides the following tools for the chat agent:
 
 | Tool | Signature | Description |
 |---|---|---|
-| `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem; supports `.txt`, `.md`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`, `.html`, `.htm`, and `.gz` (transparent decompression); `limit` and `offset` specify line range (0 = read all). See [docs/file_codecs.md](./file_codecs.md) for complete format support and codec details |
+| `file_read` | `(filename: string, limit: int, offset: int) -> string` | Reads file contents from the filesystem; supports `.txt`, `.md`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.odt`, `.pptx`, `.xlsx`, `.html`, `.htm`, `.epub`, and `.gz` (transparent decompression); `limit` and `offset` specify line range (0 = read all). See [docs/file_codecs.md](./file_codecs.md) for complete format support and codec details |
 | `file_list` | `(filter: string) -> []string` | Recursively lists files in the current directory using glob pattern (e.g. `*.go`) |
 | `file_write` | `(filename: string, content: string) -> bool` | Writes content to a file in the filesystem (blocked in read-only mode); transparently converts Markdown to DOCX when writing `.docx` files |
-| `edit` | `(filename: string, old_text: string, new_text: string) -> string` | Edits a **plain-text** file by replacing text. **CRITICAL**: `old_text` must appear EXACTLY ONCE in the file. Returns error if `old_text` appears multiple times. Case-sensitive search. Not supported for `.docx`, `.pdf`, `.odt`, `.xlsx`, `.pptx`, `.csv`, `.tsv`, `.html`, `.htm` — use `file_write` for those. |
+| `edit` | `(filename: string, old_text: string, new_text: string) -> string` | Edits a **plain-text** file by replacing text. **CRITICAL**: `old_text` must appear EXACTLY ONCE in the file. Returns error if `old_text` appears multiple times. Case-sensitive search. Not supported for `.docx`, `.pdf`, `.odt`, `.xlsx`, `.pptx`, `.csv`, `.tsv`, `.html`, `.htm`, `.epub` — use `file_write` for those. |
 | `exec` | `(command: string, stdin: string) -> string` | Executes a shell command via `sh -c` with clean environment, current working directory, and built-in safety guard |
 | `ssh` | `(command: string, stdin: string, addr: string, user: string, dir: string) -> string` | Execute a shell command on a remote server via SSH. Connection parameters loaded from config. `user` and `dir` are optional; if not provided, uses `ssh.user` and `ssh.remote_dir` from config |
 | `system_date` | `() -> string` | Returns the current date in the "Mon Jan _2 15:04:05 MST 2006" format |
@@ -41,7 +41,7 @@ go-magnetar provides the following tools for the chat agent:
 
 The `edit` tool performs exact string replacement with strict requirements:
 
-- **Plain-text only**: Works only with plain-text files (`.go`, `.py`, `.js`, `.ts`, `.md`, `.yaml`, `.json`, `.txt`, etc.). Files with a registered codec — `.docx`, `.pdf`, `.pages`, `.odt`, `.xlsx`, `.pptx`, `.csv`, `.tsv`, `.html`, `.htm` — are rejected with an error because their binary/structured format cannot be round-tripped through text replacement. Use `file_write` or a dedicated tool for those formats.
+- **Plain-text only**: Works only with plain-text files (`.go`, `.py`, `.js`, `.ts`, `.md`, `.yaml`, `.json`, `.txt`, etc.). Files with a registered codec — `.docx`, `.pdf`, `.pages`, `.odt`, `.xlsx`, `.pptx`, `.csv`, `.tsv`, `.html`, `.htm`, `.epub` — are rejected with an error because their binary/structured format cannot be round-tripped through text replacement. Use `file_write` or a dedicated tool for those formats.
 - **Uniqueness**: `old_text` must appear exactly once in the file. If it appears multiple times, the tool returns an error asking you to provide more context to identify a unique occurrence.
 - **Case-sensitive**: The search is case-sensitive. "Hello" will NOT match "hello".
 - **Exact match**: All whitespace, special characters, and formatting must match exactly.

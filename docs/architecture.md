@@ -283,6 +283,7 @@ The `file_read` tool supports the following file formats. See [docs/file_codecs.
 | `.docx` | Microsoft Word documents |
 | `.pdf` | PDF documents |
 | `.odt` | OpenOffice Writer documents |
+| `.epub` | EPUB electronic books |
 | `.pptx` | PowerPoint presentations |
 | `.xlsx` | Excel files |
 
