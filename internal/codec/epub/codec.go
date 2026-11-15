@@ -282,7 +282,7 @@ func extractTextFromHTML(data []byte) string {
 		}
 		if n.Type == html.ElementNode {
 			switch n.Data {
-			case "p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "br", "tr":
+			case "p", "div", "h1", "h2", "h3", "h4", "h5", "h6", "li", "br", "tr", "section", "article", "header", "footer", "aside", "nav", "main", "figure", "figcaption", "blockquote":
 				buf.WriteString("\n\n")
 			}
 		}

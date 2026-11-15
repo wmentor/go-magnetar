@@ -15,7 +15,7 @@ go-magnetar supports reading multiple file formats through a unified codec inter
 | `.pptx` | `pptx.Codec` | PowerPoint presentations | ✅ | ❌ |
 | `.xlsx` | `excel.Codec` | Excel files | ✅ | ❌ |
 | `.eml` | `eml.Codec` | EML files | ✅ | ❌ |
-| `.epub` | `epub.Codec` | EPUB electronic books | ✅ | ❌ |
+| `.epub` | `epub.Codec` | EPUB electronic books (EPUB 2.0 & EPUB 3.0) | ✅ | ❌ |
 | `.pages` | `pages.Codec` | Apple Pages documents (iWork '13 and newer) | ✅ | ❌ |
 
 Additionally, all text-based formats are supported with read and write capabilities: `.txt`, `.md`, `.pl`, `.py`, `.go`, `.java`, `.c`, `.cpp`, `.h`, `.hpp`, `.js`, `.ts`, `.rs`, `.rb`, `.php`, `.swift`, `.kt`, `.scala`, `.r`, `.m`, `.cs`, `.vb`, `.sh`, `.bash`, `.zsh`, `.fish`, `.yaml`, `.yml`, `.json`, `.xml`, `.toml`, `.ini`, `.cfg`, `.conf`, `.properties`, `.sql`, `.graphql`, `.proto`, `.tf`, `.hcl`, `.rst`, `.asciidoc`, `.org`, `.lua`, `.tex`, `.ltx`, `.bib`, `.log`, `.env`, `.gitignore`, `.dockerignore`, `.gitattributes`, `.editorconfig`, `.license`, `.notice`, `.readme`, `.changelog`, `.contributing`, `.code-of-conduct`, `.security`, `.authors`, `.maintainers`, `.contributors`.
@@ -62,6 +62,7 @@ The indexer automatically uses codecs when reading files for indexing. Supported
 > /index path/to/document.pptx
 > /index path/to/document.xlsx
 > /index path/to/document.html
+> /index path/to/document.epub
 > /index path/to/document.pages
 ```
 

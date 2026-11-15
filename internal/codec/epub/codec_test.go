@@ -194,6 +194,88 @@ func TestCodec_ReadFile_DirectHTMLFallback(t *testing.T) {
 	}
 }
 
+func TestCodec_ReadFile_EPUB3(t *testing.T) {
+	t.Parallel()
+
+	files := map[string]string{
+		"mimetype": "application/epub+zip",
+		"META-INF/container.xml": `<?xml version="1.0" encoding="UTF-8"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="EPUB/package.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>`,
+		"EPUB/package.opf": `<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="pub-id">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:identifier id="pub-id">urn:uuid:12345</dc:identifier>
+    <dc:title>EPUB 3 Sample</dc:title>
+  </metadata>
+  <manifest>
+    <item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>
+    <item id="sec1" href="section1.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="nav"/>
+    <itemref idref="sec1"/>
+  </spine>
+</package>`,
+		"EPUB/nav.xhtml": `<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops">
+<head><title>Table of Contents</title></head>
+<body>
+  <nav epub:type="toc">
+    <h1>Table of Contents</h1>
+    <ol>
+      <li><a href="section1.xhtml">Section 1</a></li>
+    </ol>
+  </nav>
+</body>
+</html>`,
+		"EPUB/section1.xhtml": `<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>Section 1</title></head>
+<body>
+  <article>
+    <header>
+      <h1>Modern EPUB 3 Article</h1>
+    </header>
+    <section>
+      <p>This is a test of EPUB 3.0 HTML5 structure support.</p>
+      <aside><p>Note: Semantic markup is preserved.</p></aside>
+    </section>
+    <footer>
+      <p>Article footer text</p>
+    </footer>
+  </article>
+</body>
+</html>`,
+	}
+
+	epubPath := createTestEPUB(t, files)
+
+	c := &epub.Codec{}
+	content, err := c.ReadFile(epubPath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expectedSnippets := []string{
+		"Table of Contents",
+		"Section 1",
+		"Modern EPUB 3 Article",
+		"This is a test of EPUB 3.0 HTML5 structure support.",
+		"Note: Semantic markup is preserved.",
+		"Article footer text",
+	}
+
+	for _, snippet := range expectedSnippets {
+		if !strings.Contains(content, snippet) {
+			t.Errorf("expected content to contain %q, got:\n%s", snippet, content)
+		}
+	}
+}
+
 func TestCodec_ReadFile_InvalidFile(t *testing.T) {
 	t.Parallel()
 
