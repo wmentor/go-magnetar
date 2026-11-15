@@ -2,12 +2,18 @@ package ragplugin
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/tools"
 	"github.com/wmentor/go-magnetar/internal/tools/rag"
+)
+
+var (
+	ErrToolNotInitialized = errors.New("rag.search: tool is not initialized")
+	ErrEmptySearchText     = errors.New("usage: /rag.search <search_text>")
 )
 
 func init() {
@@ -38,12 +44,12 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 
 func (p *Plugin) executeSearch(ctx context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
 	if p.tool == nil {
-		return nil, fmt.Errorf("rag.search: tool is not initialized")
+		return nil, ErrToolNotInitialized
 	}
 
 	searchText := strings.TrimSpace(params.Args)
 	if searchText == "" {
-		return nil, fmt.Errorf("usage: /rag.search <search_text>")
+		return nil, ErrEmptySearchText
 	}
 
 	rawResp, err := p.tool.Exec(ctx, &rag.RagSearchParams{Query: searchText})

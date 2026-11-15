@@ -314,6 +314,7 @@ func TestRagSearchCommand(t *testing.T) {
 		Args: "",
 	})
 	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrEmptySearchText)
 	assert.Contains(t, err.Error(), "usage: /rag.search <search_text>")
 	assert.Nil(t, resp)
 
@@ -322,6 +323,7 @@ func TestRagSearchCommand(t *testing.T) {
 		Args: "   ",
 	})
 	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrEmptySearchText)
 	assert.Contains(t, err.Error(), "usage: /rag.search <search_text>")
 	assert.Nil(t, resp)
 
@@ -354,6 +356,7 @@ func TestRagSearchCommand(t *testing.T) {
 	uninitP := &Plugin{}
 	resp, err = uninitP.executeSearch(context.Background(), &plugin.ChatCommandInput{Args: "query"})
 	require.Error(t, err)
+	assert.ErrorIs(t, err, ErrToolNotInitialized)
 	assert.Contains(t, err.Error(), "tool is not initialized")
 	assert.Nil(t, resp)
 }
