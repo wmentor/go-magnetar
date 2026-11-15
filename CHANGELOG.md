@@ -1,5 +1,76 @@
 # CHANGELOG
 
+## [1.10.0] - 2026-11-15
+
+### 🚀 Features
+
+- *(tools)* Add local_changes tool for Git repository information (#309)
+- *(chat)* Add /read chat command with improved file reading (#311)
+- *(tools)* Add search tool for Confluence pages (#318)
+- *(tools)* Add system_uuid UUID v4 tool (#313)
+- *(tools)* Rate limit the system_uuid tool (#322)
+- *(mask)* Support SSN masking in internal/mask package (#336)
+- *(chat)* Add shell command direct execution in message input (#344)
+- *(chat)* Add tab completion for chat and shell commands (#352)
+- *(chat)* Add /tools command to list available tools (#339) (#353)
+
+### 🐛 Bug Fixes
+
+- *(tools)* File_read tool now returns pointer to tools.Response (#310)
+- *(tools)* Eliminate duplicate vector store instances to fix rag_search persistence (#317)
+- *(chatcmd)* Drop /r alias for /revert to avoid clash with /read (#323)
+- *(codecs)* Implement rich text cell value extraction and improve hyperlink URL handling when reading .pages files (#331)
+- *(codecs)* Fix fonts in DOCX files and remove invalid xml tags (#333)
+- *(chat)* Add state parameter to handleCommand for response storage (#358)
+
+### 🛡️ Security
+
+- *(mask)* Add automatic sensitive data masking (#325)
+- *(mask)* Unify token masking and add Russian document support (#330)
+- *(mask)* Support phone number masking with skip configuration (#329) (#354)
+
+### 📚 Documentation
+
+- *(mask)* Update documentation to reflect extended coverage (#341)
+- *(common)* Update readme and add project logo (#360)
+
+### 🧹 Refactor
+
+- *(tools)* Rename file_edit tools to edit and remove file_edit_multiple (#308)
+- *(indexer)* Use file_read tool for file content extraction (#319)
+- *(agents)* Optimize tool rate limit checking in agents loop (#326)
+- *(mask)* Remove standalone SSN function and simplify test (#340)
+- *(http)* Pass config to http client factory constructor (#343)
+- *(tools)* Format tool names in /tools chat command (#359)
+
+### 🎨 Styling
+
+- *(linter)* Enable noctx linter (#307)
+- *(common)* Bumps golangci-lint to v2.15.0 (#332)
+
+### 🧪 Testing
+
+- *(tools)* Add comprehensive test suite for gitlab file fetching (#315)
+- *(tools)* Add unit tests for jira task search functionality (#316)
+- *(tools)* Add unit tests for jira_task_get tool (#320)
+- *(tools)* Add unit tests for jira create task functionality (#327)
+- *(tools)* Gitlab tree rewrite tests with table-driven approach (#328)
+- *(tools)* Cover confluence FetchPage scenarios (#337)
+- *(common)* Remove unnecessary variable shadowing in test (#342)
+- *(tools)* Add unit tests for web search functionality (#351)
+
+### ⚙️ Miscellaneous Tasks
+
+- *(dependencies)* Bumps github.com/sashabaranov/go-openai from v1.42.1 to v1.43.0 (#314)
+- *(build)* Update Go version to 1.27.4 (#348)
+- *(build)* Bumps external dependencies (#350)
+
+### 👥 Contributors
+
+<div align="left" style="padding-left: 20px;">
+<a href="https://github.com/wmentor" data-hovercard-type="user" data-hovercard-url="/users/wmentor/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/wmentor?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@wmentor" title="@wmentor" style="border-radius: 50% !important;"></a> <a href="https://github.com/dianatofficial" data-hovercard-type="user" data-hovercard-url="/users/dianatofficial/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/dianatofficial?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@dianatofficial" title="@dianatofficial" style="border-radius: 50% !important;"></a> <a href="https://github.com/Abhishek8841" data-hovercard-type="user" data-hovercard-url="/users/Abhishek8841/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/Abhishek8841?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@Abhishek8841" title="@Abhishek8841" style="border-radius: 50% !important;"></a> <a href="https://github.com/shubhambaghel34" data-hovercard-type="user" data-hovercard-url="/users/shubhambaghel34/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/shubhambaghel34?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@shubhambaghel34" title="@shubhambaghel34" style="border-radius: 50% !important;"></a> <a href="https://github.com/shounakjoshi88-a11y" data-hovercard-type="user" data-hovercard-url="/users/shounakjoshi88-a11y/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/shounakjoshi88-a11y?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@shounakjoshi88-a11y" title="@shounakjoshi88-a11y" style="border-radius: 50% !important;"></a> <a href="https://github.com/indraoverflow" data-hovercard-type="user" data-hovercard-url="/users/indraoverflow/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/indraoverflow?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@indraoverflow" title="@indraoverflow" style="border-radius: 50% !important;"></a> <a href="https://github.com/har5h1tha" data-hovercard-type="user" data-hovercard-url="/users/har5h1tha/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/har5h1tha?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@har5h1tha" title="@har5h1tha" style="border-radius: 50% !important;"></a> <a href="https://github.com/chiragjangiir" data-hovercard-type="user" data-hovercard-url="/users/chiragjangiir/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/chiragjangiir?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@chiragjangiir" title="@chiragjangiir" style="border-radius: 50% !important;"></a>
+</div><br/><br/>
+
 ## [1.9.0] - 2026-11-08
 
 ### 🚀 Features
