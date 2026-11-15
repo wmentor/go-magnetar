@@ -50,9 +50,7 @@ func TestListSkills(t *testing.T) {
 					Enable:      true,
 				},
 			},
-			expected: `Available skills:
-  * coding - Programming assistant
-`,
+			expected: "Available skills:\n  * `coding` - Programming assistant\n",
 		},
 		{
 			name: "mix of enabled and disabled skills",
@@ -76,10 +74,7 @@ func TestListSkills(t *testing.T) {
 					Enable:      true,
 				},
 			},
-			expected: `Available skills:
-  * coding - Programming assistant
-  * writing - Writing assistant
-`,
+			expected: "Available skills:\n  * `coding` - Programming assistant\n  * `writing` - Writing assistant\n",
 		},
 		{
 			name: "skill without description",
@@ -91,9 +86,7 @@ func TestListSkills(t *testing.T) {
 					Enable:      true,
 				},
 			},
-			expected: `Available skills:
-  * coding
-`,
+			expected: "Available skills:\n  * `coding`\n",
 		},
 	}
 
@@ -122,7 +115,7 @@ func TestMakeApplySkillMessage(t *testing.T) {
 				Content: "You are a coding expert...",
 			},
 			optionalText: "",
-			want:         "# SKILL: coding\n\nYou are a coding expert...\n\nIMPORTANT: to solve the next problem, use the skill `coding`\n",
+			want:         "# SKILL: `coding`\n\nYou are a coding expert...\n\nIMPORTANT: to solve the next problem, use the skill `coding`\n",
 		},
 		{
 			name: "skill with content and optional text",
@@ -131,7 +124,7 @@ func TestMakeApplySkillMessage(t *testing.T) {
 				Content: "You are a writing expert...",
 			},
 			optionalText: "Write a haiku about Go",
-			want:         "# SKILL: writing\n\nYou are a writing expert...\n\nIMPORTANT: to solve the next problem, use the skill `writing`\n# Problem:\n\nWrite a haiku about Go\n",
+			want:         "# SKILL: `writing`\n\nYou are a writing expert...\n\nIMPORTANT: to solve the next problem, use the skill `writing`\n# Problem:\n\nWrite a haiku about Go\n",
 		},
 		{
 			name: "skill with empty content and no optional text",
@@ -140,7 +133,7 @@ func TestMakeApplySkillMessage(t *testing.T) {
 				Content: "",
 			},
 			optionalText: "",
-			want:         "# SKILL: empty-skill\n\n\n\nIMPORTANT: to solve the next problem, use the skill `empty-skill`\n",
+			want:         "# SKILL: `empty-skill`\n\n\n\nIMPORTANT: to solve the next problem, use the skill `empty-skill`\n",
 		},
 		{
 			name: "skill with empty content and optional text",
@@ -149,7 +142,7 @@ func TestMakeApplySkillMessage(t *testing.T) {
 				Content: "",
 			},
 			optionalText: "Solve this problem",
-			want:         "# SKILL: empty-skill-with-text\n\n\n\nIMPORTANT: to solve the next problem, use the skill `empty-skill-with-text`\n# Problem:\n\nSolve this problem\n",
+			want:         "# SKILL: `empty-skill-with-text`\n\n\n\nIMPORTANT: to solve the next problem, use the skill `empty-skill-with-text`\n# Problem:\n\nSolve this problem\n",
 		},
 		{
 			name: "skill with multiline content and optional text",
@@ -158,7 +151,7 @@ func TestMakeApplySkillMessage(t *testing.T) {
 				Content: "Line 1\nLine 2\nLine 3",
 			},
 			optionalText: "Task with multiple\nlines",
-			want:         "# SKILL: multiline-skill\n\nLine 1\nLine 2\nLine 3\n\nIMPORTANT: to solve the next problem, use the skill `multiline-skill`\n# Problem:\n\nTask with multiple\nlines\n",
+			want:         "# SKILL: `multiline-skill`\n\nLine 1\nLine 2\nLine 3\n\nIMPORTANT: to solve the next problem, use the skill `multiline-skill`\n# Problem:\n\nTask with multiple\nlines\n",
 		},
 		{
 			name: "skill with special characters",
@@ -167,7 +160,7 @@ func TestMakeApplySkillMessage(t *testing.T) {
 				Content: "Content with `code` and **bold**",
 			},
 			optionalText: "Problem with $pecial chars",
-			want:         "# SKILL: special-skill\n\nContent with `code` and **bold**\n\nIMPORTANT: to solve the next problem, use the skill `special-skill`\n# Problem:\n\nProblem with $pecial chars\n",
+			want:         "# SKILL: `special-skill`\n\nContent with `code` and **bold**\n\nIMPORTANT: to solve the next problem, use the skill `special-skill`\n# Problem:\n\nProblem with $pecial chars\n",
 		},
 	}
 
@@ -229,7 +222,7 @@ func TestExecute(t *testing.T) {
 			},
 			args:        "",
 			wantErr:     false,
-			wantStdout:  "Available skills:\n  * coding - Programming assistant\n",
+			wantStdout:  "Available skills:\n  * `coding` - Programming assistant\n",
 			wantContent: "",
 		},
 		{
@@ -248,7 +241,7 @@ func TestExecute(t *testing.T) {
 			args:        "coding",
 			wantErr:     false,
 			wantStdout:  "Loaded skill: coding\n\n",
-			wantContent: "# SKILL: coding\n\nYou are a coding expert...\n\nIMPORTANT: to solve the next problem, use the skill `coding`\n",
+			wantContent: "# SKILL: `coding`\n\nYou are a coding expert...\n\nIMPORTANT: to solve the next problem, use the skill `coding`\n",
 		},
 		{
 			name: "enabled skill with optional text",
@@ -266,7 +259,7 @@ func TestExecute(t *testing.T) {
 			args:        "coding Write a haiku about Go",
 			wantErr:     false,
 			wantStdout:  "Loaded skill: coding\n\n",
-			wantContent: "# SKILL: coding\n\nYou are a coding expert...\n\nIMPORTANT: to solve the next problem, use the skill `coding`\n# Problem:\n\nWrite a haiku about Go\n",
+			wantContent: "# SKILL: `coding`\n\nYou are a coding expert...\n\nIMPORTANT: to solve the next problem, use the skill `coding`\n# Problem:\n\nWrite a haiku about Go\n",
 		},
 		{
 			name: "disabled skill",
