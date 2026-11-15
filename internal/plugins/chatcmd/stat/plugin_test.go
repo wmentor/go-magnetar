@@ -2,6 +2,8 @@ package statplugin
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -28,7 +30,7 @@ func (f *fakeAgentHandle) Reset()                    {}
 
 func writeTestConfig(t *testing.T) *config.Config {
 	t.Helper()
-	cfg, err := config.NewMockFromYAML(`
+	yaml := `version: "1.0"
 profile: default
 profiles:
   default:
@@ -38,7 +40,12 @@ rag:
   llm:
     model: test-embed
     vector_size: 512
-`)
+`
+	path := filepath.Join(t.TempDir(), "config.yaml")
+	if err := os.WriteFile(path, []byte(yaml), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cfg, err := config.Load(path)
 	if err != nil {
 		t.Fatal(err)
 	}
