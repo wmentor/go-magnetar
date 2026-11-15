@@ -38,7 +38,7 @@ func TestAgentPlugin_ListAvailableAgents(t *testing.T) {
 			agents: []*plugin.Agent{
 				{Name: "research", Description: "Research assistant"},
 			},
-			want: "Available agents:\n  * research - Research assistant\n",
+			want: "Available agents:\n  * `research` - Research assistant\n",
 		},
 		{
 			name: "whitespace arguments",
@@ -46,14 +46,14 @@ func TestAgentPlugin_ListAvailableAgents(t *testing.T) {
 			agents: []*plugin.Agent{
 				{Name: "research", Description: "Research assistant"},
 			},
-			want: "Available agents:\n  * research - Research assistant\n",
+			want: "Available agents:\n  * `research` - Research assistant\n",
 		},
 		{
 			name: "agent without description",
 			agents: []*plugin.Agent{
 				{Name: "coding"},
 			},
-			want: "Available agents:\n  * coding\n",
+			want: "Available agents:\n  * `coding`\n",
 		},
 		{
 			name: "disabled agents omitted and store order preserved",
@@ -62,7 +62,7 @@ func TestAgentPlugin_ListAvailableAgents(t *testing.T) {
 				{Name: "hidden", Description: "Disabled assistant", Disable: true},
 				{Name: "writing"},
 			},
-			want: "Available agents:\n  * coding - Programming assistant\n  * writing\n",
+			want: "Available agents:\n  * `coding` - Programming assistant\n  * `writing`\n",
 		},
 		{
 			name: "only disabled agents",

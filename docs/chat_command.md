@@ -47,8 +47,15 @@ This feature works seamlessly with the agent's tool calling capabilities, enabli
 ## /agent Command
 
 Run `/agent` without arguments to list enabled subagents from the agent store.
-Each entry shows the agent name and its description when one is provided.
+Each entry shows the agent name (formatted in backticks) and its description when one is provided.
 Disabled agents are omitted. Listing agents does not make a model request.
+
+```
+> /agent
+Available agents:
+  * `research` - Research assistant
+  * `coding` - Programming assistant
+```
 
 To initialize a named subagent, use `/agent <agent_name>`. Add a request after
 the name to send it to that subagent: `/agent <agent_name> <request>`.
