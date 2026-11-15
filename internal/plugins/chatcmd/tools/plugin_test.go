@@ -49,11 +49,7 @@ func TestListTools(t *testing.T) {
 		})
 
 		got := listTools(store)
-		expected := `Available tools:
-  * alpha_tool
-  * file_read - Read contents from local file
-  * web_search - Search the web for current information
-`
+		expected := "Available tools:\n  * `alpha_tool`\n  * `file_read` - Read contents from local file\n  * `web_search` - Search the web for current information\n"
 		assert.Equal(t, expected, got)
 	})
 }
@@ -86,9 +82,7 @@ func TestExecute(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, resp)
 
-	expectedStdout := `Available tools:
-  * test_tool - Description for test tool
-`
+	expectedStdout := "Available tools:\n  * `test_tool` - Description for test tool\n"
 	assert.Equal(t, expectedStdout, resp.Stdout)
 	assert.Empty(t, resp.Content)
 	assert.False(t, resp.Exit)
