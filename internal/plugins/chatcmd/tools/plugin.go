@@ -3,6 +3,7 @@ package toolsplugin
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -13,6 +14,8 @@ import (
 func init() {
 	plugin.Register("chatcmd.tools", &Plugin{})
 }
+
+var replaceRE = regexp.MustCompile(`\s+`)
 
 // Plugin registers the /tools chat command.
 type Plugin struct{}
@@ -53,14 +56,14 @@ func listTools(toolStore *tools.Store) string {
 		if tool.Definition != nil {
 			def := tool.Definition()
 			if def.Function != nil {
-				desc = def.Function.Description
+				desc = replaceRE.ReplaceAllString(def.Function.Description, " ")
 			}
 		}
 
 		if desc != "" {
-			fmt.Fprintf(&sb, "  * %s - %s\n", tool.Name, desc)
+			fmt.Fprintf(&sb, "  * `%s` - %s\n", tool.Name, desc)
 		} else {
-			fmt.Fprintf(&sb, "  * %s\n", tool.Name)
+			fmt.Fprintf(&sb, "  * `%s`\n", tool.Name)
 		}
 	}
 
