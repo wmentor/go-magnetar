@@ -89,14 +89,14 @@ func TestCodec_ReadFile_StandardEPUB(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if !strings.Contains(content, "Chapter 1: The Beginning") {
-		t.Errorf("expected content to contain Chapter 1 heading, got:\n%s", content)
+	if !strings.Contains(content, "# Chapter 1: The Beginning") {
+		t.Errorf("expected content to contain Markdown heading 1, got:\n%s", content)
 	}
-	if !strings.Contains(content, "Hello & welcome to the EPUB reader test.") {
-		t.Errorf("expected content to contain Chapter 1 text with unescaped entity, got:\n%s", content)
+	if !strings.Contains(content, "Hello & welcome to the **EPUB** reader test.") {
+		t.Errorf("expected content to contain Markdown bold text, got:\n%s", content)
 	}
-	if !strings.Contains(content, "Chapter 2: Continuation") {
-		t.Errorf("expected content to contain Chapter 2 heading, got:\n%s", content)
+	if !strings.Contains(content, "## Chapter 2: Continuation") {
+		t.Errorf("expected content to contain Markdown heading 2, got:\n%s", content)
 	}
 	if !strings.Contains(content, `with "special quotes".`) {
 		t.Errorf("expected content to contain Chapter 2 text, got:\n%s", content)
@@ -295,5 +295,59 @@ func TestCodec_ReadFile_InvalidFile(t *testing.T) {
 	}
 	if !errors.Is(err, epub.ErrInvalidFileFormat) {
 		t.Errorf("expected ErrInvalidFileFormat, got: %v", err)
+	}
+}
+
+func TestCodec_ReadFile_MarkdownFormatting(t *testing.T) {
+	t.Parallel()
+
+	files := map[string]string{
+		"META-INF/container.xml": `<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles><rootfile full-path="content.opf"/></rootfiles>
+</container>`,
+		"content.opf": `<package xmlns="http://www.idpf.org/2007/opf" version="2.0">
+  <manifest>
+    <item id="md" href="formatted.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine>
+    <itemref idref="md"/>
+  </spine>
+</package>`,
+		"formatted.xhtml": `<!DOCTYPE html>
+<html>
+<body>
+  <h1>Rich Formatting</h1>
+  <p>Here is <em>italic</em> and <strong>bold</strong> and <code>inline_code</code>.</p>
+  <ul>
+    <li>Item A</li>
+    <li>Item B</li>
+  </ul>
+  <blockquote><p>A wise quote.</p></blockquote>
+</body>
+</html>`,
+	}
+
+	epubPath := createTestEPUB(t, files)
+
+	c := &epub.Codec{}
+	content, err := c.ReadFile(epubPath)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	expectedParts := []string{
+		"# Rich Formatting",
+		"*italic*",
+		"**bold**",
+		"`inline_code`",
+		"- Item A",
+		"- Item B",
+		"> A wise quote.",
+	}
+
+	for _, part := range expectedParts {
+		if !strings.Contains(content, part) {
+			t.Errorf("expected content to contain %q, got:\n%s", part, content)
+		}
 	}
 }

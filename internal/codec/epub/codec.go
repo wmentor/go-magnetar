@@ -10,6 +10,10 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/JohannesKaufmann/html-to-markdown/v2/converter"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/base"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/commonmark"
+	"github.com/JohannesKaufmann/html-to-markdown/v2/plugin/table"
 	"github.com/pkg/errors"
 	"golang.org/x/net/html"
 )
@@ -150,7 +154,7 @@ func (c *Codec) ReadFile(filename string) (string, error) {
 			continue
 		}
 
-		text := extractTextFromHTML(data)
+		text := convertHTMLToMarkdown(data)
 		if text != "" {
 			sections = append(sections, text)
 		}
@@ -219,7 +223,7 @@ func readDirectHTMLFiles(files []*zip.File) (string, error) {
 		if err != nil {
 			continue
 		}
-		text := extractTextFromHTML(data)
+		text := convertHTMLToMarkdown(data)
 		if text != "" {
 			sections = append(sections, text)
 		}
@@ -259,7 +263,24 @@ func readZipFile(f *zip.File) ([]byte, error) {
 	return io.ReadAll(rc)
 }
 
-func extractTextFromHTML(data []byte) string {
+func convertHTMLToMarkdown(data []byte) string {
+	conv := converter.NewConverter(
+		converter.WithPlugins(
+			base.NewBasePlugin(),
+			commonmark.NewCommonmarkPlugin(),
+			table.NewTablePlugin(),
+		),
+	)
+
+	result, err := conv.ConvertString(string(data))
+	if err != nil {
+		return extractTextFallback(data)
+	}
+
+	return cleanParagraphs(result)
+}
+
+func extractTextFallback(data []byte) string {
 	doc, err := html.Parse(bytes.NewReader(data))
 	if err != nil {
 		return ""
@@ -298,8 +319,8 @@ func cleanParagraphs(text string) string {
 	var cleanLines []string
 	lastEmpty := false
 	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "" {
+		trimmed := strings.TrimRight(line, " \t\r")
+		if strings.TrimSpace(trimmed) == "" {
 			if !lastEmpty && len(cleanLines) > 0 {
 				cleanLines = append(cleanLines, "")
 				lastEmpty = true
