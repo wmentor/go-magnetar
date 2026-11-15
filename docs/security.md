@@ -85,6 +85,7 @@ The mask service automatically detects and replaces the following patterns:
 | Pattern | Replacement |
 |---------|-------------|
 | Email addresses | `[MASKED_EMAIL]` |
+| Phone numbers | `[MASKED_PHONE]` |
 | GitHub tokens | `[MASKED_TOKEN]` |
 | GitLab tokens | `[MASKED_TOKEN]` |
 | Russian passport | `[MASKED_PASSPORT]` |
@@ -100,6 +101,7 @@ mask:
   enable: true          # Set to false to disable masking (not recommended)
   skip:
     email: false        # Set to true to skip email masking
+    phone: false        # Set to true to skip phone number masking
 ```
 
 ### Important Notes
