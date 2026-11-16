@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"os"
 	"os/user"
 	"path/filepath"
 	"sort"
@@ -63,6 +64,9 @@ func defaultValues() map[string]any {
 		"ssh.remote_dir":             "",                      // remote working directory (optional, default: $HOME)
 		"ssh.timeout":                120,                     // SSH command timeout in seconds (default: 120)
 		"compact.mode":               "soft",                  // compacting strategy: soft or compact (default: soft)
+		"web.proxy.http":             os.Getenv("HTTP_PROXY"),
+		"web.proxy.https":            os.Getenv("HTTPS_PROXY"),
+		"web.proxy.noproxy":          os.Getenv("NO_PROXY"),
 	}
 
 	if currentUser, err := user.Current(); err == nil {

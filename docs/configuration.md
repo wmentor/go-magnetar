@@ -131,8 +131,9 @@ All plugins are disabled by default. Enable a plugin by setting `enable: true`:
 |---|---|---|
 | `enable` | boolean | Enable/disable automatic sensitive data masking (default: `true`) |
 | `skip.email` | boolean | Skip email address masking (default: `false`) |
+| `skip.phone` | boolean | Skip phone number masking (default: `false`) |
 
-The mask plugin automatically redacts sensitive data (email addresses, GitHub tokens, GitLab tokens, Russian passports, Russian SNILS, US Social Security Numbers) from all user inputs and tool responses to prevent accidental data leakage. Masking is applied to system prompts, user messages, and tool results.
+The mask plugin automatically redacts sensitive data (email addresses, phone numbers, GitHub tokens, GitLab tokens, Russian passports, Russian SNILS, US Social Security Numbers) from all user inputs and tool responses to prevent accidental data leakage. Masking is applied to system prompts, user messages, and tool results.
 
 These live in `plugins/mask.yml`. Add `plugins/mask.yml` to the `include` list of an existing `config.yml`; new configurations include it already.
 
@@ -152,6 +153,11 @@ See [Security > Sensitive Data Masking](./security.md#sensitive-data-masking) fo
 |---|---|---|
 | `disable.fetch` | boolean | Disable the `web_fetch` tool. The model is not offered it (default: `false`) |
 | `disable.search` | boolean | Disable the `web_search` tool. The model is not offered it; `rag_search` is unaffected (default: `false`) |
+| `proxy.http` | string | HTTP proxy URL (e.g., `http://proxy.example.com:8080`) |
+| `proxy.https` | string | HTTPS proxy URL (e.g., `https://proxy.example.com:8080`) |
+| `proxy.noproxy` | string | Comma-separated list of hosts that should bypass the proxy (e.g., `localhost,127.0.0.1,.internal.example.com`) |
+
+The proxy settings apply to all HTTP clients created by go-magnetar, including LLM API calls, RAG embedding requests, and all web fetching operations (`web_fetch`, `web_search`, and tool-specific web calls for GitHub, GitLab, Confluence, and JIRA).
 
 These live in `plugins/web.yml`. Add `plugins/web.yml` to the `include` list of an existing `config.yml`; new configurations include it already.
 

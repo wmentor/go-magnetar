@@ -58,18 +58,16 @@ type Tool struct {
 	cfg           *config.Config
 	printer       printer.Printer
 	clientFactory requester.ClientFactory
-	root          *os.Root
 	state         *plugin.State
 	guard         *guard.Guard
 	interceptor   *interceptor.Interceptor
 }
 
-func New(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory, root *os.Root, state *plugin.State) *Tool {
+func New(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory, state *plugin.State) *Tool {
 	return &Tool{
 		cfg:           cfg,
 		printer:       p,
 		clientFactory: clientFactory,
-		root:          root,
 		state:         state,
 		guard:         guard.New(cfg),
 		interceptor:   interceptor.New(),
@@ -109,7 +107,7 @@ func (t *Tool) Exec(ctx context.Context, params *ExecParams) (any, error) {
 	// #nosec G204 -- command validation is done in checkSecurity
 	cmd := exec.CommandContext(ctx, "sh", "-c", params.Command)
 	cmd.Stdin = strings.NewReader(params.Stdin)
-	cmd.Dir = t.root.Name()
+	cmd.Dir = t.state.Root.Name()
 
 	cmd.Env = makeEnvs()
 

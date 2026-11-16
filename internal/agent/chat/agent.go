@@ -82,7 +82,7 @@ type ChatAgent struct {
 func New(cfg *config.Config, root *os.Root, toolStore *tools.Store, maskService plugin.MaskService) (*ChatAgent, error) {
 	llmCfg := openai.DefaultConfig(cfg.ProfileParamString("llm.api_key"))
 	llmCfg.BaseURL = cfg.ProfileParamString("llm.base_url")
-	llmCfg.HTTPClient = requester.Get()
+	llmCfg.HTTPClient = requester.NewFactory(cfg).Get()
 	llmClient := openai.NewClientWithConfig(llmCfg)
 
 	renderer, err := glamour.NewTermRenderer(
@@ -124,7 +124,7 @@ func New(cfg *config.Config, root *os.Root, toolStore *tools.Store, maskService 
 func (a *ChatAgent) Reconfigure() {
 	llmCfg := openai.DefaultConfig(a.cfg.ProfileParamString("llm.api_key"))
 	llmCfg.BaseURL = a.cfg.ProfileParamString("llm.base_url")
-	llmCfg.HTTPClient = requester.Get()
+	llmCfg.HTTPClient = requester.NewFactory(a.cfg).Get()
 	a.llm = openai.NewClientWithConfig(llmCfg)
 }
 
@@ -1035,12 +1035,16 @@ func (a *ChatAgent) printAnswer(state *plugin.State, answer string, noLog bool) 
 
 // handleCommand processes a slash-command entered by the user.
 // Returns (*plugin.ChatCommandResponse, error).
-func (a *ChatAgent) handleCommand(line string, knownCommands []plugin.ChatCommand) (*plugin.ChatCommandResponse, error) {
+func (a *ChatAgent) handleCommand(line string, knownCommands []plugin.ChatCommand, state *plugin.State) (*plugin.ChatCommandResponse, error) {
 	trimLine := strings.TrimSpace(line)
 
 	if !strings.HasPrefix(line, "/") && trimLine != "exit" && trimLine != "quit" {
 		parts := strings.SplitN(trimLine, " ", 2)
 		name := parts[0]
+
+		if name == "what" || name == "where" || strings.ToLower(name) != name {
+			return nil, plugin.ErrNoCommand
+		}
 
 		if _, err := exec.LookPath(name); err != nil {
 			return nil, plugin.ErrNoCommand
@@ -1063,6 +1067,8 @@ func (a *ChatAgent) handleCommand(line string, knownCommands []plugin.ChatComman
 				fmt.Fprintf(sout, "\n[Error: %v]\n", err)
 			}
 		}
+
+		state.ResponseStore.Push(buffer.String())
 
 		fmt.Println("")
 
@@ -1151,7 +1157,7 @@ func (a *ChatAgent) Run(state *plugin.State, skillName string) error {
 		}
 
 		start := time.Now()
-		cmdResponse, err := a.handleCommand(line, plugin.ChatCommands())
+		cmdResponse, err := a.handleCommand(line, plugin.ChatCommands(), state)
 		elapsed := time.Since(start)
 		if err == nil {
 			if cmdResponse != nil {

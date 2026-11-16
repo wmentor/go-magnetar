@@ -7,6 +7,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/codec/csv"
 	"github.com/wmentor/go-magnetar/internal/codec/docx"
 	"github.com/wmentor/go-magnetar/internal/codec/eml"
+	"github.com/wmentor/go-magnetar/internal/codec/epub"
 	"github.com/wmentor/go-magnetar/internal/codec/excel"
 	"github.com/wmentor/go-magnetar/internal/codec/html"
 	"github.com/wmentor/go-magnetar/internal/codec/odt"
@@ -23,6 +24,7 @@ var (
 		".csv":   &csv.Codec{},
 		".docx":  &docx.Codec{},
 		".eml":   &eml.Codec{},
+		".epub":  &epub.Codec{},
 		".htm":   &html.Codec{},
 		".html":  &html.Codec{},
 		".odt":   &odt.Codec{},
@@ -34,6 +36,7 @@ var (
 		"csv":    &csv.Codec{},
 		"docx":   &docx.Codec{},
 		"eml":    &eml.Codec{},
+		"epub":   &epub.Codec{},
 		"htm":    &html.Codec{},
 		"html":   &html.Codec{},
 		"odt":    &odt.Codec{},
@@ -51,6 +54,7 @@ var (
 
 	// mimeCodecs maps MIME types to codecs.
 	mimeReadCodecs = map[string]ReadCodec{
+		"application/epub+zip":        &epub.Codec{},
 		"application/pdf":             &pdf.Codec{},
 		"application/vnd.apple.pages": &pages.Codec{},
 		"application/vnd.openxmlformats-officedocument.wordprocessingml.document":   &docx.Codec{},
@@ -64,7 +68,8 @@ var (
 	}
 
 	mimeBinary = map[string]struct{}{
-		"application/pdf": {},
+		"application/epub+zip": {},
+		"application/pdf":      {},
 		"application/vnd.openxmlformats-officedocument.wordprocessingml.document":   {},
 		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":         {},
 		"application/vnd.oasis.opendocument.text":                                   {},

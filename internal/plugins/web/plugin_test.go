@@ -46,6 +46,7 @@ func TestInitRegistersWebToolsUnlessDisabled(t *testing.T) {
 		{"fetch disabled", "version: \"1.0\"\nweb:\n  disable:\n    fetch: true\n", []string{"web_search"}},
 		{"search disabled", "version: \"1.0\"\nweb:\n  disable:\n    search: true\n", []string{"web_fetch"}},
 		{"both disabled", "version: \"1.0\"\nweb:\n  disable:\n    fetch: true\n    search: true\n", nil},
+		{"proxy configured", "version: \"1.0\"\nweb:\n  proxy:\n    http: http://proxy.example.com:8080\n    https: https://proxy.example.com:8080\n    noproxy: localhost\n", []string{"web_fetch", "web_search"}},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {

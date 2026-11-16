@@ -1,19 +1,20 @@
-# go-magnetar
+<img src="./docs/images/logo.jpeg" width="400px;" style="border-radius:10px;">
 
-An AI chat agent with an integrated knowledge base and customizable skills. A single standalone binary with everything included — no dependencies to install, no go install needed. Just download, run, and start chatting with any OpenAI-compatible LLM, indexing documents and web pages into a local vector database, and get answers grounded in your own content.
+---
+
+<br/>
+
+An AI smart shell with an integrated knowledge base and customizable skills. A single standalone binary with everything included — no dependencies to install, no go install needed. Just download, run, and start chatting with any OpenAI-compatible LLM, run shell commands, indexing documents and web pages into a local vector database, and get answers grounded in your own content.
 
 ## What it does
 
 - **Chat** — interactive REPL with multi-turn conversation and automatic context compaction
-- **Index** — `/index <file|url>` adds documents to your RAG knowledge base (optional)
-- **Fetch** — `/fetch <url>` retrieves and displays web content as Markdown
+- **Shell** — execute shell commands directly without LLM in the same line as your chat message (e.g., `ls -la`, `git status`, `cat file.txt`)
+- **Index** — `/index <file|url>` adds documents to your RAG knowledge base; documents become immediately available to the AI agent for answering questions
 - **Skills** — customize agent behavior with reusable skill files for specialized tasks
 - **Subagents** — spawn specialized agents for complex tasks (exploration, research, parallel work)
-- **Integrations** — Confluence, JIRA, GitHub, GitLab (all optional, disabled by default)
-
-Supported file formats: `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.pages`, `.odt`, `.pptx`, `.xlsx`, `.html`, `.eml`.
-
-For a complete list of supported formats and their available modes, see [docs/file_codecs.md](./docs/file_codecs.md).
+- **Integrations** — Confluence, JIRA, GitHub, GitLab (all optional, disabled by default); when enabled, simply provide a URL to a page or resource, and the system automatically detects the platform and fetches the content as markdown for AI agent
+- **Smart reading** - Transparent read a wide range of file formats (`.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.pages`, `.odt`, `.pptx`, `.xlsx`, `.html`, `.eml`, `.epub`) and convert into markdown. For a complete list of supported formats and their available modes, see [docs/file_codecs.md](./docs/file_codecs.md).
 
 ## Requirements
 
@@ -21,32 +22,6 @@ For a complete list of supported formats and their available modes, see [docs/fi
 - API key for any OpenAI-compatible provider (OpenAI, Azure OpenAI, Ollama, etc.)
 
 **Note:** Qdrant is **no longer required**. The default vector store is **Chromem** (built-in, in-memory with optional persistence). Qdrant is available as an optional external store for production deployments.
-
-## Vector Stores
-
-go-magnetar supports two vector storage backends:
-
-### Chromem (default)
-
-- **Built-in**: No external dependencies required
-- **In-memory by default**: Store exists only during session (when `rag.chromem.data_dir` is empty)
-- **Persistent mode**: Set `rag.chromem.data_dir` to persist vectors to disk
-- **Use case**: Local development, testing, edge deployments
-
-### Qdrant (external)
-
-- **External server**: Requires running Qdrant container
-- **Full persistence**: Automatic disk persistence with advanced filtering
-- **Use case**: Production, large-scale deployments
-
-Switch between stores via config:
-```yaml
-rag:
-  store:
-    type: chromem  # or qdrant
-```
-
-See [docs/architecture.md](./docs/architecture.md) for vector store architecture details.
 
 ## Quick start
 
@@ -199,6 +174,10 @@ See [docs/skill.md](./docs/skill.md) for complete skill documentation.
 ## Using the knowledge base (RAG)
 
 The RAG feature is **optional**. Enable it when you want the agent to answer questions based on your own documents.
+
+<p align="center">
+  <img src="./docs/images/rag-usage.gif" style="max-width:640px;"/>
+</p>
 
 ### Enable RAG in config
 

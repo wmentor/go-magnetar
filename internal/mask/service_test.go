@@ -51,14 +51,15 @@ mask:
   enable: true
   skip:
     email: false
+    phone: false
 `
 
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 6 records: email, github_token, gitlab_token, passport, snils, ssn
-	if len(srv.records) != 6 {
-		t.Errorf("expected 6 records when mask is enabled, got %d", len(srv.records))
+	// Service should have 7 records: email, phone, github_token, gitlab_token, passport, snils, ssn
+	if len(srv.records) != 7 {
+		t.Errorf("expected 7 records when mask is enabled, got %d", len(srv.records))
 	}
 }
 
@@ -77,9 +78,52 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 5 records: github_token, gitlab_token, passport, snils, ssn (no email)
+	// Service should have 6 records: phone, github_token, gitlab_token, passport, snils, ssn (no email)
+	if len(srv.records) != 6 {
+		t.Errorf("expected 6 records when email is skipped, got %d", len(srv.records))
+	}
+}
+
+func TestNewServiceWithSkipPhone(t *testing.T) {
+	t.Parallel()
+
+	yaml := `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    phone: true
+`
+
+	cfg := loadTestConfig(t, yaml)
+	srv := NewService(cfg)
+
+	// Service should have 6 records: email, github_token, gitlab_token, passport, snils, ssn (no phone)
+	if len(srv.records) != 6 {
+		t.Errorf("expected 6 records when phone is skipped, got %d", len(srv.records))
+	}
+}
+
+func TestNewServiceWithSkipEmailAndPhone(t *testing.T) {
+	t.Parallel()
+
+	yaml := `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: true
+    phone: true
+`
+
+	cfg := loadTestConfig(t, yaml)
+	srv := NewService(cfg)
+
+	// Service should have 5 records: github_token, gitlab_token, passport, snils, ssn (no email, no phone)
 	if len(srv.records) != 5 {
-		t.Errorf("expected 5 records when email is skipped, got %d", len(srv.records))
+		t.Errorf("expected 5 records when email and phone are skipped, got %d", len(srv.records))
 	}
 }
 
@@ -756,6 +800,149 @@ mask:
 `,
 			input: "Not an SSN: 12-45-6789 or 123-456-789 or 123456789",
 			want:  "Not an SSN: 12-45-6789 or 123-456-789 or 123456789",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Helper()
+
+			cfg := loadTestConfig(t, tt.yaml)
+			srv := NewService(cfg)
+
+			got := srv.Process(context.Background(), tt.input)
+
+			if got != tt.want {
+				t.Errorf("Process() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestProcessPhoneMasking(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		yaml  string
+		input string
+		want  string
+	}{
+		{
+			name: "us phone with dashes",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    phone: false
+`,
+			input: "Contact support at 555-123-4567 today",
+			want:  "Contact support at [MASKED_PHONE] today",
+		},
+		{
+			name: "us phone with parentheses",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "Call us at (555) 123-4567 for assistance",
+			want:  "Call us at [MASKED_PHONE] for assistance",
+		},
+		{
+			name: "us phone with country code and dashes",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "Direct line: +1-555-123-4567.",
+			want:  "Direct line: [MASKED_PHONE].",
+		},
+		{
+			name: "us phone with dots",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "Office: 555.123.4567",
+			want:  "Office: [MASKED_PHONE]",
+		},
+		{
+			name: "russian phone with +7",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "Phone: +7 (999) 123-45-67",
+			want:  "Phone: [MASKED_PHONE]",
+		},
+		{
+			name: "russian phone with 8",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "Phone: 8-999-123-45-67",
+			want:  "Phone: [MASKED_PHONE]",
+		},
+		{
+			name: "uk international phone",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "London office: +44 20 7946 0958",
+			want:  "London office: [MASKED_PHONE]",
+		},
+		{
+			name: "multiple phone numbers in text",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "Call 555-123-4567 or +7 999 123-45-67",
+			want:  "Call [MASKED_PHONE] or [MASKED_PHONE]",
+		},
+		{
+			name: "phone masking skipped via configuration",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    phone: true
+`,
+			input: "Do not mask this phone: +1-555-123-4567",
+			want:  "Do not mask this phone: +1-555-123-4567",
+		},
+		{
+			name: "dates and ssn not masked as phone",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    phone: false
+`,
+			input: "Date is 2026-11-14 and IP is 192.168.1.1",
+			want:  "Date is 2026-11-14 and IP is 192.168.1.1",
 		},
 	}
 

@@ -38,7 +38,7 @@ type Summarizer struct {
 func New(cfg *config.Config) *Summarizer {
 	llmCfg := openai.DefaultConfig(cfg.ProfileParamString("llm.api_key"))
 	llmCfg.BaseURL = cfg.ProfileParamString("llm.base_url")
-	llmCfg.HTTPClient = requester.Get()
+	llmCfg.HTTPClient = requester.NewFactory(cfg).Get()
 	return &Summarizer{
 		cfg: cfg,
 		llm: openai.NewClientWithConfig(llmCfg),

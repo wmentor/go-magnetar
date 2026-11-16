@@ -20,6 +20,8 @@ func TestGetCodec(t *testing.T) {
 		{name: "csv extension without dot", ext: "csv", wantErr: false},
 		{name: "docx extension with dot", ext: ".docx", wantErr: false},
 		{name: "docx extension without dot", ext: "docx", wantErr: false},
+		{name: "epub extension with dot", ext: ".epub", wantErr: false},
+		{name: "epub extension without dot", ext: "epub", wantErr: false},
 		{name: "pdf extension with dot", ext: ".pdf", wantErr: false},
 		{name: "pdf extension without dot", ext: "pdf", wantErr: false},
 		{name: "odt extension with dot", ext: ".odt", wantErr: false},
@@ -32,6 +34,7 @@ func TestGetCodec(t *testing.T) {
 		{name: "empty extension", ext: "", wantErr: true},
 		{name: "uppercase CSV", ext: ".CSV", wantErr: false},
 		{name: "uppercase docx", ext: ".DOCX", wantErr: false},
+		{name: "uppercase epub", ext: ".EPUB", wantErr: false},
 	}
 
 	for _, tt := range tests {
@@ -111,6 +114,7 @@ func TestGetCodecByMIME(t *testing.T) {
 		{name: "csv MIME", mime: "text/csv", wantErr: false},
 		{name: "tsv MIME", mime: "text/tab-separated-values", wantErr: false},
 		{name: "pdf MIME", mime: "application/pdf", wantErr: false},
+		{name: "epub MIME", mime: "application/epub+zip", wantErr: false},
 		{name: "docx MIME", mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", wantErr: false},
 		{name: "xlsx MIME", mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", wantErr: false},
 		{name: "odt MIME", mime: "application/vnd.oasis.opendocument.text", wantErr: false},
@@ -119,6 +123,7 @@ func TestGetCodecByMIME(t *testing.T) {
 		{name: "empty MIME", mime: "", wantErr: true},
 		{name: "uppercase CSV MIME", mime: "TEXT/CSV", wantErr: false},
 		{name: "uppercase PDF MIME", mime: "APPLICATION/PDF", wantErr: false},
+		{name: "uppercase EPUB MIME", mime: "APPLICATION/EPUB+ZIP", wantErr: false},
 	}
 
 	for _, tt := range tests {
@@ -166,6 +171,7 @@ func TestIsBinaryFormat(t *testing.T) {
 		{name: "XLSX", mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", want: true},
 		{name: "ODT", mime: "application/vnd.oasis.opendocument.text", want: true},
 		{name: "PPTX", mime: "application/vnd.openxmlformats-officedocument.presentationml.presentation", want: true},
+		{name: "EPUB", mime: "application/epub+zip", want: true},
 		{name: "CSV text", mime: "text/csv", want: false},
 		{name: "TSV text", mime: "text/tab-separated-values", want: false},
 		{name: "HTML", mime: "text/html", want: false},

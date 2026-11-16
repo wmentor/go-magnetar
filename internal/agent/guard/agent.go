@@ -69,7 +69,7 @@ type Response struct {
 func New(cfg *config.Config) *Guard {
 	llmCfg := openai.DefaultConfig(cfg.ProfileParamString("llm.api_key"))
 	llmCfg.BaseURL = cfg.ProfileParamString("llm.base_url")
-	llmCfg.HTTPClient = requester.Get()
+	llmCfg.HTTPClient = requester.NewFactory(cfg).Get()
 	return &Guard{
 		cfg: cfg,
 		llm: openai.NewClientWithConfig(llmCfg),

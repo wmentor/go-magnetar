@@ -93,9 +93,9 @@ func listAgents(agentStore plugin.AgentStore) string {
 			continue
 		}
 		if agent.Description != "" {
-			fmt.Fprintf(&sb, "  * %s - %s\n", agent.Name, agent.Description)
+			fmt.Fprintf(&sb, "  * `%s` - %s\n", agent.Name, agent.Description)
 		} else {
-			fmt.Fprintf(&sb, "  * %s\n", agent.Name)
+			fmt.Fprintf(&sb, "  * `%s`\n", agent.Name)
 		}
 	}
 	return sb.String()
