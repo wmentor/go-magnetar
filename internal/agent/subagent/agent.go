@@ -67,8 +67,8 @@ func New(agentName string, state *plugin.State) (*Agent, error) {
 	}
 
 	var cfg *config.Config
-	if c, ok := state.Config.(*config.Config); ok && c != nil {
-		cfg = c.Copy()
+	if state != nil && state.Config != nil {
+		cfg = state.Config.Copy()
 	}
 
 	if a.Profile != "" {

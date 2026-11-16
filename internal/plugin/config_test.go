@@ -29,6 +29,7 @@ func TestStateWithMockConfig(t *testing.T) {
 	mockCfg.EXPECT().ProfileParamInt("max_tokens").Return(2048)
 	mockCfg.EXPECT().ProfileParamFloat64("temp").Return(0.7)
 	mockCfg.EXPECT().SetProfile("fast").Return(nil)
+	mockCfg.EXPECT().Copy().Return(&config.Config{})
 
 	state := &plugin.State{
 		Config: mockCfg,
@@ -46,4 +47,5 @@ func TestStateWithMockConfig(t *testing.T) {
 	assert.Equal(t, 2048, state.Config.ProfileParamInt("max_tokens"))
 	assert.Equal(t, 0.7, state.Config.ProfileParamFloat64("temp"))
 	require.NoError(t, state.Config.SetProfile("fast"))
+	assert.NotNil(t, state.Config.Copy())
 }

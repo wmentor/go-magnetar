@@ -6,6 +6,7 @@ package testdata
 
 import (
 	mock "github.com/stretchr/testify/mock"
+	"github.com/wmentor/go-magnetar/internal/config"
 )
 
 // NewConfig creates a new instance of Config. It also registers a testing interface
@@ -83,6 +84,53 @@ func (_c *Config_Bool_Call) Return(_a0 bool) *Config_Bool_Call {
 }
 
 func (_c *Config_Bool_Call) RunAndReturn(run func(string) bool) *Config_Bool_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Copy provides a mock function for the type Config
+func (_mock *Config) Copy() *config.Config {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Copy")
+	}
+
+	var r0 *config.Config
+	if returnFunc, ok := ret.Get(0).(func() *config.Config); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*config.Config)
+		}
+	}
+
+	return r0
+}
+
+// Config_Copy_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Copy'
+type Config_Copy_Call struct {
+	*mock.Call
+}
+
+// Copy is a helper method to define mock.On call
+func (_e *Config_Expecter) Copy() *Config_Copy_Call {
+	return &Config_Copy_Call{Call: _e.mock.On("Copy")}
+}
+
+func (_c *Config_Copy_Call) Run(run func()) *Config_Copy_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *Config_Copy_Call) Return(_a0 *config.Config) *Config_Copy_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *Config_Copy_Call) RunAndReturn(run func() *config.Config) *Config_Copy_Call {
 	_c.Call.Return(run)
 	return _c
 }
