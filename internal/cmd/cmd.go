@@ -119,6 +119,7 @@ func Execute() error {
 		Printer:          printer.GetDefault(),
 		AgentStore:       agentStore,
 		MaskService:      maskService,
+		Root:             rootFS,
 	}
 	state.TimingEnabled.Store(root.Timing)
 

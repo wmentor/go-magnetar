@@ -2,7 +2,6 @@ package date
 
 import (
 	"context"
-	"os"
 	"time"
 
 	"github.com/wmentor/go-magnetar/internal/config"
@@ -22,17 +21,15 @@ type Tool struct {
 	cfg           *config.Config
 	printer       printer.Printer
 	clientFactory requester.ClientFactory
-	root          *os.Root
 	state         *plugin.State
 }
 
 // New creates a new Tool instance.
-func New(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory, root *os.Root, state *plugin.State) *Tool {
+func New(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory, state *plugin.State) *Tool {
 	return &Tool{
 		cfg:           cfg,
 		printer:       p,
 		clientFactory: clientFactory,
-		root:          root,
 		state:         state,
 	}
 }

@@ -3,7 +3,6 @@ package grep
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/exec"
 	"path/filepath"
 
@@ -27,18 +26,16 @@ type Tool struct {
 	cfg           *config.Config
 	printer       printer.Printer
 	clientFactory requester.ClientFactory
-	root          *os.Root
 	state         *plugin.State
 	useRg         bool // whether to use rg (ripgrep) instead of grep
 }
 
 // New creates a new Tool instance.
-func New(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory, root *os.Root, state *plugin.State) *Tool {
+func New(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory, state *plugin.State) *Tool {
 	return &Tool{
 		cfg:           cfg,
 		printer:       p,
 		clientFactory: clientFactory,
-		root:          root,
 		state:         state,
 		useRg:         isRgAvailable(),
 	}
@@ -68,8 +65,8 @@ func (t *Tool) Exec(ctx context.Context, params *SystemGrepParams) (any, error) 
 
 	// Build the full path inside the sandboxed root
 	fullPath := params.Filename
-	if t.root != nil {
-		fullPath = filepath.Join(t.root.Name(), params.Filename)
+	if t.state != nil && t.state.Root != nil {
+		fullPath = filepath.Join(t.state.Root.Name(), params.Filename)
 	}
 
 	var cmd []string

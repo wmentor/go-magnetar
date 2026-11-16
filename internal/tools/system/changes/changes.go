@@ -3,7 +3,6 @@ package changes
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 
@@ -19,17 +18,15 @@ type Tool struct {
 	cfg           *config.Config
 	printer       printer.Printer
 	clientFactory requester.ClientFactory
-	root          *os.Root
 	state         *plugin.State
 }
 
 // New creates a new Tool instance.
-func New(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory, root *os.Root, state *plugin.State) *Tool {
+func New(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory, state *plugin.State) *Tool {
 	return &Tool{
 		cfg:           cfg,
 		printer:       p,
 		clientFactory: clientFactory,
-		root:          root,
 		state:         state,
 	}
 }
@@ -46,13 +43,13 @@ func (t *Tool) Description() string {
 
 // Exec executes the local_changes tool and returns the result.
 func (t *Tool) Exec(ctx context.Context, params *Params) (any, error) {
-	t.printer.ToolCall(printer.IconSearch, "local_changes", "directory", t.root.Name())
+	t.printer.ToolCall(printer.IconSearch, "local_changes", "directory", t.state.Root.Name())
 
 	var result strings.Builder
 
 	// Run git status
 	statusCmd := exec.CommandContext(ctx, "git", "status")
-	statusCmd.Dir = t.root.Name()
+	statusCmd.Dir = t.state.Root.Name()
 	statusOutput, err := statusCmd.CombinedOutput()
 	if err != nil {
 		t.printer.Error("local_changes: git status failed", "err", err)
@@ -62,7 +59,7 @@ func (t *Tool) Exec(ctx context.Context, params *Params) (any, error) {
 
 	// Run git diff
 	diffCmd := exec.CommandContext(ctx, "git", "diff")
-	diffCmd.Dir = t.root.Name()
+	diffCmd.Dir = t.state.Root.Name()
 	diffOutput, err := diffCmd.CombinedOutput()
 	if err != nil {
 		t.printer.Error("local_changes: git diff failed", "err", err)
@@ -72,7 +69,7 @@ func (t *Tool) Exec(ctx context.Context, params *Params) (any, error) {
 
 	// Run git diff --staged
 	stagedCmd := exec.CommandContext(ctx, "git", "diff", "--staged")
-	stagedCmd.Dir = t.root.Name()
+	stagedCmd.Dir = t.state.Root.Name()
 	stagedOutput, err := stagedCmd.CombinedOutput()
 	if err != nil {
 		t.printer.Error("local_changes: git diff --staged failed", "err", err)

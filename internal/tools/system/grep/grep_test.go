@@ -42,7 +42,7 @@ func newTestTools(t *testing.T, readOnly bool) (*Tool, *os.Root) {
 	// Create a valid printer and request factory for tests
 	p := printer.GetDefault()
 	clientFactory := testdata.NewClientFactory(t)
-	return New(cfg, p, clientFactory, rootFS, &plugin.State{Config: cfg, ReadOnly: readOnly, ResponseStore: responseStore}), rootFS
+	return New(cfg, p, clientFactory, &plugin.State{Config: cfg, ReadOnly: readOnly, ResponseStore: responseStore, Root: rootFS}), rootFS
 }
 
 func parseResult(t *testing.T, result any) tools.Response {
