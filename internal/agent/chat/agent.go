@@ -1042,6 +1042,10 @@ func (a *ChatAgent) handleCommand(line string, knownCommands []plugin.ChatComman
 		parts := strings.SplitN(trimLine, " ", 2)
 		name := parts[0]
 
+		if name == "what" || name == "where" || strings.ToLower(name) != name {
+			return nil, plugin.ErrNoCommand
+		}
+
 		if _, err := exec.LookPath(name); err != nil {
 			return nil, plugin.ErrNoCommand
 		}
