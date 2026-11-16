@@ -26,15 +26,17 @@ type Plugin struct {
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	p.state = s
 
+	cfg := s.ConcreteConfig()
+
 	// Register web_fetch tool
 	if !s.Config.Bool("web.disable.fetch") {
-		fetchTool := webfetch.NewTool(s.Config, s.Printer, s.RequesterFactory, s)
+		fetchTool := webfetch.NewTool(cfg, s.Printer, s.RequesterFactory, s)
 		s.ToolStore.Register(fetchTool.Name(), fetchTool.Description(), fetchTool.WebFetch)
 	}
 
 	// Register web_search tool
 	if !s.Config.Bool("web.disable.search") {
-		searchTool := websearch.NewTool(s.Config, s.Printer, s.RequesterFactory, s)
+		searchTool := websearch.NewTool(cfg, s.Printer, s.RequesterFactory, s)
 		limit := rate.Every(webSearchTimeInterval)
 		limiter := rate.NewLimiter(limit, 1)
 		searchTool.SetLimiter(limiter)

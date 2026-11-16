@@ -24,18 +24,20 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		return nil
 	}
 
+	cfg := s.ConcreteConfig()
+
 	// Initialize fetch tool
-	p.fetchTool = confluence.NewFetchTool(s.Config, s.Printer, s.RequesterFactory)
+	p.fetchTool = confluence.NewFetchTool(cfg, s.Printer, s.RequesterFactory)
 	s.ToolStore.Register(p.fetchTool.Name(), p.fetchTool.Description(), p.fetchTool.Exec)
 
 	// Initialize and register edit tool if not in read-only mode
 	if !s.Config.Bool("confluence.readonly") {
-		p.editTool = confluence.NewEditTool(s.Config, s.Printer, s.RequesterFactory, s)
+		p.editTool = confluence.NewEditTool(cfg, s.Printer, s.RequesterFactory, s)
 		s.ToolStore.Register(p.editTool.Name(), p.editTool.Description(), p.editTool.Exec)
 	}
 
 	// Initialize and register search tool
-	p.searchTool = confluence.NewSearchTool(s.Config, s.Printer, s.RequesterFactory)
+	p.searchTool = confluence.NewSearchTool(cfg, s.Printer, s.RequesterFactory)
 	s.ToolStore.Register(p.searchTool.Name(), p.searchTool.Description(), p.searchTool.Exec)
 
 	return nil

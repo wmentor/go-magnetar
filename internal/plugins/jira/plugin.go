@@ -24,10 +24,12 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		return nil
 	}
 
+	cfg := s.ConcreteConfig()
+
 	// Initialize tools with Printer and RequesterFactory for proper dependency injection
-	p.getTool = jira.NewGetTool(s.Config, s.Printer, s.RequesterFactory)
-	p.searchTool = jira.NewSearchTool(s.Config, s.Printer, s.RequesterFactory)
-	p.createTool = jira.NewCreateTool(s.Config, s.Printer, s.RequesterFactory)
+	p.getTool = jira.NewGetTool(cfg, s.Printer, s.RequesterFactory)
+	p.searchTool = jira.NewSearchTool(cfg, s.Printer, s.RequesterFactory)
+	p.createTool = jira.NewCreateTool(cfg, s.Printer, s.RequesterFactory)
 
 	// Register jira_task_get tool
 	s.ToolStore.Register(p.getTool.Name(), p.getTool.Description(), p.getTool.Exec)

@@ -16,7 +16,7 @@ type Plugin struct {
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	p.state = s
-	p.tool = github.New(s.Config, s.Printer, s.RequesterFactory, s)
+	p.tool = github.New(s.ConcreteConfig(), s.Printer, s.RequesterFactory, s)
 
 	if !p.tool.Enabled() {
 		return nil

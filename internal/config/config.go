@@ -30,12 +30,8 @@ type Config struct {
 
 var ErrProfileNotFound = errors.New("profile not found")
 
-// Load reads and parses a YAML config file at the given path.
-func Load(path string) (*Config, error) {
-	k := koanf.New(".")
-
-	// defaults holds default config values that are applied before the
-	// YAML file is loaded, so the user doesn't need to set them.
+// defaultValues returns standard default config values.
+func defaultValues() map[string]any {
 	defaults := map[string]any{
 		"rag.chunk.size":             2048,                    // runes; matches DefaultConfig in internal/chunk
 		"rag.chunk.overlap":          256,                     // runes; ~12.5% overlap is the RAG sweet-spot
@@ -77,6 +73,17 @@ func Load(path string) (*Config, error) {
 		defaults["ssh.user"] = currentUser
 	}
 
+	return defaults
+}
+
+// Load reads and parses a YAML config file at the given path.
+func Load(path string) (*Config, error) {
+	k := koanf.New(".")
+
+	// defaults holds default config values that are applied before the
+	// YAML file is loaded, so the user doesn't need to set them.
+	defaults := defaultValues()
+
 	if err := k.Load(confmap.Provider(defaults, "."), nil); err != nil {
 		return nil, fmt.Errorf("config: failed to load defaults: %w", err)
 	}
@@ -102,8 +109,6 @@ func Load(path string) (*Config, error) {
 	if err := k.Load(env.Provider(".", envOpt), nil); err != nil {
 		return nil, fmt.Errorf("config: failed to load envs: %w", err)
 	}
-
-	fmt.Println(k.String("profile"))
 
 	if ver := k.String("version"); ver != currentVersion {
 		return nil, fmt.Errorf("config: unsupported config version %q", ver)

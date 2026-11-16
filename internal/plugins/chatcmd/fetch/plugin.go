@@ -28,7 +28,7 @@ type Plugin struct {
 }
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
-	p.tool = webfetch.NewTool(s.Config, s.Printer, s.RequesterFactory, s)
+	p.tool = webfetch.NewTool(s.ConcreteConfig(), s.Printer, s.RequesterFactory, s)
 
 	hub.RegisterChatCommand(plugin.ChatCommand{
 		Name:    "fetch",

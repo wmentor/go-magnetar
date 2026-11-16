@@ -53,7 +53,7 @@ type VectorStore interface {
 // State carries shared infrastructure injected into every plugin at Init time.
 // Named State (not Context) to avoid confusion with context.Context.
 type State struct {
-	Config           *config.Config
+	Config           Config
 	Root             *os.Root // sandboxed filesystem; nil in the indexer context.
 	Printer          printer.Printer
 	ReadOnly         bool                    // if true, disable file write operations.
@@ -65,6 +65,17 @@ type State struct {
 	RequesterFactory requester.ClientFactory // HTTP client factory.
 	VectorStore      VectorStore             // RAG vector store if RAG enabled.
 	MaskService      MaskService             // Mask service.
+}
+
+// ConcreteConfig returns the underlying *config.Config if s.Config is of that type.
+func (s *State) ConcreteConfig() *config.Config {
+	if s == nil || s.Config == nil {
+		return nil
+	}
+	if cfg, ok := s.Config.(*config.Config); ok {
+		return cfg
+	}
+	return nil
 }
 
 // PreprocessorFunc is a function that preprocesses text.

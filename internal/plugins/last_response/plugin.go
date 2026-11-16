@@ -16,7 +16,7 @@ type Plugin struct {
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	p.state = s
-	p.tool = lastresponse.New(s.Config, s.Printer, s.RequesterFactory, s.ResponseStore)
+	p.tool = lastresponse.New(s.ConcreteConfig(), s.Printer, s.RequesterFactory, s.ResponseStore)
 	// Register using the modern tool store API
 	s.ToolStore.Register(p.tool.Name(), p.tool.Description(), p.tool.Exec)
 	return nil
