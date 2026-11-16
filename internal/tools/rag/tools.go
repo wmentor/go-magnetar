@@ -49,6 +49,6 @@ func NewEmbeddingClient(cfg *config.Config) *openai.Client {
 	}
 	embedCfg := openai.DefaultConfig(apiKey)
 	embedCfg.BaseURL = baseURL
-	embedCfg.HTTPClient = requester.Get()
+	embedCfg.HTTPClient = requester.NewFactory(cfg).Get()
 	return openai.NewClientWithConfig(embedCfg)
 }
