@@ -57,9 +57,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 7 records: email, phone, github_token, gitlab_token, passport, snils, ssn
-	if len(srv.records) != 7 {
-		t.Errorf("expected 7 records when mask is enabled, got %d", len(srv.records))
+	// Service should have 8 records: email, phone, github_token, gitlab_token, passport, snils, ssn, iban
+	if len(srv.records) != 8 {
+		t.Errorf("expected 8 records when mask is enabled, got %d", len(srv.records))
 	}
 }
 
@@ -78,9 +78,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 6 records: phone, github_token, gitlab_token, passport, snils, ssn (no email)
-	if len(srv.records) != 6 {
-		t.Errorf("expected 6 records when email is skipped, got %d", len(srv.records))
+	// Service should have 7 records: phone, github_token, gitlab_token, passport, snils, ssn, iban (no email)
+	if len(srv.records) != 7 {
+		t.Errorf("expected 7 records when email is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -99,9 +99,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 6 records: email, github_token, gitlab_token, passport, snils, ssn (no phone)
-	if len(srv.records) != 6 {
-		t.Errorf("expected 6 records when phone is skipped, got %d", len(srv.records))
+	// Service should have 7 records: email, github_token, gitlab_token, passport, snils, ssn, iban (no phone)
+	if len(srv.records) != 7 {
+		t.Errorf("expected 7 records when phone is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -121,9 +121,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 5 records: github_token, gitlab_token, passport, snils, ssn (no email, no phone)
-	if len(srv.records) != 5 {
-		t.Errorf("expected 5 records when email and phone are skipped, got %d", len(srv.records))
+	// Service should have 6 records: github_token, gitlab_token, passport, snils, ssn, iban (no email, no phone)
+	if len(srv.records) != 6 {
+		t.Errorf("expected 6 records when email and phone are skipped, got %d", len(srv.records))
 	}
 }
 
@@ -943,6 +943,98 @@ mask:
 `,
 			input: "Date is 2026-11-14 and IP is 192.168.1.1",
 			want:  "Date is 2026-11-14 and IP is 192.168.1.1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Helper()
+
+			cfg := loadTestConfig(t, tt.yaml)
+			srv := NewService(cfg)
+
+			got := srv.Process(context.Background(), tt.input)
+
+			if got != tt.want {
+				t.Errorf("Process() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestProcessIBANMasking(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		yaml  string
+		input string
+		want  string
+	}{
+		{
+			name: "iban with spaces (german)",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "Account: DE89 3704 0044 0532 0130 00",
+			want:  "Account: [MASK_IBAN]",
+		},
+		{
+			name: "iban without spaces (german)",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "Account: DE89370400440532013000",
+			want:  "Account: [MASK_IBAN]",
+		},
+		{
+			name: "multiple ibans",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "Transfer from GB29 NBAK 6016 1331 9268 19 to FR76 3000 6000 0112 3456 7890 189",
+			want:  "Transfer from [MASK_IBAN] to [MASK_IBAN]",
+		},
+		{
+			name: "no iban",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "No IBAN here",
+			want:  "No IBAN here",
+		},
+		{
+			name: "short invalid iban not masked",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "Code: DE12 34",
+			want:  "Code: DE12 34",
 		},
 	}
 

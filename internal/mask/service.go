@@ -54,6 +54,9 @@ func NewService(cfg *config.Config) *Service {
 	// US Social Security Number: XXX-XX-XXXX or XXX XX XXXX
 	srv.register("ssn", `\b\d{3}[-\s]\d{2}[-\s]\d{4}\b`, "[MASK_SSN]")
 
+	// IBAN: International Bank Account Number (with or without spaces)
+	srv.register("iban", `\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,4})?\b`, "[MASK_IBAN]")
+
 	return srv
 }
 
