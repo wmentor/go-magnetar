@@ -29,36 +29,37 @@ type Plugin struct {
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	p.state = s
+	cfg := s.ConcreteConfig()
 
 	// Register exec tool
-	p.exec = execTool.New(s.Config, s.Printer, s.RequesterFactory, s)
+	p.exec = execTool.New(cfg, s.Printer, s.RequesterFactory, s)
 	s.ToolStore.Register(p.exec.Name(), p.exec.Description(), p.exec.Exec, tools.OptionSequential())
 
 	// Register ssh tool (only if ssh.enable is true in config)
 	if s.Config.Bool("ssh.enable") {
-		p.ssh = sshTool.New(s.Config, s.Printer, s.RequesterFactory, s)
+		p.ssh = sshTool.New(cfg, s.Printer, s.RequesterFactory, s)
 		s.ToolStore.Register(p.ssh.Name(), p.ssh.Description(), p.ssh.Exec, tools.OptionSequential())
 	}
 
 	// Register system_date tool
-	p.tool = date.New(s.Config, s.Printer, s.RequesterFactory, s)
+	p.tool = date.New(cfg, s.Printer, s.RequesterFactory, s)
 	s.ToolStore.Register(p.tool.Name(), p.tool.Description(), p.tool.Exec)
 
 	// Register system_uuid tool
-	p.uuidTool = uuidTool.New(s.Config, s.Printer, s.RequesterFactory, s)
+	p.uuidTool = uuidTool.New(cfg, s.Printer, s.RequesterFactory, s)
 	s.ToolStore.Register(p.uuidTool.Name(), p.uuidTool.Description(), p.uuidTool.Exec, tools.OptionRateLimit(10))
 
 	// Register system_grep tool (only if grep or rg is available)
 	if _, err := exec.LookPath("grep"); err == nil {
-		p.grep = grep.New(s.Config, s.Printer, s.RequesterFactory, s)
+		p.grep = grep.New(cfg, s.Printer, s.RequesterFactory, s)
 		s.ToolStore.Register(p.grep.Name(), p.grep.Description(), p.grep.Exec)
 	} else if _, err := exec.LookPath("rg"); err == nil {
-		p.grep = grep.New(s.Config, s.Printer, s.RequesterFactory, s)
+		p.grep = grep.New(cfg, s.Printer, s.RequesterFactory, s)
 		s.ToolStore.Register(p.grep.Name(), p.grep.Description(), p.grep.Exec)
 	}
 
 	// Register system_local_changes tool
-	p.changes = changes.New(s.Config, s.Printer, s.RequesterFactory, s)
+	p.changes = changes.New(cfg, s.Printer, s.RequesterFactory, s)
 	s.ToolStore.Register(p.changes.Name(), p.changes.Description(), p.changes.Exec, tools.OptionSequential())
 
 	return nil
