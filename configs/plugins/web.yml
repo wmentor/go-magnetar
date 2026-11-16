@@ -2,3 +2,7 @@ web:
   disable:
     fetch: false  # disable the web_fetch tool (default: false)
     search: false  # disable the web_search tool (default: false)
+  proxy:
+    http: ""  # HTTP proxy URL (e.g., http://proxy.example.com:8080)
+    https: ""  # HTTPS proxy URL (e.g., https://proxy.example.com:8080)
+    noproxy: ""  # Comma-separated list of hosts to bypass proxy (e.g., localhost,127.0.0.1,.internal.example.com)

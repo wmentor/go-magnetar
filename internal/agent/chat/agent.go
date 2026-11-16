@@ -82,7 +82,7 @@ type ChatAgent struct {
 func New(cfg *config.Config, root *os.Root, toolStore *tools.Store, maskService plugin.MaskService) (*ChatAgent, error) {
 	llmCfg := openai.DefaultConfig(cfg.ProfileParamString("llm.api_key"))
 	llmCfg.BaseURL = cfg.ProfileParamString("llm.base_url")
-	llmCfg.HTTPClient = requester.Get()
+	llmCfg.HTTPClient = requester.NewFactory(cfg).Get()
 	llmClient := openai.NewClientWithConfig(llmCfg)
 
 	renderer, err := glamour.NewTermRenderer(
@@ -124,7 +124,7 @@ func New(cfg *config.Config, root *os.Root, toolStore *tools.Store, maskService 
 func (a *ChatAgent) Reconfigure() {
 	llmCfg := openai.DefaultConfig(a.cfg.ProfileParamString("llm.api_key"))
 	llmCfg.BaseURL = a.cfg.ProfileParamString("llm.base_url")
-	llmCfg.HTTPClient = requester.Get()
+	llmCfg.HTTPClient = requester.NewFactory(a.cfg).Get()
 	a.llm = openai.NewClientWithConfig(llmCfg)
 }
 

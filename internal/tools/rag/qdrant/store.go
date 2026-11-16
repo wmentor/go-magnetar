@@ -50,7 +50,7 @@ func NewStore(cfg *config.Config) (*Store, error) {
 	// Build LLM client for query expansion (reuses main LLM config).
 	llmCfg := openai.DefaultConfig(cfg.ProfileParamString("llm.api_key"))
 	llmCfg.BaseURL = cfg.ProfileParamString("llm.base_url")
-	llmCfg.HTTPClient = requester.Get()
+	llmCfg.HTTPClient = requester.NewFactory(cfg).Get()
 	llmClient := openai.NewClientWithConfig(llmCfg)
 
 	// Parse connstr to extract host and port for gRPC.

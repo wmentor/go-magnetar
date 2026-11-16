@@ -91,6 +91,13 @@ github:
   base_url: https://api.github.com
   access_key: YOUR_API_KEY
 
+# Proxy settings (optional, applies to all HTTP clients)
+web:
+  proxy:
+    http: http://proxy.example.com:8080
+    https: https://proxy.example.com:8080
+    noproxy: localhost,127.0.0.1,.internal.example.com
+
 # Guard agent for exec commands (optional)
 guard:
   enable: false
@@ -218,6 +225,13 @@ confluence:
   enable: true
   base_url: https://your-domain.atlassian.net
   api_key: $env:CONFLUENCE_TOKEN
+
+# Web proxy settings (optional, applies to all HTTP clients)
+web:
+  proxy:
+    http: http://proxy.example.com:8080    # HTTP proxy URL
+    https: https://proxy.example.com:8080   # HTTPS proxy URL
+    noproxy: localhost,127.0.0.1,.internal.example.com  # Comma-separated list of hosts to bypass proxy
 ```
 
 ### RAG Configuration Examples

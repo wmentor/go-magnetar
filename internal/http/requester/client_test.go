@@ -14,7 +14,7 @@ func TestGet(t *testing.T) {
 	t.Parallel()
 
 	for range 10 {
-		client := requester.Get()
+		client := requester.NewFactory(nil).Get()
 		require.NotNil(t, client)
 	}
 }
