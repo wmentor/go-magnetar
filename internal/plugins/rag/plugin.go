@@ -13,7 +13,7 @@ import (
 
 var (
 	ErrToolNotInitialized = errors.New("rag.search: tool is not initialized")
-	ErrEmptySearchText     = errors.New("usage: /rag.search <search_text>")
+	ErrEmptySearchText    = errors.New("usage: /rag.search <search_text>")
 )
 
 func init() {

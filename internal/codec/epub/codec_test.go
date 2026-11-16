@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+
 	"github.com/wmentor/go-magnetar/internal/codec/epub"
 )
 
