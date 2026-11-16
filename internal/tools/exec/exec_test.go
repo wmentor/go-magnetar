@@ -39,7 +39,7 @@ func newTestTools(t *testing.T) *Tool {
 	// Create a valid printer and request factory for tests
 	p := printer.GetDefault()
 	clientFactory := testdata.NewClientFactory(t)
-	return New(cfg, p, clientFactory, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
+	return New(cfg, p, clientFactory, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore, Root: rootFS})
 }
 
 func parseResult(t *testing.T, result any) tools.Response {
@@ -155,7 +155,7 @@ func TestExecReadOnlyMode(t *testing.T) {
 	// Create a valid printer and request factory for tests
 	p := printer.GetDefault()
 	clientFactory := testdata.NewClientFactory(t)
-	g := New(cfg, p, clientFactory, rootFS, &plugin.State{Config: cfg, ReadOnly: true, ResponseStore: responseStore})
+	g := New(cfg, p, clientFactory, &plugin.State{Config: cfg, ReadOnly: true, ResponseStore: responseStore, Root: rootFS})
 
 	params := &ExecParams{
 		Command: "echo test",

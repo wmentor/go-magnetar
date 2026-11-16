@@ -13,7 +13,7 @@ var uuidV4Pattern = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[8
 
 func TestExec(t *testing.T) {
 	t.Parallel()
-	tool := New(nil, printer.GetDefault(), testdata.NewClientFactory(t), nil, nil)
+	tool := New(nil, printer.GetDefault(), testdata.NewClientFactory(t), nil)
 	tests := []struct {
 		name   string
 		params *SystemUUIDParams
