@@ -175,6 +175,10 @@ See [docs/skill.md](./docs/skill.md) for complete skill documentation.
 
 The RAG feature is **optional**. Enable it when you want the agent to answer questions based on your own documents.
 
+<p align="center">
+  <img src="./docs/images/rag-usage.gif" style="max-width:640px;"/>
+</p>
+
 ### Enable RAG in config
 
 By default, RAG uses Chromem (built-in, in-memory). For persistent storage, set `rag.chromem.data_dir`:
