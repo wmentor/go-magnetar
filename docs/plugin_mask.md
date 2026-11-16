@@ -14,6 +14,7 @@ mask:
   skip:
     email: false        # skip email address masking (default: false)
     phone: false        # skip phone number masking (default: false)
+    iban: false         # skip IBAN masking (default: false)
 ```
 
 ### Parameters
@@ -23,6 +24,7 @@ mask:
 | `mask.enable` | boolean | Enable/disable automatic sensitive data masking (default: `true`) |
 | `mask.skip.email` | boolean | Skip email address masking (default: `false`) |
 | `mask.skip.phone` | boolean | Skip phone number masking (default: `false`) |
+| `mask.skip.iban` | boolean | Skip IBAN masking (default: `false`) |
 
 ## How It Works
 
@@ -40,6 +42,7 @@ The mask service automatically detects and replaces the following patterns:
 |---------|-------------|
 | Email addresses | `[MASKED_EMAIL]` |
 | Phone numbers | `[MASKED_PHONE]` |
+| IBAN numbers | `[MASK_IBAN]` |
 | GitHub tokens | `[MASKED_TOKEN]` |
 | GitLab tokens | `[MASKED_TOKEN]` |
 | Russian passport | `[MASKED_PASSPORT]` |

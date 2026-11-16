@@ -42,6 +42,10 @@ func NewService(cfg *config.Config) *Service {
 		srv.register("phone", phonePattern, "[MASKED_PHONE]")
 	}
 
+	if !cfg.Bool("mask.skip.iban") {
+		srv.register("iban", `\b[A-Za-z]{2}\d{2}(?:\s[A-Za-z0-9]{4}){2,7}(?:\s[A-Za-z0-9]{1,4})?\b|\b[A-Za-z]{2}\d{2}[A-Za-z0-9]{11,30}\b`, "[MASK_IBAN]")
+	}
+
 	srv.register("github_token", `\b(?:gh[pousr]_[a-zA-Z0-9]{36,255}|github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59})\b`, "[MASKED_TOKEN]")
 	srv.register("gitlab_token", `\bgl(?:pat|dt|ft|oas|rt|ptt|imt|cbt|agent)-[a-zA-Z0-9._-]{20,64}\b`, "[MASKED_TOKEN]")
 

@@ -52,14 +52,15 @@ mask:
   skip:
     email: false
     phone: false
+    iban: false
 `
 
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 7 records: email, phone, github_token, gitlab_token, passport, snils, ssn
-	if len(srv.records) != 7 {
-		t.Errorf("expected 7 records when mask is enabled, got %d", len(srv.records))
+	// Service should have 8 records: email, phone, iban, github_token, gitlab_token, passport, snils, ssn
+	if len(srv.records) != 8 {
+		t.Errorf("expected 8 records when mask is enabled, got %d", len(srv.records))
 	}
 }
 
@@ -78,9 +79,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 6 records: phone, github_token, gitlab_token, passport, snils, ssn (no email)
-	if len(srv.records) != 6 {
-		t.Errorf("expected 6 records when email is skipped, got %d", len(srv.records))
+	// Service should have 7 records: phone, iban, github_token, gitlab_token, passport, snils, ssn (no email)
+	if len(srv.records) != 7 {
+		t.Errorf("expected 7 records when email is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -99,9 +100,30 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 6 records: email, github_token, gitlab_token, passport, snils, ssn (no phone)
-	if len(srv.records) != 6 {
-		t.Errorf("expected 6 records when phone is skipped, got %d", len(srv.records))
+	// Service should have 7 records: email, iban, github_token, gitlab_token, passport, snils, ssn (no phone)
+	if len(srv.records) != 7 {
+		t.Errorf("expected 7 records when phone is skipped, got %d", len(srv.records))
+	}
+}
+
+func TestNewServiceWithSkipIBAN(t *testing.T) {
+	t.Parallel()
+
+	yaml := `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    iban: true
+`
+
+	cfg := loadTestConfig(t, yaml)
+	srv := NewService(cfg)
+
+	// Service should have 7 records: email, phone, github_token, gitlab_token, passport, snils, ssn (no iban)
+	if len(srv.records) != 7 {
+		t.Errorf("expected 7 records when iban is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -121,9 +143,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 5 records: github_token, gitlab_token, passport, snils, ssn (no email, no phone)
-	if len(srv.records) != 5 {
-		t.Errorf("expected 5 records when email and phone are skipped, got %d", len(srv.records))
+	// Service should have 6 records: iban, github_token, gitlab_token, passport, snils, ssn (no email, no phone)
+	if len(srv.records) != 6 {
+		t.Errorf("expected 6 records when email and phone are skipped, got %d", len(srv.records))
 	}
 }
 
@@ -943,6 +965,211 @@ mask:
 `,
 			input: "Date is 2026-11-14 and IP is 192.168.1.1",
 			want:  "Date is 2026-11-14 and IP is 192.168.1.1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Helper()
+
+			cfg := loadTestConfig(t, tt.yaml)
+			srv := NewService(cfg)
+
+			got := srv.Process(context.Background(), tt.input)
+
+			if got != tt.want {
+				t.Errorf("Process() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestProcessIBANMasking(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		yaml  string
+		input string
+		want  string
+	}{
+		{
+			name: "german iban with spaces",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "Account: DE89 3704 0044 0532 0130 00",
+			want:  "Account: [MASK_IBAN]",
+		},
+		{
+			name: "german iban without spaces",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "Account: DE89370400440532013000",
+			want:  "Account: [MASK_IBAN]",
+		},
+		{
+			name: "multiple ibans",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "Transfer from GB29 NBAK 6016 1331 9268 19 to FR76 3000 6000 0112 3456 7890 189",
+			want:  "Transfer from [MASK_IBAN] to [MASK_IBAN]",
+		},
+		{
+			name: "multiple unspaced ibans",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "From GB29NBAK60161331926819 to FR7630006000011234567890189",
+			want:  "From [MASK_IBAN] to [MASK_IBAN]",
+		},
+		{
+			name: "norwegian shortest iban",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "Norway: NO22 1234 5678 901",
+			want:  "Norway: [MASK_IBAN]",
+		},
+		{
+			name: "norwegian shortest iban unspaced",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "Norway: NO2212345678901",
+			want:  "Norway: [MASK_IBAN]",
+		},
+		{
+			name: "spanish iban",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "ES91 2100 0418 4502 0005 1332",
+			want:  "[MASK_IBAN]",
+		},
+		{
+			name: "italian iban with letter in bban",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "IT60 X054 2811 1010 0000 0123 456",
+			want:  "[MASK_IBAN]",
+		},
+		{
+			name: "dutch iban",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "NL91 ABNA 0417 1643 00",
+			want:  "[MASK_IBAN]",
+		},
+		{
+			name: "swiss iban",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "CH93 0076 2011 6238 5295 7",
+			want:  "[MASK_IBAN]",
+		},
+		{
+			name: "polish iban",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "PL61 1090 1014 0000 0712 1981 2874",
+			want:  "[MASK_IBAN]",
+		},
+		{
+			name: "lowercase iban",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "de89 3704 0044 0532 0130 00",
+			want:  "[MASK_IBAN]",
+		},
+		{
+			name: "iban in parentheses and punctuation",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "IBAN is (DE89 3704 0044 0532 0130 00).",
+			want:  "IBAN is ([MASK_IBAN]).",
+		},
+		{
+			name: "short string not an iban",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "Code: DE89 1234",
+			want:  "Code: DE89 1234",
+		},
+		{
+			name: "invalid prefix not an iban",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`,
+			input: "Numbers: 1234 5678 9012 3456",
+			want:  "Numbers: 1234 5678 9012 3456",
+		},
+		{
+			name: "iban skipping enabled",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    iban: true
+`,
+			input: "Account: DE89 3704 0044 0532 0130 00",
+			want:  "Account: DE89 3704 0044 0532 0130 00",
 		},
 	}
 
