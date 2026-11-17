@@ -23,6 +23,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	cfg := s.ConcreteConfig()
 	p.tool = read.New(cfg, s.Printer, plugin.GetRoot(), s)
 	s.ToolStore.Register(p.tool.Name(), p.tool.Description(), p.tool.Exec)
+	s.ToolStore.RegisterOurToolMCP(p.tool.NameMCP(), p.tool.Description(), p.tool.Exec)
 
 	// Register file_list tool
 	listTool := list.New(cfg, s.Printer, plugin.GetRoot(), s)

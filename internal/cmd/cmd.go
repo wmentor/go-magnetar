@@ -36,6 +36,7 @@ type Globals struct {
 	Session   string `type:"path" help:"Load conversation session from file"`
 	ReadOnly  bool   `long:"read-only" help:"Run in read-only mode"`
 	Timing    bool   `name:"enable-timing" help:"Show the execution time of every answer"`
+	MCP       bool   `help:"launch in MCP server mode"`
 }
 
 type cli struct {
@@ -67,9 +68,13 @@ func Execute() error {
 		_ = cfg.SetProfile(root.Profile)
 	}
 
-	printer.SetDefault(printer.New(os.Stdout, false))
+	if root.MCP {
+		printer.SetDefault(printer.New(io.Discard, false))
+	} else {
+		printer.SetDefault(printer.New(os.Stdout, false))
+	}
 
-	if root.File == "" {
+	if root.File == "" && !root.MCP {
 		version.PrintVersion(cfg.ProfileParamString("llm.model"))
 		printEnabledModules(printer.GetDefault(), cfg)
 	}
@@ -101,7 +106,7 @@ func Execute() error {
 	// filesystem access (generic file tools, web preprocessor).
 	plugin.SetRoot(rootFS)
 
-	printer.Verbose(cfg.Bool("verbose") && root.File == "")
+	printer.Verbose(cfg.Bool("verbose") && root.File == "" && !root.MCP)
 
 	maskService := mask.NewService(cfg)
 	toolStore := tools.NewStore(maskService)
@@ -134,6 +139,11 @@ func Execute() error {
 	}
 
 	defer plugin.Stop()
+
+	if root.MCP {
+		mcpFlow(state)
+		return nil
+	}
 
 	agent, err := chat.New(cfg, rootFS, toolStore, state.MaskService)
 	if err != nil {

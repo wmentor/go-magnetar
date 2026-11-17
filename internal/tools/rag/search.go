@@ -39,6 +39,11 @@ func (t *Tool) Name() string {
 	return "rag_search"
 }
 
+// NameMCP returns the tool name for the MCP server.
+func (t *Tool) NameMCP() string {
+	return "rag_search"
+}
+
 // Description returns the tool description.
 func (t *Tool) Description() string {
 	return "Search the knowledge base for relevant information"

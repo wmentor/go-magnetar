@@ -41,6 +41,11 @@ func (t *Tool) Name() string {
 	return "cve"
 }
 
+// NameMCP returns the tool name for the MCP server.
+func (t *Tool) NameMCP() string {
+	return "cve_info"
+}
+
 func (t *Tool) Description() string {
 	return "Lookup vulnerability information from OSV database using any valid OSV database identifier (CVE-, " +
 		"GO-, GHSA-, OSV-, GSD-, ALPINE-, and many more)"

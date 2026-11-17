@@ -13,6 +13,7 @@ go-magnetar provides a unified CLI interface with the following flags:
 | `--read-only` | Run in read-only mode. Disables file write operations and shell modifications. |
 | `--enable-timing` | Start with the execution time display on. `/timing on\|off` can still change it during the session. |
 | `--config-dir <path>` | Set the configuration directory. Default: `~/.go-magnetar`. Can also be set via `MAGNETAR_CONFIG_DIR` environment variable. |
+| `--mcp` | Launch in MCP (Model Context Protocol) server mode. Starts a console-based MCP server that exposes the following tools to compatible clients: `web_fetch`, `file_read`, `rag_search`, `cve_info`. |
 | `-h, --help` | Show help and exit. |
 | `-v, --version` | Show version information and exit. |
 
@@ -46,6 +47,9 @@ go-magnetar --read-only
 
 # Enable execution time display
 go-magnetar --enable-timing
+
+# Launch in MCP server mode
+go-magnetar --mcp
 
 # Combined flags
 go-magnetar -p production --read-only
@@ -144,4 +148,61 @@ go-magnetar -p production --skill dev-docs -f input.txt
 go-magnetar --config-dir /custom/path --skill dev-docs
 ```
 
-The skill is applied before any other processing and becomes part of the agent's context for the session.
+## MCP Server Mode
+
+When launching with the `--mcp` flag, go-magnetar starts a console-based Model Context Protocol (MCP) server that exposes the following tools to compatible MCP clients:
+
+- `web_fetch` — Fetch content from URLs (Confluence, JIRA, GitHub, GitLab, etc.)
+- `file_read` — Read files from the filesystem with support for gzip and various formats
+- `rag_search` — Search the indexed RAG knowledge base
+- `cve_info` — Lookup vulnerability information from OSV database (CVE, GO, GHSA, OSV, and more)
+
+### Starting MCP Server
+
+```bash
+# Launch MCP server
+go-magnetar --mcp
+```
+
+The server will:
+- Start on stdin/stdout transport
+- Advertise the following tools: `web_fetch`, `file_read`, `rag_search`, `cve_info`
+- Wait for MCP client connections
+
+### MCP Client Integration
+
+Any MCP-compatible client can connect to the server and use the available tools. The server implements the [MCP specification](https://modelcontextprotocol.io/) and exposes the following tools registered in go-magnetar:
+
+- `web_fetch` — Fetch content from URLs (Confluence, JIRA, GitHub, GitLab, etc.)
+- `file_read` — Read files from the filesystem with support for gzip and various formats
+- `rag_search` — Search the indexed RAG knowledge base
+- `cve_info` — Lookup vulnerability information from OSV database (CVE, GO, GHSA, OSV, and more)
+
+For example, an MCP client can request the server to:
+- Read files with `file_read`
+- Search the web with `web_fetch`
+- Query the knowledge base with `rag_search`
+- Lookup vulnerabilities with `cve_info`
+
+See [docs/agent_tools.md](./agent_tools.md) for a complete list of available tools.
+
+**Note:** Not all tools registered in go-magnetar are exposed via MCP. The MCP server only exports tools specifically registered for MCP via `RegisterOurToolMCP`. Other tools (like `web_search`, `file_write`, `file_list`, `edit`) are available only through the chat REPL interface.
+
+### Example: Using with Claude Desktop
+
+To use go-magnetar as an MCP server with Claude Desktop:
+
+1. Start the MCP server:
+   ```bash
+   go-magnetar --mcp
+   ```
+
+2. Configure Claude Desktop to connect to the server (follow Claude Desktop's MCP configuration instructions)
+
+The server will handle MCP protocol messages on stdin/stdout and respond to tool invocation requests from the client.
+
+### Notes
+
+- When running in MCP mode, all normal chat REPL functionality is disabled
+- Output is directed to stderr to avoid interfering with MCP protocol communication on stdout
+- The server runs until manually terminated (Ctrl+C)

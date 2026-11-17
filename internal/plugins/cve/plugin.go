@@ -18,5 +18,6 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	p.state = s
 	p.tool = cve.NewTool(s.ConcreteConfig(), s.Printer, s.RequesterFactory)
 	s.ToolStore.Register(p.tool.Name(), p.tool.Description(), p.tool.FetchVulnerability)
+	s.ToolStore.RegisterOurToolMCP(p.tool.NameMCP(), p.tool.Description(), p.tool.FetchVulnerability)
 	return nil
 }

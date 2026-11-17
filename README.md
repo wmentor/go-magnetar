@@ -306,6 +306,7 @@ See [docs/security.md](./docs/security.md) for details.
 | `--read-only` | Run in read-only mode (disable file writes and shell modifications) |
 | `--enable-timing` | Show the execution time after every answer, whatever `/timing` says |
 | `--config-dir <path>` | Set the configuration directory (default: `~/.go-magnetar`). Can also be set via `MAGNETAR_CONFIG_DIR` environment variable. |
+| `--mcp` | Launch in MCP (Model Context Protocol) server mode |
 
 ```bash
 # Non-interactive (scripting / batch)
@@ -328,9 +329,14 @@ go-magnetar --config-dir ~/.custom-config
 # or
 export MAGNETAR_CONFIG_DIR=~/.custom-config
 go-magnetar
+
+# Launch in MCP server mode
+go-magnetar --mcp
 ```
 
 > **Note:** In `-f` mode, chat commands (`/index`, `/fetch`, etc.) are not available. Text preprocessor placeholders like `{{date}}`, `{{uuid}}`, `{{file:path}}` are expanded.
+
+> **Note:** In `--mcp` mode, the agent runs as a console-based MCP server exposing all available tools to compatible MCP clients. Chat REPL functionality is disabled.
 
 ## Documentation
 

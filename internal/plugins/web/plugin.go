@@ -32,6 +32,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	if !s.Config.Bool("web.disable.fetch") {
 		fetchTool := webfetch.NewTool(cfg, s.Printer, s.RequesterFactory, s)
 		s.ToolStore.Register(fetchTool.Name(), fetchTool.Description(), fetchTool.WebFetch)
+		s.ToolStore.RegisterOurToolMCP(fetchTool.NameMCP(), fetchTool.Description(), fetchTool.WebFetch)
 	}
 
 	// Register web_search tool
