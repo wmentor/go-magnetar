@@ -31,6 +31,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
+	"github.com/wmentor/go-magnetar/internal/shell"
 	"github.com/wmentor/go-magnetar/internal/tools"
 )
 
@@ -1047,6 +1048,10 @@ func (a *ChatAgent) handleCommand(line string, knownCommands []plugin.ChatComman
 		}
 
 		if _, err := exec.LookPath(name); err != nil {
+			return nil, plugin.ErrNoCommand
+		}
+
+		if !shell.CheckCommand(line) {
 			return nil, plugin.ErrNoCommand
 		}
 
