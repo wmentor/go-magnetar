@@ -12,6 +12,7 @@ go-magnetar provides a unified CLI interface with the following flags:
 | `--session <path>` | Load a previously saved conversation session from a JSON file. |
 | `--read-only` | Run in read-only mode. Disables file write operations and shell modifications. |
 | `--enable-timing` | Start with the execution time display on. `/timing on\|off` can still change it during the session. |
+| `--config-dir <path>` | Set the configuration directory. Default: `~/.go-magnetar`. Can also be set via `MAGNETAR_CONFIG_DIR` environment variable. |
 | `-h, --help` | Show help and exit. |
 | `-v, --version` | Show version information and exit. |
 
@@ -35,6 +36,7 @@ go-magnetar --skill dev-docs -f questions.txt
 
 # Read from stdin
 echo "What is go-magnetar?" | go-magnetar -f -
+cat questions.txt | go-magnetar -f -
 
 # Load a saved session
 go-magnetar --session session.json
@@ -47,6 +49,13 @@ go-magnetar --enable-timing
 
 # Combined flags
 go-magnetar -p production --read-only
+
+# Use custom config directory
+go-magnetar --config-dir /custom/path
+
+# Set config directory via environment variable
+export MAGNETAR_CONFIG_DIR=/custom/path
+go-magnetar
 ```
 
 ## Non-Interactive Mode
@@ -80,6 +89,21 @@ profiles:
 go-magnetar -p production
 ```
 
+## Configuration Directory
+
+The configuration directory is where go-magnetar stores its configuration files, skills, and agents. By default, it uses `~/.go-magnetar`, but you can customize it with the `--config-dir` flag or the `MAGNETAR_CONFIG_DIR` environment variable.
+
+```bash
+# Use custom config directory
+go-magnetar --config-dir /custom/path
+
+# Set via environment variable
+export MAGNETAR_CONFIG_DIR=/custom/path
+go-magnetar
+```
+
+All paths for config files, skills, and agents are relative to the configured directory.
+
 ## Sessions
 
 Save conversations to JSON files and restore them later:
@@ -99,7 +123,7 @@ When the system is in read-only mode, **NO modification operations are allowed**
 ## Skills
 
 Skills allow you to customize the agent's behavior by applying specialized instructions at startup. Skills are loaded from two locations:
-- **User skills**: `~/.go-magnetar/skills/` — global skills
+- **User skills**: `<config-dir>/skills/` — global skills
 - **Project skills**: `{current_dir}/.go-magnetar/skills/` — project-specific skills (takes priority)
 
 ### Apply Skill at Startup
@@ -115,6 +139,9 @@ go-magnetar --skill dev-docs -f input.txt
 
 # Combine with profile selection
 go-magnetar -p production --skill dev-docs -f input.txt
+
+# Combine with custom config directory
+go-magnetar --config-dir /custom/path --skill dev-docs
 ```
 
 The skill is applied before any other processing and becomes part of the agent's context for the session.
