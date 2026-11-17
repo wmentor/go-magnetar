@@ -58,6 +58,11 @@ func (t *Tool) Name() string {
 	return "file_read"
 }
 
+// NameMCP returns the tool name for the MCP server.
+func (t *Tool) NameMCP() string {
+	return "file_read"
+}
+
 // Description returns the tool description.
 func (t *Tool) Description() string {
 	return "Read the contents of a file by its path. Supports transparent gzip decompression (no manual decompression needed)."

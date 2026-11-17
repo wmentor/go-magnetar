@@ -59,6 +59,11 @@ func (t *Tool) Name() string {
 	return "web_fetch"
 }
 
+// NameMCP returns the tool name for the MCP server.
+func (t *Tool) NameMCP() string {
+	return "web_fetch"
+}
+
 // Description returns the tool description.
 func (t *Tool) Description() string {
 	return "Fetch a web page and return clean Markdown content. " +

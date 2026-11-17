@@ -15,7 +15,7 @@ func TestGrepCommand(t *testing.T) {
 		{"ls .", true},
 		{"cat ./file.txt", true},
 	}
-	
+
 	for _, tt := range tests {
 		result := CheckCommand(tt.input)
 		status := "✓"

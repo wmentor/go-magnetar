@@ -31,6 +31,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		// Create RAG tool with the store instance
 		p.tool = rag.New(s.ConcreteConfig(), s.Printer, s.VectorStore, s)
 		s.ToolStore.Register(p.tool.Name(), p.tool.Description(), p.tool.Exec, tools.OptionRateLimit(5))
+		s.ToolStore.RegisterOurToolMCP(p.tool.NameMCP(), p.tool.Description(), p.tool.Exec)
 
 		hub.RegisterChatCommand(plugin.ChatCommand{
 			Name:    "rag.search",
