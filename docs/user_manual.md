@@ -175,7 +175,7 @@ It supports the /index and /fetch commands and chat commands like /help, /exit..
 
 ## CLI
 
-Configuration file is always loaded from `~/.go-magnetar/config.yml`.
+Configuration file is always loaded from `~/.go-magnetar/config.yml` or a custom directory set via `--config-dir` flag or `MAGNETAR_CONFIG_DIR` environment variable.
 
 ### `-p/--profile` — select configuration profile
 
@@ -202,6 +202,24 @@ go-magnetar --enable-timing
 ```
 
 Prints the execution time after every answer (`— Execution time: 1.234s`). The flag only sets the starting value: the `/timing on|off` chat command still turns the display on and off during the session.
+
+### `--config-dir` — set configuration directory
+
+```
+go-magnetar --config-dir <path>
+```
+
+Set the configuration directory where config files and user skills/agents are stored. Default is `~/.go-magnetar`. Can also be set via `MAGNETAR_CONFIG_DIR` environment variable.
+
+Example:
+```bash
+# Use custom config directory
+go-magnetar --config-dir ~/.custom-config
+
+# Or set via environment variable
+export MAGNETAR_CONFIG_DIR=~/.custom-config
+go-magnetar
+```
 
 ## Commands
 

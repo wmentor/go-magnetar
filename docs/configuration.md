@@ -4,7 +4,31 @@ go-magnetar uses YAML configuration files to control all aspects of the applicat
 
 ## Configuration File Location
 
-By default, go-magnetar looks for the configuration file at `~/.go-magnetar/config.yml`.
+By default, go-magnetar looks for the configuration file at `~/.go-magnetar/config.yml`. You can specify a custom configuration directory using the `--config-dir` flag or the `MAGNETAR_CONFIG_DIR` environment variable.
+
+### Using --config-dir flag
+
+```
+go-magnetar --config-dir <path>
+```
+
+Set the configuration directory where config files and user skills/agents are stored. Default is `~/.go-magnetar`.
+
+### Using MAGNETAR_CONFIG_DIR environment variable
+
+```
+export MAGNETAR_CONFIG_DIR=<path>
+go-magnetar
+```
+
+Environment variable takes precedence over the default directory.
+
+Example:
+```bash
+# Set custom config directory
+export MAGNETAR_CONFIG_DIR=~/.custom-config
+go-magnetar
+```
 
 ## Profile-based Configuration
 

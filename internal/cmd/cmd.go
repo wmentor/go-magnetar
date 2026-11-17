@@ -29,12 +29,13 @@ import (
 )
 
 type Globals struct {
-	File     string `short:"f" type:"path" help:"Input file"`
-	Profile  string `short:"p" help:"Profile name to use"`
-	Skill    string `help:"Skill name to apply at startup"`
-	Session  string `type:"path" help:"Load conversation session from file"`
-	ReadOnly bool   `long:"read-only" help:"Run in read-only mode"`
-	Timing   bool   `name:"enable-timing" help:"Show the execution time of every answer"`
+	ConfigDir string `help:"config directory" env:"MAGNETAR_CONFIG_DIR" type:"path" default:"~/.go-magnetar"`
+	File      string `short:"f" type:"path" help:"Input file"`
+	Profile   string `short:"p" help:"Profile name to use"`
+	Skill     string `help:"Skill name to apply at startup"`
+	Session   string `type:"path" help:"Load conversation session from file"`
+	ReadOnly  bool   `long:"read-only" help:"Run in read-only mode"`
+	Timing    bool   `name:"enable-timing" help:"Show the execution time of every answer"`
 }
 
 type cli struct {
@@ -50,14 +51,10 @@ func Execute() error {
 		kong.Bind(&root.Globals),
 	)
 
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		return fmt.Errorf("get home dir error: %w", err)
-	}
-	configPath := filepath.Join(homeDir, ".go-magnetar", "config.yml")
+	configPath := filepath.Join(root.ConfigDir, "config.yml")
 
 	// Ensure config directory and sync templates
-	if err := template.EnsureConfigDir(homeDir); err != nil {
+	if err := template.EnsureConfigDir(root.ConfigDir); err != nil {
 		return fmt.Errorf("ensure config dir error: %w", err)
 	}
 
@@ -83,12 +80,12 @@ func Execute() error {
 	}
 
 	skillStore := skill.NewStore(
-		filepath.Join(homeDir, ".go-magnetar", "skills"),
+		filepath.Join(root.ConfigDir, "skills"),
 		filepath.Join(workDir, ".go-magnetar", "skills"),
 	)
 
 	agentStore := agent.NewStore(
-		filepath.Join(homeDir, ".go-magnetar", "agents"),
+		filepath.Join(root.ConfigDir, "agents"),
 		filepath.Join(workDir, ".go-magnetar", "agents"),
 	)
 
