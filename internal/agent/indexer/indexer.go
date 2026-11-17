@@ -85,7 +85,7 @@ func (idx *Indexer) IndexFile(filename string, msg string) error {
 func (idx *Indexer) indexFileChunks(filename, msg string) (int, error) {
 	printer.Print(printer.IconFile, "indexer: indexing file", "file", filename)
 
-	reader := read.New(idx.cfg, idx.state.Printer, idx.state.RequesterFactory, nil, idx.state)
+	reader := read.New(idx.cfg, idx.state.Printer, nil, idx.state)
 
 	result, err := reader.Exec(context.TODO(), &read.FileReadParams{Filename: common.ExpandHome(filename)})
 	if err != nil {

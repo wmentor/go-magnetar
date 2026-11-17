@@ -9,8 +9,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/config"
 )
 
-// NewConfig creates a new instance of Config. It also registers a testing interface
-// on the mock and a cleanup function to assert the mocks expectations.
+// NewConfig creates a new instance of Config. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewConfig(t interface {
 	mock.TestingT
@@ -63,27 +62,36 @@ func (_mock *Config) Bool(key string) bool {
 	return r0
 }
 
+// Config_Bool_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Bool'
 type Config_Bool_Call struct {
 	*mock.Call
 }
 
+// Bool is a helper method to define mock.On call
+//   - key string
 func (_e *Config_Expecter) Bool(key any) *Config_Bool_Call {
 	return &Config_Bool_Call{Call: _e.mock.On("Bool", key)}
 }
 
 func (_c *Config_Bool_Call) Run(run func(key string)) *Config_Bool_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
 
-func (_c *Config_Bool_Call) Return(_a0 bool) *Config_Bool_Call {
-	_c.Call.Return(_a0)
+func (_c *Config_Bool_Call) Return(b bool) *Config_Bool_Call {
+	_c.Call.Return(b)
 	return _c
 }
 
-func (_c *Config_Bool_Call) RunAndReturn(run func(string) bool) *Config_Bool_Call {
+func (_c *Config_Bool_Call) RunAndReturn(run func(key string) bool) *Config_Bool_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -104,7 +112,6 @@ func (_mock *Config) Copy() *config.Config {
 			r0 = ret.Get(0).(*config.Config)
 		}
 	}
-
 	return r0
 }
 
@@ -125,8 +132,8 @@ func (_c *Config_Copy_Call) Run(run func()) *Config_Copy_Call {
 	return _c
 }
 
-func (_c *Config_Copy_Call) Return(_a0 *config.Config) *Config_Copy_Call {
-	_c.Call.Return(_a0)
+func (_c *Config_Copy_Call) Return(config1 *config.Config) *Config_Copy_Call {
+	_c.Call.Return(config1)
 	return _c
 }
 
@@ -152,27 +159,36 @@ func (_mock *Config) Float64(key string) float64 {
 	return r0
 }
 
+// Config_Float64_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Float64'
 type Config_Float64_Call struct {
 	*mock.Call
 }
 
+// Float64 is a helper method to define mock.On call
+//   - key string
 func (_e *Config_Expecter) Float64(key any) *Config_Float64_Call {
 	return &Config_Float64_Call{Call: _e.mock.On("Float64", key)}
 }
 
 func (_c *Config_Float64_Call) Run(run func(key string)) *Config_Float64_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
 
-func (_c *Config_Float64_Call) Return(_a0 float64) *Config_Float64_Call {
-	_c.Call.Return(_a0)
+func (_c *Config_Float64_Call) Return(f float64) *Config_Float64_Call {
+	_c.Call.Return(f)
 	return _c
 }
 
-func (_c *Config_Float64_Call) RunAndReturn(run func(string) float64) *Config_Float64_Call {
+func (_c *Config_Float64_Call) RunAndReturn(run func(key string) float64) *Config_Float64_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -194,27 +210,36 @@ func (_mock *Config) Int(key string) int {
 	return r0
 }
 
+// Config_Int_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Int'
 type Config_Int_Call struct {
 	*mock.Call
 }
 
+// Int is a helper method to define mock.On call
+//   - key string
 func (_e *Config_Expecter) Int(key any) *Config_Int_Call {
 	return &Config_Int_Call{Call: _e.mock.On("Int", key)}
 }
 
 func (_c *Config_Int_Call) Run(run func(key string)) *Config_Int_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
 
-func (_c *Config_Int_Call) Return(_a0 int) *Config_Int_Call {
-	_c.Call.Return(_a0)
+func (_c *Config_Int_Call) Return(n int) *Config_Int_Call {
+	_c.Call.Return(n)
 	return _c
 }
 
-func (_c *Config_Int_Call) RunAndReturn(run func(string) int) *Config_Int_Call {
+func (_c *Config_Int_Call) RunAndReturn(run func(key string) int) *Config_Int_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -236,10 +261,12 @@ func (_mock *Config) Profile() string {
 	return r0
 }
 
+// Config_Profile_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Profile'
 type Config_Profile_Call struct {
 	*mock.Call
 }
 
+// Profile is a helper method to define mock.On call
 func (_e *Config_Expecter) Profile() *Config_Profile_Call {
 	return &Config_Profile_Call{Call: _e.mock.On("Profile")}
 }
@@ -251,8 +278,8 @@ func (_c *Config_Profile_Call) Run(run func()) *Config_Profile_Call {
 	return _c
 }
 
-func (_c *Config_Profile_Call) Return(_a0 string) *Config_Profile_Call {
-	_c.Call.Return(_a0)
+func (_c *Config_Profile_Call) Return(s string) *Config_Profile_Call {
+	_c.Call.Return(s)
 	return _c
 }
 
@@ -278,27 +305,36 @@ func (_mock *Config) ProfileParamBool(key string) bool {
 	return r0
 }
 
+// Config_ProfileParamBool_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ProfileParamBool'
 type Config_ProfileParamBool_Call struct {
 	*mock.Call
 }
 
+// ProfileParamBool is a helper method to define mock.On call
+//   - key string
 func (_e *Config_Expecter) ProfileParamBool(key any) *Config_ProfileParamBool_Call {
 	return &Config_ProfileParamBool_Call{Call: _e.mock.On("ProfileParamBool", key)}
 }
 
 func (_c *Config_ProfileParamBool_Call) Run(run func(key string)) *Config_ProfileParamBool_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
 
-func (_c *Config_ProfileParamBool_Call) Return(_a0 bool) *Config_ProfileParamBool_Call {
-	_c.Call.Return(_a0)
+func (_c *Config_ProfileParamBool_Call) Return(b bool) *Config_ProfileParamBool_Call {
+	_c.Call.Return(b)
 	return _c
 }
 
-func (_c *Config_ProfileParamBool_Call) RunAndReturn(run func(string) bool) *Config_ProfileParamBool_Call {
+func (_c *Config_ProfileParamBool_Call) RunAndReturn(run func(key string) bool) *Config_ProfileParamBool_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -320,27 +356,36 @@ func (_mock *Config) ProfileParamFloat64(key string) float64 {
 	return r0
 }
 
+// Config_ProfileParamFloat64_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ProfileParamFloat64'
 type Config_ProfileParamFloat64_Call struct {
 	*mock.Call
 }
 
+// ProfileParamFloat64 is a helper method to define mock.On call
+//   - key string
 func (_e *Config_Expecter) ProfileParamFloat64(key any) *Config_ProfileParamFloat64_Call {
 	return &Config_ProfileParamFloat64_Call{Call: _e.mock.On("ProfileParamFloat64", key)}
 }
 
 func (_c *Config_ProfileParamFloat64_Call) Run(run func(key string)) *Config_ProfileParamFloat64_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
 
-func (_c *Config_ProfileParamFloat64_Call) Return(_a0 float64) *Config_ProfileParamFloat64_Call {
-	_c.Call.Return(_a0)
+func (_c *Config_ProfileParamFloat64_Call) Return(f float64) *Config_ProfileParamFloat64_Call {
+	_c.Call.Return(f)
 	return _c
 }
 
-func (_c *Config_ProfileParamFloat64_Call) RunAndReturn(run func(string) float64) *Config_ProfileParamFloat64_Call {
+func (_c *Config_ProfileParamFloat64_Call) RunAndReturn(run func(key string) float64) *Config_ProfileParamFloat64_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -362,27 +407,36 @@ func (_mock *Config) ProfileParamInt(key string) int {
 	return r0
 }
 
+// Config_ProfileParamInt_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ProfileParamInt'
 type Config_ProfileParamInt_Call struct {
 	*mock.Call
 }
 
+// ProfileParamInt is a helper method to define mock.On call
+//   - key string
 func (_e *Config_Expecter) ProfileParamInt(key any) *Config_ProfileParamInt_Call {
 	return &Config_ProfileParamInt_Call{Call: _e.mock.On("ProfileParamInt", key)}
 }
 
 func (_c *Config_ProfileParamInt_Call) Run(run func(key string)) *Config_ProfileParamInt_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
 
-func (_c *Config_ProfileParamInt_Call) Return(_a0 int) *Config_ProfileParamInt_Call {
-	_c.Call.Return(_a0)
+func (_c *Config_ProfileParamInt_Call) Return(n int) *Config_ProfileParamInt_Call {
+	_c.Call.Return(n)
 	return _c
 }
 
-func (_c *Config_ProfileParamInt_Call) RunAndReturn(run func(string) int) *Config_ProfileParamInt_Call {
+func (_c *Config_ProfileParamInt_Call) RunAndReturn(run func(key string) int) *Config_ProfileParamInt_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -404,27 +458,36 @@ func (_mock *Config) ProfileParamString(key string) string {
 	return r0
 }
 
+// Config_ProfileParamString_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ProfileParamString'
 type Config_ProfileParamString_Call struct {
 	*mock.Call
 }
 
+// ProfileParamString is a helper method to define mock.On call
+//   - key string
 func (_e *Config_Expecter) ProfileParamString(key any) *Config_ProfileParamString_Call {
 	return &Config_ProfileParamString_Call{Call: _e.mock.On("ProfileParamString", key)}
 }
 
 func (_c *Config_ProfileParamString_Call) Run(run func(key string)) *Config_ProfileParamString_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
 
-func (_c *Config_ProfileParamString_Call) Return(_a0 string) *Config_ProfileParamString_Call {
-	_c.Call.Return(_a0)
+func (_c *Config_ProfileParamString_Call) Return(s string) *Config_ProfileParamString_Call {
+	_c.Call.Return(s)
 	return _c
 }
 
-func (_c *Config_ProfileParamString_Call) RunAndReturn(run func(string) string) *Config_ProfileParamString_Call {
+func (_c *Config_ProfileParamString_Call) RunAndReturn(run func(key string) string) *Config_ProfileParamString_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -448,10 +511,12 @@ func (_mock *Config) Profiles() []string {
 	return r0
 }
 
+// Config_Profiles_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Profiles'
 type Config_Profiles_Call struct {
 	*mock.Call
 }
 
+// Profiles is a helper method to define mock.On call
 func (_e *Config_Expecter) Profiles() *Config_Profiles_Call {
 	return &Config_Profiles_Call{Call: _e.mock.On("Profiles")}
 }
@@ -463,8 +528,8 @@ func (_c *Config_Profiles_Call) Run(run func()) *Config_Profiles_Call {
 	return _c
 }
 
-func (_c *Config_Profiles_Call) Return(_a0 []string) *Config_Profiles_Call {
-	_c.Call.Return(_a0)
+func (_c *Config_Profiles_Call) Return(strings []string) *Config_Profiles_Call {
+	_c.Call.Return(strings)
 	return _c
 }
 
@@ -490,27 +555,36 @@ func (_mock *Config) SetProfile(profile string) error {
 	return r0
 }
 
+// Config_SetProfile_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetProfile'
 type Config_SetProfile_Call struct {
 	*mock.Call
 }
 
+// SetProfile is a helper method to define mock.On call
+//   - profile string
 func (_e *Config_Expecter) SetProfile(profile any) *Config_SetProfile_Call {
 	return &Config_SetProfile_Call{Call: _e.mock.On("SetProfile", profile)}
 }
 
 func (_c *Config_SetProfile_Call) Run(run func(profile string)) *Config_SetProfile_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
 
-func (_c *Config_SetProfile_Call) Return(_a0 error) *Config_SetProfile_Call {
-	_c.Call.Return(_a0)
+func (_c *Config_SetProfile_Call) Return(err error) *Config_SetProfile_Call {
+	_c.Call.Return(err)
 	return _c
 }
 
-func (_c *Config_SetProfile_Call) RunAndReturn(run func(string) error) *Config_SetProfile_Call {
+func (_c *Config_SetProfile_Call) RunAndReturn(run func(profile string) error) *Config_SetProfile_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -532,27 +606,36 @@ func (_mock *Config) String(key string) string {
 	return r0
 }
 
+// Config_String_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'String'
 type Config_String_Call struct {
 	*mock.Call
 }
 
+// String is a helper method to define mock.On call
+//   - key string
 func (_e *Config_Expecter) String(key any) *Config_String_Call {
 	return &Config_String_Call{Call: _e.mock.On("String", key)}
 }
 
 func (_c *Config_String_Call) Run(run func(key string)) *Config_String_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
 
-func (_c *Config_String_Call) Return(_a0 string) *Config_String_Call {
-	_c.Call.Return(_a0)
+func (_c *Config_String_Call) Return(s string) *Config_String_Call {
+	_c.Call.Return(s)
 	return _c
 }
 
-func (_c *Config_String_Call) RunAndReturn(run func(string) string) *Config_String_Call {
+func (_c *Config_String_Call) RunAndReturn(run func(key string) string) *Config_String_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -576,27 +659,36 @@ func (_mock *Config) Strings(key string) []string {
 	return r0
 }
 
+// Config_Strings_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Strings'
 type Config_Strings_Call struct {
 	*mock.Call
 }
 
+// Strings is a helper method to define mock.On call
+//   - key string
 func (_e *Config_Expecter) Strings(key any) *Config_Strings_Call {
 	return &Config_Strings_Call{Call: _e.mock.On("Strings", key)}
 }
 
 func (_c *Config_Strings_Call) Run(run func(key string)) *Config_Strings_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string))
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
 
-func (_c *Config_Strings_Call) Return(_a0 []string) *Config_Strings_Call {
-	_c.Call.Return(_a0)
+func (_c *Config_Strings_Call) Return(strings []string) *Config_Strings_Call {
+	_c.Call.Return(strings)
 	return _c
 }
 
-func (_c *Config_Strings_Call) RunAndReturn(run func(string) []string) *Config_Strings_Call {
+func (_c *Config_Strings_Call) RunAndReturn(run func(key string) []string) *Config_Strings_Call {
 	_c.Call.Return(run)
 	return _c
 }

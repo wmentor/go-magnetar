@@ -134,7 +134,7 @@ func TestFileEditSingleOccurrence(t *testing.T) {
 
 	responseStore := response.New(plugin.DefaultResponseStoreSize)
 	tp := &testPrinter{output: &bytes.Buffer{}}
-	g := NewTool(cfg, tp, nil, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
+	g := NewTool(cfg, tp, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
 
 	// Create a test file with single occurrence
 	testFile := "test.txt"
@@ -196,7 +196,7 @@ func TestFileEditMultipleOccurrences(t *testing.T) {
 
 	responseStore := response.New(plugin.DefaultResponseStoreSize)
 	tp := &testPrinter{output: &bytes.Buffer{}}
-	g := NewTool(cfg, tp, nil, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
+	g := NewTool(cfg, tp, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
 
 	// Create a test file with multiple occurrences
 	testFile := "test.txt"
@@ -250,7 +250,7 @@ func TestFileEditNotFound(t *testing.T) {
 
 	responseStore := response.New(plugin.DefaultResponseStoreSize)
 	tp := &testPrinter{output: &bytes.Buffer{}}
-	g := NewTool(cfg, tp, nil, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
+	g := NewTool(cfg, tp, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
 
 	// Create a test file
 	testFile := "test.txt"
@@ -303,7 +303,7 @@ func TestFileEditReadonlyMode(t *testing.T) {
 
 	responseStore := response.New(plugin.DefaultResponseStoreSize)
 	tp := &testPrinter{output: &bytes.Buffer{}}
-	g := NewTool(cfg, tp, nil, rootFS, &plugin.State{Config: cfg, ReadOnly: true, ResponseStore: responseStore})
+	g := NewTool(cfg, tp, rootFS, &plugin.State{Config: cfg, ReadOnly: true, ResponseStore: responseStore})
 
 	// Create a test file
 	testFile := "test.txt"
@@ -353,7 +353,7 @@ func TestFileEditCodecFormats(t *testing.T) {
 
 			responseStore := response.New(plugin.DefaultResponseStoreSize)
 			tp := &testPrinter{output: &bytes.Buffer{}}
-			g := NewTool(cfg, tp, nil, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
+			g := NewTool(cfg, tp, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
 
 			fname := "testfile" + ext
 			if err := rootFS.WriteFile(fname, []byte("some content"), 0o644); err != nil {

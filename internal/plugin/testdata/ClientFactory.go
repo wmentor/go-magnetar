@@ -6,7 +6,7 @@ package testdata
 
 import (
 	mock "github.com/stretchr/testify/mock"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/plugin"
 )
 
 // NewClientFactory creates a new instance of ClientFactory. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -46,19 +46,19 @@ func (_m *ClientFactory) EXPECT() *ClientFactory_Expecter {
 }
 
 // Get provides a mock function for the type ClientFactory
-func (_mock *ClientFactory) Get() requester.Client {
+func (_mock *ClientFactory) Get() plugin.Client {
 	ret := _mock.Called()
 
 	if len(ret) == 0 {
 		panic("no return value specified for Get")
 	}
 
-	var r0 requester.Client
-	if returnFunc, ok := ret.Get(0).(func() requester.Client); ok {
+	var r0 plugin.Client
+	if returnFunc, ok := ret.Get(0).(func() plugin.Client); ok {
 		r0 = returnFunc()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(requester.Client)
+			r0 = ret.Get(0).(plugin.Client)
 		}
 	}
 	return r0
@@ -81,18 +81,18 @@ func (_c *ClientFactory_Get_Call) Run(run func()) *ClientFactory_Get_Call {
 	return _c
 }
 
-func (_c *ClientFactory_Get_Call) Return(client requester.Client) *ClientFactory_Get_Call {
+func (_c *ClientFactory_Get_Call) Return(client plugin.Client) *ClientFactory_Get_Call {
 	_c.Call.Return(client)
 	return _c
 }
 
-func (_c *ClientFactory_Get_Call) RunAndReturn(run func() requester.Client) *ClientFactory_Get_Call {
+func (_c *ClientFactory_Get_Call) RunAndReturn(run func() plugin.Client) *ClientFactory_Get_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // Put provides a mock function for the type ClientFactory
-func (_mock *ClientFactory) Put(c requester.Client) {
+func (_mock *ClientFactory) Put(c plugin.Client) {
 	_mock.Called(c)
 	return
 }
@@ -103,16 +103,16 @@ type ClientFactory_Put_Call struct {
 }
 
 // Put is a helper method to define mock.On call
-//   - c requester.Client
+//   - c plugin.Client
 func (_e *ClientFactory_Expecter) Put(c any) *ClientFactory_Put_Call {
 	return &ClientFactory_Put_Call{Call: _e.mock.On("Put", c)}
 }
 
-func (_c *ClientFactory_Put_Call) Run(run func(c requester.Client)) *ClientFactory_Put_Call {
+func (_c *ClientFactory_Put_Call) Run(run func(c plugin.Client)) *ClientFactory_Put_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 requester.Client
+		var arg0 plugin.Client
 		if args[0] != nil {
-			arg0 = args[0].(requester.Client)
+			arg0 = args[0].(plugin.Client)
 		}
 		run(
 			arg0,
@@ -126,7 +126,7 @@ func (_c *ClientFactory_Put_Call) Return() *ClientFactory_Put_Call {
 	return _c
 }
 
-func (_c *ClientFactory_Put_Call) RunAndReturn(run func(c requester.Client)) *ClientFactory_Put_Call {
+func (_c *ClientFactory_Put_Call) RunAndReturn(run func(c plugin.Client)) *ClientFactory_Put_Call {
 	_c.Run(run)
 	return _c
 }

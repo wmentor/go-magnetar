@@ -14,7 +14,7 @@ import (
 	"golang.org/x/net/html/charset"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
 )
@@ -73,11 +73,11 @@ type SearchParams struct {
 type SearchTool struct {
 	cfg           *config.Config
 	printer       printer.Printer
-	clientFactory requester.ClientFactory
+	clientFactory plugin.ClientFactory
 }
 
 // NewSearchTool creates a new SearchTool instance for confluence_search.
-func NewSearchTool(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory) *SearchTool {
+func NewSearchTool(cfg *config.Config, p printer.Printer, clientFactory plugin.ClientFactory) *SearchTool {
 	return &SearchTool{
 		cfg:           cfg,
 		printer:       p,

@@ -12,7 +12,7 @@ import (
 	"golang.org/x/net/html/charset"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
 	"github.com/wmentor/go-magnetar/internal/tools/jira/render"
@@ -30,11 +30,11 @@ type JiraIssueCreateParams struct {
 type CreateTool struct {
 	cfg           *config.Config
 	printer       printer.Printer
-	clientFactory requester.ClientFactory
+	clientFactory plugin.ClientFactory
 }
 
 // NewCreateTool creates a new CreateTool instance for jira_issue_create.
-func NewCreateTool(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory) *CreateTool {
+func NewCreateTool(cfg *config.Config, p printer.Printer, clientFactory plugin.ClientFactory) *CreateTool {
 	return &CreateTool{
 		cfg:           cfg,
 		printer:       p,

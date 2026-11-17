@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester/testdata"
+	"github.com/wmentor/go-magnetar/internal/plugin/testdata"
 	"github.com/wmentor/go-magnetar/internal/printer"
 )
 

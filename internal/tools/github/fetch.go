@@ -14,7 +14,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 )
@@ -68,13 +67,13 @@ type ReleaseParams struct {
 type GitHubTools struct {
 	cfg           *config.Config
 	printer       printer.Printer
-	clientFactory requester.ClientFactory
+	clientFactory plugin.ClientFactory
 	state         *plugin.State
 	enabled       bool
 }
 
 // New creates a new GitHubTools instance.
-func New(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory, state *plugin.State) *GitHubTools {
+func New(cfg *config.Config, p printer.Printer, clientFactory plugin.ClientFactory, state *plugin.State) *GitHubTools {
 	return &GitHubTools{
 		cfg:           cfg,
 		printer:       p,

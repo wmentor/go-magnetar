@@ -11,6 +11,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
 )
@@ -30,11 +31,11 @@ type mockClientFactory struct {
 	client *mockClient
 }
 
-func (f *mockClientFactory) Get() requester.Client {
+func (f *mockClientFactory) Get() plugin.Client {
 	return f.client
 }
 
-func (f *mockClientFactory) Put(_ requester.Client) {
+func (f *mockClientFactory) Put(_ plugin.Client) {
 }
 
 func TestSearchTool_Search(t *testing.T) {
