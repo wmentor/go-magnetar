@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
@@ -24,16 +23,14 @@ type ResponseParams struct {
 type Tool struct {
 	cfg           *config.Config
 	printer       printer.Printer
-	clientFactory requester.ClientFactory
 	responseStore plugin.ResponseStore
 }
 
 // New creates a new Tool instance.
-func New(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory, responseStore plugin.ResponseStore) *Tool {
+func New(cfg *config.Config, p printer.Printer, responseStore plugin.ResponseStore) *Tool {
 	return &Tool{
 		cfg:           cfg,
 		printer:       p,
-		clientFactory: clientFactory,
 		responseStore: responseStore,
 	}
 }

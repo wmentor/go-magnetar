@@ -14,7 +14,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/http/requester"
-	"github.com/wmentor/go-magnetar/internal/http/requester/testdata"
+	"github.com/wmentor/go-magnetar/internal/plugin/testdata"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
 )

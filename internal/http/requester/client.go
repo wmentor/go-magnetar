@@ -10,20 +10,12 @@ import (
 	"golang.org/x/net/http/httpproxy"
 
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/plugin"
 )
 
 const (
 	maxTimeout = time.Hour * 2
 )
-
-type ClientFactory interface {
-	Get() Client
-	Put(c Client)
-}
-
-type Client interface {
-	Do(req *http.Request) (*http.Response, error)
-}
 
 // wrappedClient wraps http.Client to track request metrics.
 type wrappedClient struct {
@@ -80,7 +72,7 @@ func GetFailedRequests() int64 {
 	return failedRequests.Load()
 }
 
-func NewFactory(cfg *config.Config) ClientFactory {
+func NewFactory(cfg *config.Config) plugin.ClientFactory {
 	transport := http.DefaultTransport.(*http.Transport).Clone() //nolint:forcetypeassert // ok.
 
 	if transport.TLSClientConfig != nil {
@@ -120,12 +112,12 @@ func NewFactory(cfg *config.Config) ClientFactory {
 
 type factory struct {
 	cfg    *config.Config
-	client Client
+	client plugin.Client
 }
 
-func (f *factory) Get() Client {
+func (f *factory) Get() plugin.Client {
 	return f.client
 }
 
-func (f *factory) Put(_ Client) {
+func (f *factory) Put(_ plugin.Client) {
 }

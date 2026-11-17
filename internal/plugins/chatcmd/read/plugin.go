@@ -53,7 +53,7 @@ func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (
 	filename := common.ExpandHome(filepath.Clean(args))
 
 	// Create a new tool instance with nil root for unrestricted file access
-	tool := read.New(p.state.ConcreteConfig(), p.state.Printer, p.state.RequesterFactory, nil, p.state)
+	tool := read.New(p.state.ConcreteConfig(), p.state.Printer, nil, p.state)
 
 	content, err := tool.Exec(ctx, &read.FileReadParams{Filename: filename})
 	if err != nil {

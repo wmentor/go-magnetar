@@ -14,7 +14,6 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/codec"
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
@@ -34,11 +33,10 @@ type FileReadParams struct {
 
 // Tool provides file_read operation as LLM tool.
 type Tool struct {
-	cfg           *config.Config
-	printer       printer.Printer
-	clientFactory requester.ClientFactory
-	root          *os.Root
-	state         *plugin.State
+	cfg     *config.Config
+	printer printer.Printer
+	root    *os.Root
+	state   *plugin.State
 }
 
 func GetReadStat() int64 {
@@ -46,13 +44,12 @@ func GetReadStat() int64 {
 }
 
 // New creates a new Tool instance.
-func New(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory, root *os.Root, state *plugin.State) *Tool {
+func New(cfg *config.Config, p printer.Printer, root *os.Root, state *plugin.State) *Tool {
 	return &Tool{
-		cfg:           cfg,
-		printer:       p,
-		clientFactory: clientFactory,
-		root:          root,
-		state:         state,
+		cfg:     cfg,
+		printer: p,
+		root:    root,
+		state:   state,
 	}
 }
 

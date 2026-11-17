@@ -21,19 +21,19 @@ type Plugin struct {
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	p.state = s
 	cfg := s.ConcreteConfig()
-	p.tool = read.New(cfg, s.Printer, s.RequesterFactory, plugin.GetRoot(), s)
+	p.tool = read.New(cfg, s.Printer, plugin.GetRoot(), s)
 	s.ToolStore.Register(p.tool.Name(), p.tool.Description(), p.tool.Exec)
 
 	// Register file_list tool
-	listTool := list.New(cfg, s.Printer, s.RequesterFactory, plugin.GetRoot(), s)
+	listTool := list.New(cfg, s.Printer, plugin.GetRoot(), s)
 	s.ToolStore.Register(listTool.Name(), listTool.Description(), listTool.Exec)
 
 	// Register file_write tool
-	writeTool := write.New(cfg, s.Printer, s.RequesterFactory, plugin.GetRoot(), s)
+	writeTool := write.New(cfg, s.Printer, plugin.GetRoot(), s)
 	s.ToolStore.Register(writeTool.Name(), writeTool.Description(), writeTool.Exec, tools.OptionSequential())
 
 	// Register edit tool
-	editTool := edit.NewTool(cfg, s.Printer, s.RequesterFactory, plugin.GetRoot(), s)
+	editTool := edit.NewTool(cfg, s.Printer, plugin.GetRoot(), s)
 	s.ToolStore.Register(editTool.Name(), editTool.Description(), editTool.FileEdit, tools.OptionSequential())
 	return nil
 }

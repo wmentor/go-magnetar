@@ -9,7 +9,6 @@ import (
 	"testing"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester/testdata"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/response"
@@ -40,8 +39,7 @@ func newTestTools(t *testing.T, yaml string) *Tool {
 
 	// Create a valid printer and request factory for tests
 	p := printer.GetDefault()
-	clientFactory := testdata.NewClientFactory(t)
-	return New(cfg, p, clientFactory, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
+	return New(cfg, p, rootFS, &plugin.State{Config: cfg, ReadOnly: false, ResponseStore: responseStore})
 }
 
 // parseResult parses the result from Exec which can be either a string or *tools.Response

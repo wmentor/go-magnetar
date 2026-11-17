@@ -9,7 +9,6 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
@@ -20,13 +19,13 @@ import (
 type Tool struct {
 	cfg           *config.Config
 	printer       printer.Printer
-	clientFactory requester.ClientFactory
+	clientFactory plugin.ClientFactory
 	state         *plugin.State
 	limiter       *rate.Limiter
 }
 
 // NewTool creates a new Tool instance.
-func NewTool(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory, state *plugin.State) *Tool {
+func NewTool(cfg *config.Config, p printer.Printer, clientFactory plugin.ClientFactory, state *plugin.State) *Tool {
 	return &Tool{
 		cfg:           cfg,
 		printer:       p,
