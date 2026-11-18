@@ -11,6 +11,7 @@ include:
   - plugins/confluence.yml
   - plugins/gitlab.yml
   - plugins/mask.yml
+  - plugins/mcp.yml
   - plugins/rag.yml
   - plugins/guard.yml
   - plugins/ssh.yml

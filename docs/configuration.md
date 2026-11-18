@@ -50,6 +50,7 @@ go-magnetar -p production
 | `profile` | string | Default profile name to use |
 | `include` | array | List of plugin configuration files to include |
 | `profiles` | object | Profile definitions for multi-environment support |
+| `mcp` | object | MCP server configuration (stdio or HTTP mode) |
 
 ### LLM Configuration
 
@@ -197,6 +198,51 @@ These live in `plugins/web.yml`. Add `plugins/web.yml` to the `include` list of 
 | `remote_dir` | string | Remote working directory (optional, default: `$HOME`) |
 | `timeout` | integer | SSH command timeout in seconds (default: `120`) |
 
+#### MCP (`mcp`)
+
+The MCP plugin configures the Model Context Protocol server. It supports two transport modes: `stdio` (default) and `http`.
+
+| Key | Type | Description |
+|---|---|---|
+| `mode` | string | Transport mode: `stdio` (default) or `http` |
+| `server.host` | string | Host for HTTP server (default: `localhost`) |
+| `server.port` | integer | Port for HTTP server (default: `8080`) |
+| `server.cert` | string | Path to TLS certificate file (empty for HTTP, required for HTTPS) |
+| `server.key` | string | Path to TLS private key file (empty for HTTP, required for HTTPS) |
+| `server.tls` | boolean | Enable TLS encryption for HTTP (default: `false`) |
+| `server.endpoint` | string | HTTP endpoint path (default: `/mcp`) |
+
+**Stdio Mode** (default, no additional configuration required):
+```yaml
+mcp:
+  mode: stdio
+```
+
+**HTTP Mode**:
+```yaml
+mcp:
+  mode: http
+  server:
+    host: localhost
+    port: 8080
+    endpoint: "/mcp"
+```
+
+**HTTPS Mode** (requires TLS certificate and key):
+```yaml
+mcp:
+  mode: http
+  server:
+    host: localhost
+    port: 8080
+    cert: "/path/to/certificate.pem"
+    key: "/path/to/private.key"
+    tls: true
+    endpoint: "/mcp"
+```
+
+See [mcp_mode.md](./mcp_mode.md) for detailed information about MCP mode and client connection examples.
+
 ### Compact Configuration
 
 Controls conversation history compression:
@@ -221,6 +267,8 @@ MAGNETAR_{SECTION}_{PARAM} -> {section}.{param}
 
 For example:
 - `MAGNETAR_CONFLUENCE_READONLY` → `confluence.readonly`
+- `MAGNETAR_MCP_MODE` → `mcp.mode`
+- `MAGNETAR_MCP_SERVER_PORT` → `mcp.server.port`
 
 All environment variable names use uppercase with underscores separating hierarchical sections. The transformation converts underscores to dots and transforms the key to lowercase.
 
@@ -231,6 +279,8 @@ Environment variables can be set directly or referenced in config files using `$
 ```bash
 export MAGNETAR_CONFLUENCE_READONLY=true
 export MAGNETAR_JIRA_API_KEY="your-api-key"
+export MAGNETAR_MCP_MODE="http"
+export MAGNETAR_MCP_SERVER_PORT="9000"
 ```
 
 ```yaml
@@ -239,6 +289,11 @@ jira:
   base_url: $env:MAGNETAR_JIRA_BASE_URL
   api_key: $env:MAGNETAR_JIRA_API_KEY
   readonly: $env:MAGNETAR_JIRA_READONLY
+
+mcp:
+  mode: $env:MAGNETAR_MCP_MODE
+  server:
+    port: $env:MAGNETAR_MCP_SERVER_PORT
 ```
 
 If an environment variable is not set, it will be replaced with an empty string.
@@ -298,6 +353,7 @@ include:
   - plugins/github.yml
   - plugins/rag.yml
   - plugins/guard.yml
+  - plugins/mcp.yml
 ```
 
 Include files are loaded **after** the main config, so they **override** values from the main configuration file.
@@ -313,6 +369,24 @@ This order ensures that plugin-specific settings in include files take precedenc
 ## Example Configuration
 
 See [example-config.md](./example-config.md) for a complete example configuration file.
+
+### MCP Configuration Example
+
+```yaml
+version: "1.0"
+profile: default
+include:
+  - plugins/mcp.yml
+
+mcp:
+  mode: http  # or stdio (default)
+  server:
+    host: localhost
+    port: 8080
+    endpoint: "/mcp"
+```
+
+For more information about MCP mode, available tools, and client connection examples, see [mcp_mode.md](./mcp_mode.md).
 
 ### JIRA Configuration Example
 
