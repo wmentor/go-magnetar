@@ -170,7 +170,7 @@ func (s *Store) RegisterOurToolMCP[T any](name, description string, execFunc fun
 		}
 
 		if res, ok := bizResult.(*Response); ok {
-			return mcpOurResultText(res.Result)
+			return mcpOurResultText(s.maskService.Process(context.Background(), res.Result))
 		}
 
 		successJSON, marshalErr := json.Marshal(bizResult)
@@ -178,7 +178,7 @@ func (s *Store) RegisterOurToolMCP[T any](name, description string, execFunc fun
 			return mcpOurToolErr(marshalErr)
 		}
 
-		return mcpOurResultText(string(successJSON))
+		return mcpOurResultText(s.maskService.Process(context.Background(), string(successJSON)))
 	}
 
 	t := ToolMCP{
