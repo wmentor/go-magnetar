@@ -14,7 +14,7 @@ An AI smart shell with an integrated knowledge base and customizable skills. A s
 - **Skills** — customize agent behavior with reusable skill files for specialized tasks
 - **Subagents** — spawn specialized agents for complex tasks (exploration, research, parallel work)
 - **Integrations** — Confluence, JIRA, GitHub, GitLab (all optional, disabled by default); when enabled, simply provide a URL to a page or resource, and the system automatically detects the platform and fetches the content as markdown for AI agent
-- **Smart reading** - Transparent read a wide range of file formats (`.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.pages`, `.odt`, `.pptx`, `.xlsx`, `.html`, `.eml`, `.epub`) and convert into markdown. For a complete list of supported formats and their available modes, see [docs/file_codecs.md](./docs/file_codecs.md).
+- **Smart reading** - Transparent read a wide range of file formats (`.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.pages`, `.odt`, `.pptx`, `.xlsx`, `.html`, `.eml`, `.epub`, `.numbers`) and convert into markdown. For a complete list of supported formats and their available modes, see [docs/file_codecs.md](./docs/file_codecs.md).
 
 ## Requirements
 
