@@ -58,8 +58,8 @@ func NewService(cfg *config.Config) *Service {
 	// US Social Security Number: XXX-XX-XXXX or XXX XX XXXX
 	srv.register("ssn", `\b\d{3}[-\s]\d{2}[-\s]\d{4}\b`, "[MASK_SSN]")
 
-	// Credit card number: XXXX XXXX XXXX XXXX or XXXX-XXXX-XXXX-XXXX (one separator kind per number)
-	srv.register("card", `\b\d{4}(?: \d{4}){3}\b|\b\d{4}(?:-\d{4}){3}\b`, "[MASK_CARD]")
+	// Credit card number: XXXX XXXX XXXX XXXX or XXXX-XXXX-XXXX-XXXX (whitespace or dashes, not mixed)
+	srv.register("card", `\b\d{4}(?:\s\d{4}){3}\b|\b\d{4}(?:-\d{4}){3}\b`, "[MASK_CARD]")
 
 	return srv
 }

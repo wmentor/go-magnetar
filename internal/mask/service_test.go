@@ -879,6 +879,11 @@ mask:
 			want:  `card="[MASK_CARD]"`,
 		},
 		{
+			name:  "card with tabs",
+			input: "Card: 4111\t1111\t1111\t1111",
+			want:  "Card: [MASK_CARD]",
+		},
+		{
 			name:  "no card",
 			input: "No card number here",
 			want:  "No card number here",
