@@ -7,8 +7,10 @@ import (
 	"github.com/wmentor/go-magnetar/internal/codec/csv"
 	"github.com/wmentor/go-magnetar/internal/codec/docx"
 	"github.com/wmentor/go-magnetar/internal/codec/eml"
+	"github.com/wmentor/go-magnetar/internal/codec/epub"
 	"github.com/wmentor/go-magnetar/internal/codec/excel"
 	"github.com/wmentor/go-magnetar/internal/codec/html"
+	"github.com/wmentor/go-magnetar/internal/codec/numbers"
 	"github.com/wmentor/go-magnetar/internal/codec/odt"
 	"github.com/wmentor/go-magnetar/internal/codec/pages"
 	"github.com/wmentor/go-magnetar/internal/codec/pdf"
@@ -20,28 +22,32 @@ var (
 	ErrCodecNotFound = errors.New("codec not found")
 
 	readCodecs = map[string]ReadCodec{
-		".csv":   &csv.Codec{},
-		".docx":  &docx.Codec{},
-		".eml":   &eml.Codec{},
-		".htm":   &html.Codec{},
-		".html":  &html.Codec{},
-		".odt":   &odt.Codec{},
-		".pages": &pages.Codec{},
-		".pdf":   &pdf.Codec{},
-		".pptx":  &pptx.Codec{},
-		".tsv":   &tsv.Codec{},
-		".xlsx":  &excel.Codec{},
-		"csv":    &csv.Codec{},
-		"docx":   &docx.Codec{},
-		"eml":    &eml.Codec{},
-		"htm":    &html.Codec{},
-		"html":   &html.Codec{},
-		"odt":    &odt.Codec{},
-		"pages":  &pages.Codec{},
-		"pdf":    &pdf.Codec{},
-		"pptx":   &pptx.Codec{},
-		"tsv":    &tsv.Codec{},
-		"xlsx":   &excel.Codec{},
+		".csv":     &csv.Codec{},
+		".docx":    &docx.Codec{},
+		".eml":     &eml.Codec{},
+		".epub":    &epub.Codec{},
+		".htm":     &html.Codec{},
+		".html":    &html.Codec{},
+		".numbers": &numbers.Codec{},
+		".odt":     &odt.Codec{},
+		".pages":   &pages.Codec{},
+		".pdf":     &pdf.Codec{},
+		".pptx":    &pptx.Codec{},
+		".tsv":     &tsv.Codec{},
+		".xlsx":    &excel.Codec{},
+		"csv":      &csv.Codec{},
+		"docx":     &docx.Codec{},
+		"eml":      &eml.Codec{},
+		"epub":     &epub.Codec{},
+		"htm":      &html.Codec{},
+		"html":     &html.Codec{},
+		"numbers":  &numbers.Codec{},
+		"odt":      &odt.Codec{},
+		"pages":    &pages.Codec{},
+		"pdf":      &pdf.Codec{},
+		"pptx":     &pptx.Codec{},
+		"tsv":      &tsv.Codec{},
+		"xlsx":     &excel.Codec{},
 	}
 
 	writeCodecs = map[string]WriteCodec{
@@ -51,12 +57,15 @@ var (
 
 	// mimeCodecs maps MIME types to codecs.
 	mimeReadCodecs = map[string]ReadCodec{
-		"application/pdf":             &pdf.Codec{},
-		"application/vnd.apple.pages": &pages.Codec{},
+		"application/epub+zip":          &epub.Codec{},
+		"application/pdf":               &pdf.Codec{},
+		"application/vnd.apple.numbers": &numbers.Codec{},
+		"application/vnd.apple.pages":   &pages.Codec{},
 		"application/vnd.openxmlformats-officedocument.wordprocessingml.document":   &docx.Codec{},
 		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":         &excel.Codec{},
 		"application/vnd.oasis.opendocument.text":                                   &odt.Codec{},
 		"application/vnd.openxmlformats-officedocument.presentationml.presentation": &pptx.Codec{},
+		"application/x-iwork-numbers-sffnumbers":                                    &numbers.Codec{},
 		"application/x-iwork-pages-sffpages":                                        &pages.Codec{},
 		"message/rfc822":                                                            &eml.Codec{},
 		"text/csv":                                                                  &csv.Codec{},
@@ -64,7 +73,8 @@ var (
 	}
 
 	mimeBinary = map[string]struct{}{
-		"application/pdf": {},
+		"application/epub+zip": {},
+		"application/pdf":      {},
 		"application/vnd.openxmlformats-officedocument.wordprocessingml.document":   {},
 		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":         {},
 		"application/vnd.oasis.opendocument.text":                                   {},

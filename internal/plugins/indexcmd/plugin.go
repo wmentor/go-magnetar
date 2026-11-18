@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -13,6 +14,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/common"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
+	"github.com/wmentor/go-magnetar/internal/tools"
 )
 
 func init() {
@@ -20,7 +22,14 @@ func init() {
 }
 
 type Plugin struct {
-	idx *indexer.Indexer
+	idx   *indexer.Indexer
+	state *plugin.State
+}
+
+// IndexParams represents parameters for the index tool.
+type IndexParams struct {
+	Source  string `json:"source" jsonschema_description:"Path to file, URL, or repository name (e.g., 'owner/repo' for GitHub/GitLab repos) to index into RAG knowledge base"` //nolint:lll // ok.
+	Comment string `json:"comment" jsonschema_description:"Optional context or metadata to prepend to each chunk"`
 }
 
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
@@ -34,7 +43,8 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	}
 	defer root.Close()
 
-	p.idx, err = indexer.New(s.Config, root, s)
+	p.state = s
+	p.idx, err = indexer.New(s.ConcreteConfig(), root, s)
 	if err != nil {
 		return fmt.Errorf("indexcmd: failed to create indexer: %w", err)
 	}
@@ -53,13 +63,19 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		Execute: p.executeTab,
 	})
 
+	if !s.ReadOnly {
+		s.ToolStore.RegisterOurToolMCP("index", "Indexes files, URLs, or repositories into the RAG knowledge base for search and retrieval. "+
+			"Accepts file paths, URLs, or repository names (e.g., 'owner/repo' for GitHub/GitLab repos), with optional comment for chunk context.",
+			p.IndexToolMCP)
+	}
+
 	return nil
 }
 
 func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
 	args := params.Args
 	if args == "" {
-		return nil, fmt.Errorf("usage: /index <path|url> [-r|--recursive] [-m <message>]")
+		return nil, errors.New("usage: /index <path|url> [-r|--recursive] [-m <message>]")
 	}
 
 	opts, err := parseIndexArgs(args)
@@ -75,7 +91,7 @@ func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (
 		return plugin.NopChatCommandResponse, nil
 	case isDir(opts.target):
 		if !opts.recursive {
-			return nil, fmt.Errorf("target is a directory, use -r or --recursive for recursive indexing")
+			return nil, errors.New("target is a directory, use -r or --recursive for recursive indexing")
 		}
 
 		err := p.idx.IndexDirectory(opts.target, opts.message)
@@ -90,6 +106,27 @@ func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (
 	}
 
 	return plugin.NopChatCommandResponse, nil
+}
+
+func (p *Plugin) IndexToolMCP(ctx context.Context, params *IndexParams) (any, error) {
+	if params.Source == "" {
+		return nil, errors.New("invalid value of source param")
+	}
+
+	switch {
+	case isURL(params.Source):
+		if err := p.idx.IndexURL(params.Source, params.Comment); err != nil {
+			return nil, fmt.Errorf("index URL failed: %w", err)
+		}
+	case isDir(params.Source):
+		return nil, fmt.Errorf("source %q must be url of file", params.Source)
+	default:
+		if err := p.idx.IndexFile(params.Source, params.Comment); err != nil {
+			return nil, fmt.Errorf("index file failed: %w", err)
+		}
+	}
+
+	return &tools.Response{Status: "SUCCESS", Result: "indexed"}, nil
 }
 
 func isURL(s string) bool {

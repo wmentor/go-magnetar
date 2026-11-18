@@ -6,11 +6,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
+	"sort"
 	"strings"
 	"sync"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/invopop/jsonschema"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/sashabaranov/go-openai"
 )
 
@@ -39,6 +43,7 @@ type ToolFunc func(ctx context.Context, rawJSON []byte) string
 
 type Store struct {
 	tools       map[string]Tool
+	mcpTools    map[string]ToolMCP
 	maskService MaskService
 	mtx         sync.RWMutex
 }
@@ -46,6 +51,7 @@ type Store struct {
 func NewStore(maskServ MaskService) *Store {
 	return &Store{
 		tools:       make(map[string]Tool),
+		mcpTools:    make(map[string]ToolMCP),
 		maskService: maskServ,
 	}
 }
@@ -55,7 +61,7 @@ func (s *Store) Register[T any](name, description string, execFunc func(ctx cont
 	defer s.mtx.Unlock()
 
 	reflector := &jsonschema.Reflector{
-		AllowAdditionalProperties: false, // Обязательно для OpenAI Strict Mode
+		AllowAdditionalProperties: false,
 		DoNotReference:            true,
 	}
 
@@ -126,6 +132,65 @@ func (s *Store) Register[T any](name, description string, execFunc func(ctx cont
 	s.tools[name] = t
 }
 
+func (s *Store) RegisterOurToolMCP[T any](name, description string, execFunc func(ctx context.Context, request *T) (any, error)) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	reflector := &jsonschema.Reflector{
+		AllowAdditionalProperties: false,
+		DoNotReference:            true,
+	}
+
+	schema := reflector.Reflect(new(T))
+	schema.AdditionalProperties = nil
+
+	inputDefinition, _ := schema.MarshalJSON()
+
+	handler := func(ctx context.Context, req *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+		var args T
+
+		if errRes, err := mcpOurParseArgs(req, &args); err != nil || errRes != nil {
+			return errRes, err
+		}
+
+		if validatable, ok := any(&args).(Validatable); ok {
+			if err := validatable.Validate(); err != nil {
+				return mcpOurToolErr(err)
+			}
+		}
+
+		bizResult, err := execFunc(ctx, &args)
+		if err != nil {
+			return mcpOurToolErr(err)
+		}
+
+		if res, ok := bizResult.(*Response); ok {
+			res.Result = s.maskService.Process(ctx, res.Result)
+			bizResult = res
+		}
+
+		if res, ok := bizResult.(*Response); ok {
+			return mcpOurResultText(s.maskService.Process(context.Background(), res.Result))
+		}
+
+		successJSON, marshalErr := json.Marshal(bizResult)
+		if marshalErr != nil {
+			return mcpOurToolErr(marshalErr)
+		}
+
+		return mcpOurResultText(s.maskService.Process(context.Background(), string(successJSON)))
+	}
+
+	t := ToolMCP{
+		Name:        name,
+		Description: description,
+		InputSchema: inputDefinition,
+		Exec:        handler,
+	}
+
+	s.mcpTools[name] = t
+}
+
 func (s *Store) GetTool(name string) (Tool, error) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
@@ -169,6 +234,14 @@ func (s *Store) CloneWith(toolNames ...string) (*Store, error) {
 	}
 
 	return cloned, nil
+}
+
+func (s *Store) OutToolsMCP() []ToolMCP {
+	values := slices.Collect(maps.Values(s.mcpTools))
+	sort.SliceStable(values, func(i, j int) bool {
+		return values[i].Name < values[j].Name
+	})
+	return values
 }
 
 func translateJSONError(err error) map[string]string {

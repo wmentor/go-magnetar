@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/errors"
 	"golang.org/x/time/rate"
 
-	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/plugin"
 )
 
 const (
@@ -91,11 +91,11 @@ type Reference struct {
 
 // Adapter for NIST NVD API.
 type Adapter struct {
-	client requester.Client
+	client plugin.Client
 }
 
 // NewAdapterWithClient creates a new NIST adapter with custom HTTP client.
-func NewAdapter(client requester.Client) *Adapter {
+func NewAdapter(client plugin.Client) *Adapter {
 	return &Adapter{client: client}
 }
 

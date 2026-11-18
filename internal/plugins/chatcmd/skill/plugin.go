@@ -67,9 +67,9 @@ func listSkills(skillStore plugin.SkillStore) string {
 			continue
 		}
 		if skill.Description != "" {
-			fmt.Fprintf(&sb, "  * %s - %s\n", skill.Name, skill.Description)
+			fmt.Fprintf(&sb, "  * `%s` - %s\n", skill.Name, skill.Description)
 		} else {
-			fmt.Fprintf(&sb, "  * %s\n", skill.Name)
+			fmt.Fprintf(&sb, "  * `%s`\n", skill.Name)
 		}
 	}
 
@@ -81,9 +81,9 @@ func listSkills(skillStore plugin.SkillStore) string {
 func MakeApplySkillMessage(skill *plugin.Skill, optionalText string) string {
 	var sb strings.Builder
 
-	sb.WriteString("# SKILL: ")
+	sb.WriteString("# SKILL: `")
 	sb.WriteString(skill.Name)
-	sb.WriteString("\n\n")
+	sb.WriteString("`\n\n")
 	sb.WriteString(skill.Content)
 
 	sb.WriteString("\n\nIMPORTANT: to solve the next problem, use the skill `")

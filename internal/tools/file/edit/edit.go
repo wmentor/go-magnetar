@@ -36,7 +36,7 @@ type Tool struct {
 }
 
 // NewTool creates a new Tool instance.
-func NewTool(cfg *config.Config, p printer.Printer, _ any, root *os.Root, state *plugin.State) *Tool {
+func NewTool(cfg *config.Config, p printer.Printer, root *os.Root, state *plugin.State) *Tool {
 	return &Tool{
 		cfg:     cfg,
 		root:    root,

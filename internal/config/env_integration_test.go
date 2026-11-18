@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -16,7 +17,7 @@ profiles:
       base_url: https://api.example.com
 `
 
-	tmpFile := "/tmp/test-env-config.yaml"
+	tmpFile := filepath.Join(t.TempDir(), "test-env-config.yaml")
 	if err := os.WriteFile(tmpFile, []byte(testConfig), 0o644); err != nil {
 		t.Fatal(err)
 	}

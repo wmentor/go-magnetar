@@ -2,17 +2,17 @@
 
 ## Description
 
-go-magnetar — a knowledge base tool built on RAG (Retrieval-Augmented Generation). It combines a chat agent with an integrated `/index` command for document ingestion and a `/fetch` command for URL content retrieval.
+go-magnetar is an AI smart shell with an integrated knowledge base and customizable skills. A single standalone binary with everything included — no dependencies to install, no go install needed. Just download, run, and start chatting with any OpenAI-compatible LLM, run shell commands, indexing documents and web pages into a local vector database, and get answers grounded in your own content.
 
-- **Chat agent** — answers questions strictly based on indexed data (no hallucinations or guessing)
-- **Index command** — `/index <path|url> [-m <message>]` indexes documents directly from the chat REPL
-- **Fetch command** — `/fetch <url> [file]` retrieves and displays content from URLs
+## What it does
+
+- **Chat** — interactive REPL with multi-turn conversation and automatic context compaction
+- **Shell** — execute shell commands directly without LLM in the same line as your chat message (e.g., `ls -la`, `git status`, `cat file.txt`)
+- **Index** — `/index <file|url>` adds documents to your RAG knowledge base; documents become immediately available to the AI agent for answering questions
 - **Skills** — customize agent behavior with reusable skill files for specialized tasks
 - **Subagents** — spawn specialized agents for complex tasks (exploration, research, parallel work)
-
-> Web pages are cleaned of ads, navigation, and other noise, then processed through readability extraction and converted to Markdown. Confluence URLs (both standard and short links) are also supported via the `confluence` block. JIRA issues are supported via the `jira` block. GitLab merge requests (including file changes) are supported via the `gitlab` block. GitHub repositories, files, and directory trees are supported via the `github` block.
-
-Supported file formats for indexing: `.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.pages`, `.odt`, `.pptx`, `.xlsx`, and `.html`. See [docs/file_codecs.md](./docs/file_codecs.md) for complete format support and codec details.
+- **Integrations** — Confluence, JIRA, GitHub, GitLab (all optional, disabled by default); when enabled, simply provide a URL to a page or resource, and the system automatically detects the platform and fetches the content as markdown for AI agent
+- **Smart reading** - Transparent read a wide range of file formats (`.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.pages`, `.odt`, `.pptx`, `.xlsx`, `.html`, `.eml`, `.epub`, `.numbers`) and convert into markdown. For a complete list of supported formats and their available modes, see [docs/file_codecs.md](./docs/file_codecs.md).
 
 ## Skills
 
@@ -175,7 +175,7 @@ It supports the /index and /fetch commands and chat commands like /help, /exit..
 
 ## CLI
 
-Configuration file is always loaded from `~/.go-magnetar/config.yml`.
+Configuration file is always loaded from `~/.go-magnetar/config.yml` or a custom directory set via `--config-dir` flag or `MAGNETAR_CONFIG_DIR` environment variable.
 
 ### `-p/--profile` — select configuration profile
 
@@ -202,6 +202,24 @@ go-magnetar --enable-timing
 ```
 
 Prints the execution time after every answer (`— Execution time: 1.234s`). The flag only sets the starting value: the `/timing on|off` chat command still turns the display on and off during the session.
+
+### `--config-dir` — set configuration directory
+
+```
+go-magnetar --config-dir <path>
+```
+
+Set the configuration directory where config files and user skills/agents are stored. Default is `~/.go-magnetar`. Can also be set via `MAGNETAR_CONFIG_DIR` environment variable.
+
+Example:
+```bash
+# Use custom config directory
+go-magnetar --config-dir ~/.custom-config
+
+# Or set via environment variable
+export MAGNETAR_CONFIG_DIR=~/.custom-config
+go-magnetar
+```
 
 ## Commands
 

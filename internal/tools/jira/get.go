@@ -13,7 +13,7 @@ import (
 	"golang.org/x/net/html/charset"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
 )
@@ -29,11 +29,11 @@ type JiraTaskGetParams struct {
 type GetTool struct {
 	cfg           *config.Config
 	printer       printer.Printer
-	clientFactory requester.ClientFactory
+	clientFactory plugin.ClientFactory
 }
 
 // NewGetTool creates a new GetTool instance for jira_task_get.
-func NewGetTool(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory) *GetTool {
+func NewGetTool(cfg *config.Config, p printer.Printer, clientFactory plugin.ClientFactory) *GetTool {
 	return &GetTool{
 		cfg:           cfg,
 		printer:       p,
@@ -288,12 +288,12 @@ func (t *GetTool) Exec(ctx context.Context, params *JiraTaskGetParams) (any, err
 type JiraTools struct {
 	cfg           *config.Config
 	printer       printer.Printer
-	clientFactory requester.ClientFactory
+	clientFactory plugin.ClientFactory
 }
 
 // New creates a new JiraTools instance.
 // Deprecated: Use NewGetTool, NewSearchTool, or NewCreateTool instead.
-func New(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory) *JiraTools {
+func New(cfg *config.Config, p printer.Printer, clientFactory plugin.ClientFactory) *JiraTools {
 	return &JiraTools{
 		cfg:           cfg,
 		printer:       p,

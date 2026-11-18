@@ -12,9 +12,7 @@ import (
 var templatesFS embed.FS
 
 // EnsureConfigDir checks if ~/.go-magnetar/ exists and creates it with templates if needed.
-func EnsureConfigDir(homeDir string) error {
-	configDir := filepath.Join(homeDir, ".go-magnetar")
-
+func EnsureConfigDir(configDir string) error {
 	// Check if config directory exists
 	if _, err := os.Stat(configDir); err == nil {
 		// Directory exists, sync templates

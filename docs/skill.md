@@ -166,8 +166,8 @@ Skills are activated via the `/skill` chat command in the interactive REPL.
 ```
 > /skill
 Available skills:
-  * coding - Programming and code assistance
-  * writing - Writing and content creation
+  * `coding` - Programming and code assistance
+  * `writing` - Writing and content creation
 ```
 
 ### Load a Skill

@@ -34,6 +34,18 @@ func NewService(cfg *config.Config) *Service {
 		srv.register("email", `[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}`, "[MASKED_EMAIL]")
 	}
 
+	if !cfg.Bool("mask.skip.phone") {
+		// Phone numbers: international (+X...), national formats (e.g. US (XXX) XXX-XXXX, Russian 8-XXX-XXX-XX-XX)
+		phonePattern := `(?:\+\d{1,3}[-.\s]?)?(?:\(\d{3}\)|\b\d{3})[-.\s]?\d{3}[-.\s]?(?:\d{4}|\d{2}[-.\s]?\d{2})\b|` +
+			`\b8[-.\s]?(?:\(\d{3}\)|\d{3})[-.\s]?\d{3}[-.\s]?\d{2}[-.\s]?\d{2}\b|` +
+			`\+\d{1,4}[-.\s]?(?:\(?\d{1,4}\)?[-.\s]?){2,4}\d{2,4}\b`
+		srv.register("phone", phonePattern, "[MASKED_PHONE]")
+	}
+
+	if !cfg.Bool("mask.skip.iban") {
+		srv.register("iban", `\b[A-Za-z]{2}\d{2}(?:\s[A-Za-z0-9]{4}){2,7}(?:\s[A-Za-z0-9]{1,4})?\b|\b[A-Za-z]{2}\d{2}[A-Za-z0-9]{11,30}\b`, "[MASK_IBAN]")
+	}
+
 	srv.register("github_token", `\b(?:gh[pousr]_[a-zA-Z0-9]{36,255}|github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59})\b`, "[MASKED_TOKEN]")
 	srv.register("gitlab_token", `\bgl(?:pat|dt|ft|oas|rt|ptt|imt|cbt|agent)-[a-zA-Z0-9._-]{20,64}\b`, "[MASKED_TOKEN]")
 

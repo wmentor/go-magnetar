@@ -12,6 +12,7 @@ include:
   - plugins/gitlab.yml
   - plugins/rag.yml
   - plugins/mask.yml
+  - plugins/mcp.yml
   - plugins/guard.yml
   - plugins/ssh.yml
   - plugins/web.yml

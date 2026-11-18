@@ -16,7 +16,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester/testdata"
+	"github.com/wmentor/go-magnetar/internal/plugin/testdata"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
 	"github.com/wmentor/go-magnetar/internal/tools/web/websearch"

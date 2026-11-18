@@ -164,5 +164,5 @@ func ExtractProjectAndMergeRequestFromGitLabURL(rawURL string) (string, string, 
 		return projectPath, idPart, nil
 	}
 
-	return "", "", fmt.Errorf("not a GitLab merge request URL")
+	return "", "", fmt.Errorf("not a GitLab merge request URL: %q", rawURL)
 }

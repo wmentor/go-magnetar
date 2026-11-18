@@ -11,6 +11,7 @@ include:
   - plugins/confluence.yml
   - plugins/gitlab.yml
   - plugins/mask.yml
+  - plugins/mcp.yml
   - plugins/rag.yml
   - plugins/guard.yml
   - plugins/ssh.yml
@@ -26,6 +27,13 @@ profiles:
       temperature: 0.9   # LLM temperature for response generation (default: 0.9)
       top_p: 0.95        # LLM top_p for response generation (default: 0.95)
       reasoning_effort: high  # reasoning effort: low, medium, or high (default: high)
+
+    # Web proxy settings (optional, applies to all HTTP clients)
+    web:
+      proxy:
+        http: ""  # HTTP proxy URL (e.g., http://proxy.example.com:8080)
+        https: ""  # HTTPS proxy URL (e.g., https://proxy.example.com:8080)
+        noproxy: ""  # Comma-separated list of hosts to bypass proxy (e.g., localhost,127.0.0.1,.internal.example.com)
 
 compact:
   mode: soft      # compacting strategy: soft (preserve save_tail messages) or compact (summarize entire history into a single message)

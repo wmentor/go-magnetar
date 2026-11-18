@@ -103,3 +103,16 @@ func TestParseGitHubRepoURL(t *testing.T) {
 		})
 	}
 }
+
+func TestFetchFileEmptyPath(t *testing.T) {
+	t.Parallel()
+
+	g := &GitHubTools{enabled: true}
+	_, err := g.FetchFile("owner/repo", "main", "")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "file path must not be empty")
+
+	_, err = g.FetchFile("owner/repo", "main", "   ")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "file path must not be empty")
+}

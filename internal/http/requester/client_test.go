@@ -8,13 +8,14 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/plugin"
 )
 
 func TestGet(t *testing.T) {
 	t.Parallel()
 
 	for range 10 {
-		client := requester.Get()
+		client := requester.NewFactory(nil).Get()
 		require.NotNil(t, client)
 	}
 }
@@ -26,7 +27,7 @@ func TestNewFactory(t *testing.T) {
 	require.NotNil(t, factory)
 
 	// Verify that factory implements ClientFactory interface
-	var _ requester.ClientFactory = factory
+	var _ plugin.ClientFactory = factory
 }
 
 func TestFactory_Get(t *testing.T) {

@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"os"
 	"os/user"
 	"path/filepath"
 	"sort"
@@ -29,12 +30,8 @@ type Config struct {
 
 var ErrProfileNotFound = errors.New("profile not found")
 
-// Load reads and parses a YAML config file at the given path.
-func Load(path string) (*Config, error) {
-	k := koanf.New(".")
-
-	// defaults holds default config values that are applied before the
-	// YAML file is loaded, so the user doesn't need to set them.
+// defaultValues returns standard default config values.
+func defaultValues() map[string]any {
 	defaults := map[string]any{
 		"rag.chunk.size":             2048,                    // runes; matches DefaultConfig in internal/chunk
 		"rag.chunk.overlap":          256,                     // runes; ~12.5% overlap is the RAG sweet-spot
@@ -67,11 +64,32 @@ func Load(path string) (*Config, error) {
 		"ssh.remote_dir":             "",                      // remote working directory (optional, default: $HOME)
 		"ssh.timeout":                120,                     // SSH command timeout in seconds (default: 120)
 		"compact.mode":               "soft",                  // compacting strategy: soft or compact (default: soft)
+		"web.proxy.http":             os.Getenv("HTTP_PROXY"),
+		"web.proxy.https":            os.Getenv("HTTPS_PROXY"),
+		"web.proxy.noproxy":          os.Getenv("NO_PROXY"),
+		"mcp.mode":                   "stdio", // MCP mode: stdio | http (default: stdio)
+		"mcp.server.host":            "",      // host for HTTP server (default: empty for stdio)
+		"mcp.server.port":            12123,   // port for HTTP server (default: 12123)
+		"mcp.server.cert":            "",      // path to TLS certificate (empty for HTTP, required for HTTPS)
+		"mcp.server.key":             "",      // path to TLS private key (empty for HTTP, required for HTTPS)
+		"mcp.server.tls":             false,   // enable TLS encryption (default: false)
+		"mcp.server.endpoint":        "/mcp",  // HTTP endpoint path (default: /mcp)
 	}
 
 	if currentUser, err := user.Current(); err == nil {
 		defaults["ssh.user"] = currentUser
 	}
+
+	return defaults
+}
+
+// Load reads and parses a YAML config file at the given path.
+func Load(path string) (*Config, error) {
+	k := koanf.New(".")
+
+	// defaults holds default config values that are applied before the
+	// YAML file is loaded, so the user doesn't need to set them.
+	defaults := defaultValues()
 
 	if err := k.Load(confmap.Provider(defaults, "."), nil); err != nil {
 		return nil, fmt.Errorf("config: failed to load defaults: %w", err)
@@ -98,8 +116,6 @@ func Load(path string) (*Config, error) {
 	if err := k.Load(env.Provider(".", envOpt), nil); err != nil {
 		return nil, fmt.Errorf("config: failed to load envs: %w", err)
 	}
-
-	fmt.Println(k.String("profile"))
 
 	if ver := k.String("version"); ver != currentVersion {
 		return nil, fmt.Errorf("config: unsupported config version %q", ver)

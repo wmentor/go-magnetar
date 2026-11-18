@@ -3,7 +3,6 @@ package ssh
 import (
 	"context"
 	"fmt"
-	"os"
 	"os/user"
 	"strings"
 	"time"
@@ -14,7 +13,6 @@ import (
 	"github.com/wmentor/go-magnetar/internal/command/interceptor"
 	"github.com/wmentor/go-magnetar/internal/common"
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
@@ -26,24 +24,20 @@ const (
 )
 
 type Tool struct {
-	cfg           *config.Config
-	printer       printer.Printer
-	clientFactory requester.ClientFactory
-	root          *os.Root
-	state         *plugin.State
-	guard         *guard.Guard
-	interceptor   *interceptor.Interceptor
+	cfg         *config.Config
+	printer     printer.Printer
+	state       *plugin.State
+	guard       *guard.Guard
+	interceptor *interceptor.Interceptor
 }
 
-func New(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory, root *os.Root, state *plugin.State) *Tool {
+func New(cfg *config.Config, p printer.Printer, state *plugin.State) *Tool {
 	return &Tool{
-		cfg:           cfg,
-		printer:       p,
-		clientFactory: clientFactory,
-		root:          root,
-		state:         state,
-		guard:         guard.New(cfg),
-		interceptor:   interceptor.New(),
+		cfg:         cfg,
+		printer:     p,
+		state:       state,
+		guard:       guard.New(cfg),
+		interceptor: interceptor.New(),
 	}
 }
 

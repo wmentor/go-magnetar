@@ -2,11 +2,9 @@ package date
 
 import (
 	"context"
-	"os"
 	"time"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
@@ -19,21 +17,17 @@ type SystemDateParams struct {
 
 // Tool provides system_date operation as LLM tool.
 type Tool struct {
-	cfg           *config.Config
-	printer       printer.Printer
-	clientFactory requester.ClientFactory
-	root          *os.Root
-	state         *plugin.State
+	cfg     *config.Config
+	printer printer.Printer
+	state   *plugin.State
 }
 
 // New creates a new Tool instance.
-func New(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory, root *os.Root, state *plugin.State) *Tool {
+func New(cfg *config.Config, p printer.Printer, state *plugin.State) *Tool {
 	return &Tool{
-		cfg:           cfg,
-		printer:       p,
-		clientFactory: clientFactory,
-		root:          root,
-		state:         state,
+		cfg:     cfg,
+		printer: p,
+		state:   state,
 	}
 }
 

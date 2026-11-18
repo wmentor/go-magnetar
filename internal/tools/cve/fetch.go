@@ -12,7 +12,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/adapter/nist"
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
 )
@@ -22,10 +22,10 @@ const cveDefaultTimeout = 2 * time.Minute
 type Tool struct {
 	cfg           *config.Config
 	printer       printer.Printer
-	clientFactory requester.ClientFactory
+	clientFactory plugin.ClientFactory
 }
 
-func NewTool(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory) *Tool {
+func NewTool(cfg *config.Config, p printer.Printer, clientFactory plugin.ClientFactory) *Tool {
 	return &Tool{
 		cfg:           cfg,
 		printer:       p,
@@ -39,6 +39,11 @@ type Params struct {
 
 func (t *Tool) Name() string {
 	return "cve"
+}
+
+// NameMCP returns the tool name for the MCP server.
+func (t *Tool) NameMCP() string {
+	return "cve_info"
 }
 
 func (t *Tool) Description() string {

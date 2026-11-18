@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
@@ -26,12 +25,12 @@ type EditPageParams struct {
 type EditTool struct {
 	cfg           *config.Config
 	printer       printer.Printer
-	clientFactory requester.ClientFactory
+	clientFactory plugin.ClientFactory
 	state         *plugin.State
 }
 
 // NewEditTool creates a new EditTool instance for confluence_page_edit.
-func NewEditTool(cfg *config.Config, p printer.Printer, clientFactory requester.ClientFactory, state *plugin.State) *EditTool {
+func NewEditTool(cfg *config.Config, p printer.Printer, clientFactory plugin.ClientFactory, state *plugin.State) *EditTool {
 	return &EditTool{
 		cfg:           cfg,
 		printer:       p,

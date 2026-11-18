@@ -17,7 +17,6 @@ import (
 	"golang.org/x/net/html/charset"
 
 	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 )
@@ -189,7 +188,7 @@ func fetchPage(
 	ctx context.Context,
 	cfg *config.Config,
 	p printer.Printer,
-	clientFactory requester.ClientFactory,
+	clientFactory plugin.ClientFactory,
 	pageID string,
 	isShortID bool,
 ) (*Page, error) {
