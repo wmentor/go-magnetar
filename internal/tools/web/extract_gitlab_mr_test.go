@@ -1,6 +1,7 @@
 package web
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -148,5 +149,29 @@ func TestExtractProjectAndMergeRequestFromGitLabURL(t *testing.T) {
 				t.Errorf("merge request ID = %q, want %q", gotMR, tt.wantMR)
 			}
 		})
+	}
+}
+
+// TestExtractProjectAndMergeRequestFromGitLabURLErrorIncludesURL verifies that
+// when a URL cannot be recognized as a GitLab merge request URL, the returned
+// error names the offending URL. Without it, callers and log readers get a
+// generic message with no way to tell which input failed validation.
+func TestExtractProjectAndMergeRequestFromGitLabURLErrorIncludesURL(t *testing.T) {
+	t.Parallel()
+
+	inputs := []string{
+		"https://gitlab.example.com/group/project",
+		"https://gitlab.example.com/group/project/-/issues/5",
+		"not-even-a-url",
+	}
+
+	for _, input := range inputs {
+		_, _, err := ExtractProjectAndMergeRequestFromGitLabURL(input)
+		if err == nil {
+			t.Fatalf("ExtractProjectAndMergeRequestFromGitLabURL(%q) returned no error, want one", input)
+		}
+		if !strings.Contains(err.Error(), input) {
+			t.Errorf("error %q does not include the offending URL %q", err.Error(), input)
+		}
 	}
 }
