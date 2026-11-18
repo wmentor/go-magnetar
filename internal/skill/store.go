@@ -108,7 +108,9 @@ func (st *Store) List(ctx context.Context) ([]*plugin.Skill, error) {
 	ret := make([]*plugin.Skill, 0, len(keys))
 
 	for _, k := range keys {
-		ret = append(ret, st.skills[k].Clone())
+		if skill := st.skills[k]; skill != nil {
+			ret = append(ret, skill.Clone())
+		}
 	}
 
 	return ret, nil

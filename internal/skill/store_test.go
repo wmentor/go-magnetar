@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/wmentor/go-magnetar/internal/plugin"
 )
 
 func TestStore(t *testing.T) {
@@ -54,6 +56,24 @@ func TestStore(t *testing.T) {
 		cloned := skillPtr.Clone()
 		if cloned == skillPtr {
 			t.Error("List() returned same pointer instead of clone")
+		}
+	})
+
+	t.Run("nil skill entry is skipped", func(t *testing.T) {
+		st := NewStore()
+		st.skills["nil-skill"] = nil
+		st.skills["valid-skill"] = &plugin.Skill{Name: "valid-skill", Enable: true}
+
+		skills, err := st.List(context.Background())
+		if err != nil {
+			t.Fatalf("List() error: %v", err)
+		}
+
+		if len(skills) != 1 {
+			t.Fatalf("expected 1 skill (nil entry skipped), got %d", len(skills))
+		}
+		if skills[0].Name != "valid-skill" {
+			t.Errorf("expected skill name 'valid-skill', got %q", skills[0].Name)
 		}
 	})
 
