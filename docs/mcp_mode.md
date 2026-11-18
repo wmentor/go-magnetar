@@ -2,6 +2,13 @@
 
 go-magnetar can be launched in MCP (Model Context Protocol) server mode, which allows it to act as an integrated knowledge base for other AI agents and applications that support the MCP protocol.
 
+## MCP Server Modes
+
+go-magnetar supports two transport modes for MCP servers:
+
+- **stdio** — Communicates via standard input/output (default mode, suitable for local clients)
+- **http** — Communicates via HTTP endpoint (suitable for remote clients and web applications)
+
 ## Launching go-magnetar in MCP Mode
 
 To start go-magnetar in MCP mode, use the `--mcp` flag:
@@ -10,11 +17,65 @@ To start go-magnetar in MCP mode, use the `--mcp` flag:
 ./bin/go-magnetar --mcp
 ```
 
-The MCP server will start with the default configuration from `configs/config.yaml` and listen for connections from MCP-compatible clients.
+The MCP server will start with the default configuration from `configs/plugins/mcp.yml` and listen for connections from MCP-compatible clients.
+
+## Configuration
+
+MCP server behavior is controlled by the `mcp` section in `configs/plugins/mcp.yml`:
+
+```yaml
+mcp:
+  mode: stdio  # mcp mode: stdio | http (default: stdio)
+  server:
+    host: localhost  # host for HTTP server (default: localhost)
+    port: 8080  # port for HTTP server (default: 8080)
+    cert: ""  # path to TLS certificate (empty for HTTP, required for HTTPS)
+    key: ""  # path to TLS private key (empty for HTTP, required for HTTPS)
+    tls: false  # enable TLS encryption (default: false)
+    endpoint: "/mcp"  # HTTP endpoint path (default: /mcp)
+```
+
+### Stdio Mode (Default)
+
+Stdio mode is the default and requires no additional configuration:
+
+```yaml
+mcp:
+  mode: stdio  # default
+```
+
+This mode is suitable for local clients that can connect via stdin/stdout, such as Claude Desktop and other CLI tools.
+
+### HTTP Mode
+
+HTTP mode allows remote clients to connect via HTTP:
+
+```yaml
+mcp:
+  mode: http
+  server:
+    host: localhost
+    port: 8080
+    endpoint: "/mcp"
+```
+
+For HTTPS, provide certificate and key paths:
+
+```yaml
+mcp:
+  mode: http
+  server:
+    host: localhost
+    port: 8080
+    cert: "/path/to/certificate.pem"
+    key: "/path/to/private.key"
+    tls: true
+    endpoint: "/mcp"
+```
 
 ## Important: Single Instance Constraint with Local RAG Storage
 
-When using RAG with the **local Chromem storage** (default configuration in `configs/config.yaml`), **only one instance** of go-magnetar can be launched at a time.
+When using RAG with the **local Chromem storage** (default configuration in `configs/config.yml`), **only one instance** of go-magnetar can be launched at a time.
 
 ### Why?
 
@@ -75,9 +136,44 @@ pkill -f go-magnetar
 
 ## Example: Starting MCP Server
 
+### Stdio Mode (Default)
+
 ```bash
 # Single instance with local Chromem storage (default config)
 ./bin/go-magnetar --mcp
+```
+
+### HTTP Mode
+
+```bash
+# HTTP server on localhost:8080
+./bin/go-magnetar --mcp
+```
+
+With custom port:
+
+```bash
+# Edit configs/plugins/mcp.yml to change port
+mcp:
+  mode: http
+  server:
+    port: 9000
+```
+
+### HTTPS Mode
+
+```bash
+# HTTPS server with TLS
+# First generate certificates (e.g., using mkcert)
+# Then configure:
+mcp:
+  mode: http
+  server:
+    host: localhost
+    port: 8080
+    cert: "/path/to/cert.pem"
+    key: "/path/to/key.pem"
+    tls: true
 ```
 
 Once running, MCP clients can connect to the server and use the available tools for RAG-based searches, web searches, vulnerability lookups, and more.
@@ -88,15 +184,29 @@ Once running, MCP clients can connect to the server and use the available tools 
 
 To connect go-magnetar as an MCP server in OpenCode, add the following to your OpenCode configuration:
 
+**Stdio Mode:**
 ```json
 {
   "mcp": {
-    "go-magnetar": {
+    "magnetar": {
       "type": "local",
       "command": [
         "/Users/mvk/.local/bin/go-magnetar", "--mcp"
       ],
       "cwd": ".",
+      "enabled": true
+    }
+  }
+}
+```
+
+**HTTP Mode:**
+```json
+{
+  "mcp": {
+    "magnetar": {
+      "type": "remote",
+      "url": "http://localhost:8080/mcp",
       "enabled": true
     }
   }
@@ -109,13 +219,27 @@ Replace the `command` path with the actual path to the go-magnetar binary if it 
 
 For Claude Desktop, add the following to your `claude_desktop_config.json`:
 
+**Stdio Mode (Default):**
 ```json
 {
   "mcpServers": [
     {
-      "name": "go-magnetar",
+      "name": "magnetar",
       "command": "/Users/mvk/.local/bin/go-magnetar",
       "args": ["--mcp"]
+    }
+  ]
+}
+```
+
+**HTTP Mode:**
+```json
+{
+  "mcpServers": [
+    {
+      "name": "magnetar",
+      "type": "http",
+      "url": "http://localhost:8080/mcp"
     }
   ]
 }
@@ -135,7 +259,7 @@ You can also connect to the MCP server directly using an MCP client:
 ./bin/go-magnetar --mcp
 
 # Connect from another terminal or application using MCP client
-# The server will be available at the default MCP transport (stdio)
+# The server will be available at the configured transport (stdio or HTTP endpoint)
 ```
 
 ## Available Tools

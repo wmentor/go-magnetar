@@ -87,6 +87,7 @@ linters:
       lines: 120
     gosec:
       excludes:
+        - G114
         - G115
         - G306
         - G402

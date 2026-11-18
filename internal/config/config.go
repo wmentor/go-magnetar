@@ -67,6 +67,13 @@ func defaultValues() map[string]any {
 		"web.proxy.http":             os.Getenv("HTTP_PROXY"),
 		"web.proxy.https":            os.Getenv("HTTPS_PROXY"),
 		"web.proxy.noproxy":          os.Getenv("NO_PROXY"),
+		"mcp.mode":                   "stdio", // MCP mode: stdio | http (default: stdio)
+		"mcp.server.host":            "",      // host for HTTP server (default: empty for stdio)
+		"mcp.server.port":            12123,   // port for HTTP server (default: 12123)
+		"mcp.server.cert":            "",      // path to TLS certificate (empty for HTTP, required for HTTPS)
+		"mcp.server.key":             "",      // path to TLS private key (empty for HTTP, required for HTTPS)
+		"mcp.server.tls":             false,   // enable TLS encryption (default: false)
+		"mcp.server.endpoint":        "/mcp",  // HTTP endpoint path (default: /mcp)
 	}
 
 	if currentUser, err := user.Current(); err == nil {
