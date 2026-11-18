@@ -70,7 +70,7 @@ func (st *Store) loadSkill(filename string) {
 
 	texts := strings.SplitN(string(data), "---\n", 3)
 	if len(texts) < 3 {
-		printer.Debug("parse skill %q error: %v", filename, err)
+		printer.Debug("parse skill %q error: invalid frontmatter (expected 3 parts, got %d)", filename, len(texts))
 		return
 	}
 
