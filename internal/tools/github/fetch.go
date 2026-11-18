@@ -523,6 +523,10 @@ func (g *GitHubTools) FetchFile(repo string, branch string, file string) (string
 		return "", errors.New("github tool is disabled")
 	}
 
+	if strings.TrimSpace(file) == "" {
+		return "", errors.New("github_file: file path must not be empty")
+	}
+
 	owner, repoName, err := parseGitHubRepoURL(repo)
 	if err != nil {
 		return "", fmt.Errorf("github_file: failed to parse repository URL: %w", err)
