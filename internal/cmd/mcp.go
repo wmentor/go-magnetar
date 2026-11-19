@@ -43,6 +43,7 @@ func mcpFlow(state *plugin.State) {
 
 	if mode == "stdio" {
 		if err := server.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
+			fmt.Fprintf(os.Stderr, "MCP stdio server failed to start: %v\n", err)
 			os.Exit(1)
 		}
 		return
@@ -62,12 +63,12 @@ func mcpFlow(state *plugin.State) {
 	if state.Config.Bool("mcp.server.tls") {
 		if err := http.ListenAndServeTLS(listen, state.Config.String("mcp.server.cert"),
 			state.Config.String("mcp.server.key"), mux); err != nil {
-			fmt.Fprintf(os.Stderr, "start mcp server error: %v\n", err)
+			fmt.Fprintf(os.Stderr, "MCP HTTPS server failed to start on %s: %v\n", listen, err)
 			os.Exit(1)
 		}
 	} else {
 		if err := http.ListenAndServe(listen, mux); err != nil {
-			fmt.Fprintf(os.Stderr, "start mcp server error: %v\n", err)
+			fmt.Fprintf(os.Stderr, "MCP HTTP server failed to start on %s: %v\n", listen, err)
 			os.Exit(1)
 		}
 	}
