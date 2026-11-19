@@ -13,6 +13,7 @@ go-magnetar provides a unified CLI interface with the following flags:
 | `--read-only` | Run in read-only mode. Disables file write operations and shell modifications. |
 | `--enable-timing` | Start with the execution time display on. `/timing on\|off` can still change it during the session. |
 | `--config-dir <path>` | Set the configuration directory. Default: `~/.go-magnetar`. Can also be set via `MAGNETAR_CONFIG_DIR` environment variable. |
+| `-d, --daemon` | Run as a background daemon. Requires `--mcp` with `mcp.mode: http` configuration. Starts go-magnetar in detached mode, suitable for long-running server processes. |
 | `--mcp` | Launch in MCP (Model Context Protocol) server mode. Starts a console-based MCP server that exposes the following tools to compatible clients: `web_fetch`, `file_read`, `rag_search`, `cve_info`. |
 | `-h, --help` | Show help and exit. |
 | `-v, --version` | Show version information and exit. |
@@ -50,6 +51,9 @@ go-magnetar --enable-timing
 
 # Launch in MCP server mode
 go-magnetar --mcp
+
+# Run as a background daemon (requires MCP with mcp.mode: http)
+go-magnetar --daemon --mcp
 
 # Combined flags
 go-magnetar -p production --read-only

@@ -31,6 +31,7 @@ require (
 	github.com/razvandimescu/gopdf v0.10.2
 	github.com/sashabaranov/go-openai v1.43.0
 	github.com/sergi/go-diff v1.4.0
+	github.com/sevlyar/go-daemon v0.1.7
 	github.com/stretchr/testify v1.12.1
 	github.com/wmentor/html v1.0.5
 	github.com/wmentor/iwaread v1.2.0
@@ -67,6 +68,7 @@ require (
 	github.com/google/jsonschema-go v0.4.3 // indirect
 	github.com/gorilla/css v1.0.1 // indirect
 	github.com/itlightning/dateparse v0.2.1 // indirect
+	github.com/kardianos/osext v0.0.0-20190222173326-2bc1f35cddc0 // indirect
 	github.com/knadh/koanf/maps v0.1.3 // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/lucasb-eyer/go-colorful v1.4.1 // indirect
