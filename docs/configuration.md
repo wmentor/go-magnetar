@@ -158,7 +158,7 @@ All plugins are disabled by default. Enable a plugin by setting `enable: true`:
 | `skip.email` | boolean | Skip email address masking (default: `false`) |
 | `skip.phone` | boolean | Skip phone number masking (default: `false`) |
 
-The mask plugin automatically redacts sensitive data (email addresses, phone numbers, GitHub tokens, GitLab tokens, Russian passports, Russian SNILS, US Social Security Numbers) from all user inputs and tool responses to prevent accidental data leakage. Masking is applied to system prompts, user messages, and tool results.
+The mask plugin automatically redacts sensitive data (email addresses, phone numbers, GitHub tokens, GitLab tokens, Russian passports, Russian SNILS, US Social Security Numbers, credit card numbers) from all user inputs and tool responses to prevent accidental data leakage. Masking is applied to system prompts, user messages, and tool results.
 
 These live in `plugins/mask.yml`. Add `plugins/mask.yml` to the `include` list of an existing `config.yml`; new configurations include it already.
 

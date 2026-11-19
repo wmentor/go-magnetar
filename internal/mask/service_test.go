@@ -58,9 +58,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 8 records: email, phone, iban, github_token, gitlab_token, passport, snils, ssn
-	if len(srv.records) != 8 {
-		t.Errorf("expected 8 records when mask is enabled, got %d", len(srv.records))
+	// Service should have 9 records: email, phone, iban, github_token, gitlab_token, passport, snils, ssn, card
+	if len(srv.records) != 9 {
+		t.Errorf("expected 9 records when mask is enabled, got %d", len(srv.records))
 	}
 }
 
@@ -79,9 +79,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 7 records: phone, iban, github_token, gitlab_token, passport, snils, ssn (no email)
-	if len(srv.records) != 7 {
-		t.Errorf("expected 7 records when email is skipped, got %d", len(srv.records))
+	// Service should have 8 records: phone, iban, github_token, gitlab_token, passport, snils, ssn, card (no email)
+	if len(srv.records) != 8 {
+		t.Errorf("expected 8 records when email is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -100,9 +100,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 7 records: email, iban, github_token, gitlab_token, passport, snils, ssn (no phone)
-	if len(srv.records) != 7 {
-		t.Errorf("expected 7 records when phone is skipped, got %d", len(srv.records))
+	// Service should have 8 records: email, iban, github_token, gitlab_token, passport, snils, ssn, card (no phone)
+	if len(srv.records) != 8 {
+		t.Errorf("expected 8 records when phone is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -121,9 +121,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 7 records: email, phone, github_token, gitlab_token, passport, snils, ssn (no iban)
-	if len(srv.records) != 7 {
-		t.Errorf("expected 7 records when iban is skipped, got %d", len(srv.records))
+	// Service should have 8 records: email, phone, github_token, gitlab_token, passport, snils, ssn, card (no iban)
+	if len(srv.records) != 8 {
+		t.Errorf("expected 8 records when iban is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -143,9 +143,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 6 records: iban, github_token, gitlab_token, passport, snils, ssn (no email, no phone)
-	if len(srv.records) != 6 {
-		t.Errorf("expected 6 records when email and phone are skipped, got %d", len(srv.records))
+	// Service should have 7 records: iban, github_token, gitlab_token, passport, snils, ssn, card (no email, no phone)
+	if len(srv.records) != 7 {
+		t.Errorf("expected 7 records when email and phone are skipped, got %d", len(srv.records))
 	}
 }
 
@@ -841,6 +841,76 @@ mask:
 	}
 }
 
+func TestProcessCardMasking(t *testing.T) {
+	t.Parallel()
+
+	const yaml = `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`
+
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "card with spaces",
+			input: "Card: 4111 1111 1111 1111",
+			want:  "Card: [MASK_CARD]",
+		},
+		{
+			name:  "card with dashes",
+			input: "Card: 4111-1111-1111-1111",
+			want:  "Card: [MASK_CARD]",
+		},
+		{
+			name:  "multiple cards",
+			input: "Paid with 4111 1111 1111 1111, refunded to 5500-0000-0000-0004.",
+			want:  "Paid with [MASK_CARD], refunded to [MASK_CARD].",
+		},
+		{
+			name:  "card in quotes",
+			input: `card="4111-1111-1111-1111"`,
+			want:  `card="[MASK_CARD]"`,
+		},
+		{
+			name:  "card with tabs",
+			input: "Card: 4111\t1111\t1111\t1111",
+			want:  "Card: [MASK_CARD]",
+		},
+		{
+			name:  "no card",
+			input: "No card number here",
+			want:  "No card number here",
+		},
+		{
+			name:  "invalid card formats not masked",
+			input: "Not a card: 4111111111111111 or 4111 1111-1111 1111 or 4111 1111 1111 111 or 4111-1111-1111",
+			want:  "Not a card: 4111111111111111 or 4111 1111-1111 1111 or 4111 1111 1111 111 or 4111-1111-1111",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Helper()
+
+			cfg := loadTestConfig(t, yaml)
+			srv := NewService(cfg)
+
+			got := srv.Process(context.Background(), tt.input)
+
+			if got != tt.want {
+				t.Errorf("Process() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestProcessPhoneMasking(t *testing.T) {
 	t.Parallel()
 
@@ -1156,7 +1226,7 @@ mask:
   enable: true
 `,
 			input: "Numbers: 1234 5678 9012 3456",
-			want:  "Numbers: 1234 5678 9012 3456",
+			want:  "Numbers: [MASK_CARD]",
 		},
 		{
 			name: "iban skipping enabled",
@@ -1168,8 +1238,8 @@ mask:
   skip:
     iban: true
 `,
-			input: "Account: DE89 3704 0044 0532 0130 00",
-			want:  "Account: DE89 3704 0044 0532 0130 00",
+			input: "Account: DE89370400440532013000",
+			want:  "Account: DE89370400440532013000",
 		},
 	}
 
