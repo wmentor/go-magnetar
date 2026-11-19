@@ -195,6 +195,16 @@ Reads input from the specified file, sends it to the agent, prints the answer, a
 
 > **Note:** In `-f/--file` mode, text preprocessors are applied but chat commands (e.g., `/readonly`, `/fetch`, `/index`) are not available. The text preprocessor expands placeholders like `{{home}}`, `{{uuid}}`, `{{date}}`, `{{now}}`, and `{{file:filename}}`.
 
+### `-d/--daemon` — run as background daemon
+
+```
+go-magnetar --daemon --mcp
+```
+
+Run go-magnetar as a background daemon in detached mode. This is useful for long-running server processes.
+
+> **Note:** Daemon mode is only available for MCP servers running over HTTP/HTTPS. You must use the `--mcp` flag along with `--daemon`.
+
 ### `--enable-timing` — show execution time
 
 ```

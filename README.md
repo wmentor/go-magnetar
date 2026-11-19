@@ -306,6 +306,7 @@ See [docs/security.md](./docs/security.md) for details.
 | `--read-only` | Run in read-only mode (disable file writes and shell modifications) |
 | `--enable-timing` | Show the execution time after every answer, whatever `/timing` says |
 | `--config-dir <path>` | Set the configuration directory (default: `~/.go-magnetar`). Can also be set via `MAGNETAR_CONFIG_DIR` environment variable. |
+| `-d, --daemon` | Run as a background daemon. Requires `--mcp` with `mcp.mode: http` configuration. Starts go-magnetar in detached mode, suitable for long-running server processes. |
 | `--mcp` | Launch in MCP (Model Context Protocol) server mode |
 
 ```bash

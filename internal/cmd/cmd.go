@@ -15,6 +15,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/agent"
 	"github.com/wmentor/go-magnetar/internal/agent/chat"
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/fork"
 	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/mask"
 	"github.com/wmentor/go-magnetar/internal/plugin"
@@ -37,6 +38,7 @@ type Globals struct {
 	ReadOnly  bool   `long:"read-only" help:"Run in read-only mode"`
 	Timing    bool   `name:"enable-timing" help:"Show the execution time of every answer"`
 	MCP       bool   `help:"launch in MCP server mode"`
+	Daemon    bool   `long:"daemon" short:"d" help:"Run as daemon"`
 }
 
 type cli struct {
@@ -62,6 +64,13 @@ func Execute() error {
 	cfg, err := config.Load(configPath)
 	if err != nil {
 		return err
+	}
+
+	if root.Daemon {
+		if !root.MCP && cfg.String("mcp.mode") != "http" {
+			return errors.New("Daemon mode is only available for MCP servers running over HTTP/HTTPS.")
+		}
+		fork.Fork()
 	}
 
 	if root.Profile != "" {
