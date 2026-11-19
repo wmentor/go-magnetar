@@ -15,6 +15,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
+	"github.com/wmentor/go-magnetar/internal/tools/web/webfetch"
 )
 
 const cveDefaultTimeout = 2 * time.Minute
@@ -23,13 +24,15 @@ type Tool struct {
 	cfg           *config.Config
 	printer       printer.Printer
 	clientFactory plugin.ClientFactory
+	state         *plugin.State
 }
 
-func NewTool(cfg *config.Config, p printer.Printer, clientFactory plugin.ClientFactory) *Tool {
+func NewTool(cfg *config.Config, p printer.Printer, clientFactory plugin.ClientFactory, state *plugin.State) *Tool {
 	return &Tool{
 		cfg:           cfg,
 		printer:       p,
 		clientFactory: clientFactory,
+		state:         state,
 	}
 }
 
@@ -83,6 +86,18 @@ func (t *Tool) FetchVulnerability(ctx context.Context, params *Params) (any, err
 		return &tools.Response{
 			Status: tools.StatusOK,
 			Result: formatVulnerabilityMarkdown(&vulnData),
+		}, nil
+	}
+
+	if strings.HasPrefix(params.ID, "GHSA-") {
+		tool := webfetch.NewTool(t.cfg, t.printer, t.clientFactory, t.state)
+		result, err := tool.WebFetchEngine(ctx, "https://github.com/advisories/"+params.ID, false)
+		if err != nil {
+			return nil, fmt.Errorf("cve: failed to fetch from github: %w", err)
+		}
+		return &tools.Response{
+			Status: tools.StatusOK,
+			Result: result,
 		}, nil
 	}
 
