@@ -211,6 +211,9 @@ The MCP plugin configures the Model Context Protocol server. It supports two tra
 | `server.key` | string | Path to TLS private key file (empty for HTTP, required for HTTPS) |
 | `server.tls` | boolean | Enable TLS encryption for HTTP (default: `false`) |
 | `server.endpoint` | string | HTTP endpoint path (default: `/mcp`) |
+| `path.allowed` | array of strings | Allowed paths for file access in MCP mode (default: `[$env:HOME]`). Required for `file_read` tool to work in MCP mode. |
+
+**Stdio Mode** (default, no additional configuration required):
 
 **Stdio Mode** (default, no additional configuration required):
 ```yaml
@@ -226,6 +229,8 @@ mcp:
     host: localhost
     port: 8080
     endpoint: "/mcp"
+  path:
+    allowed: [$env:HOME]  # allowed paths for file access
 ```
 
 **HTTPS Mode** (requires TLS certificate and key):
@@ -239,6 +244,8 @@ mcp:
     key: "/path/to/private.key"
     tls: true
     endpoint: "/mcp"
+  path:
+    allowed: [$env:HOME]  # allowed paths for file access
 ```
 
 See [mcp_mode.md](./mcp_mode.md) for detailed information about MCP mode and client connection examples.
@@ -384,6 +391,8 @@ mcp:
     host: localhost
     port: 8080
     endpoint: "/mcp"
+  path:
+    allowed: [$env:HOME]  # allowed paths for file access
 ```
 
 For more information about MCP mode, available tools, and client connection examples, see [mcp_mode.md](./mcp_mode.md).

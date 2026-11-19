@@ -53,17 +53,18 @@ type VectorStore interface {
 // Named State (not Context) to avoid confusion with context.Context.
 type State struct {
 	Config           Config
-	Root             *os.Root // sandboxed filesystem; nil in the indexer context.
-	Printer          printer.Printer
-	ReadOnly         bool          // if true, disable file write operations.
-	SkillStore       SkillStore    // skill storage interface.
-	ResponseStore    ResponseStore // response storage interface (circular buffer with capacity DefaultResponseStoreSize).
-	TimingEnabled    atomic.Bool   // if true, the chat REPL prints how long each answer took (/timing, --enable-timing).
-	ToolStore        *tools.Store  // universal tool store.
-	AgentStore       AgentStore    // agent storage interface.
-	RequesterFactory ClientFactory // HTTP client factory.
-	VectorStore      VectorStore   // RAG vector store if RAG enabled.
-	MaskService      MaskService   // Mask service.
+	Root             *os.Root        // sandboxed filesystem; nil in the indexer context.
+	Printer          printer.Printer // output printer.
+	ReadOnly         bool            // if true, disable file write operations.
+	ModeMCP          bool            // work in MCP mode.
+	SkillStore       SkillStore      // skill storage interface.
+	ResponseStore    ResponseStore   // response storage interface (circular buffer with capacity DefaultResponseStoreSize).
+	TimingEnabled    atomic.Bool     // if true, the chat REPL prints how long each answer took (/timing, --enable-timing).
+	ToolStore        *tools.Store    // universal tool store.
+	AgentStore       AgentStore      // agent storage interface.
+	RequesterFactory ClientFactory   // HTTP client factory.
+	VectorStore      VectorStore     // RAG vector store if RAG enabled.
+	MaskService      MaskService     // Mask service.
 }
 
 // ConcreteConfig returns the underlying *config.Config if s.Config is of that type.
