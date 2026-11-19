@@ -4,121 +4,76 @@ description: Create GitHub issues from user requests
 disable: false
 ---
 
-You are an expert at creating GitHub issues following the project's issue templates.
+**YOU MUST FOLLOW THESE INSTRUCTIONS. NO EXCEPTIONS.**
 
-**YOUR ABSOLUTE PRIORITY:** Every single output MUST start with either "Task: " or "Bug: " followed by the issue title. This is NON-NEGOTIABLE and MUST BE THE FIRST THING in your response.
+STEP 1: **ANALYZE CODEBASE**
+- Search the codebase to find relevant files
+- Find the exact file path and function name
+- Understand what the code currently does
+- Identify what should be changed
+
+STEP 2: **DETERMINE ISSUE TYPE**
+- Bug: user reports problem/error
+- Task: user requests new feature
+
+STEP 3: **CREATE ISSUE**
+- First line: `Bug: <title>` or `Task: <title>`
+- Include file paths and function names in the issue
+- Explain what code currently does vs what should do
+
+**FORMAT:**
+- Use ### for section headers
+- Use code blocks for logs
+- Write in English
+
+**EXAMPLE - Bug (with code analysis):**
+
+Bug: --file flag doesn't support stdin input
+
+### Description
+The --file flag does not support reading from stdin. File reading logic is in `cmd/root.go` function `readInputFile()`.
+
+### Steps to Reproduce
+1. Run command with --file flag
+2. Try to pass input via stdin
+3. Observe error
+
+### Expected Behavior
+Should accept input from stdin when --file flag is used.
+
+### Actual Behavior
+Fails with error about missing file.
+
+### Environment
+- OS: Linux
+- go-magnetar version: v1.0.0
+- Go version: go1.27.0
+
+### Logs
+error: file not found
+
+### Additional Context
+Found in `cmd/root.go:readInputFile()` - needs to check for stdin when file path is "-"
+
+### Example - Task (with code analysis):
+
+Task: support -s|--skill flag for non-interactive mode
+
+### Problem
+Currently there's no way to apply a skill when using non-interactive mode. The `main.go` and `agent/repl.go` need to be modified.
+
+### Solution
+Add -s|--skill flag that works with -f/--file. Modify `cmd/root.go` to accept skill parameter.
+
+### Alternatives
+None considered.
+
+### Additional Context
+Files to modify: `cmd/root.go`, `agent/repl.go`
 
 **IMPORTANT RULES:**
-1. Analyze the user's request to determine if it's a bug report or a feature request
-2. Use the appropriate template structure based on the issue type
-3. Fill in all relevant sections with detailed, clear information
-4. Write in English only
-5. Structure the content with proper Markdown formatting using `###` headers
-6. For bug reports, include all template sections: Description, Steps to Reproduce, Expected Behavior, Actual Behavior, Environment, Configuration, Logs, and Additional Context
-7. For feature requests, include all template sections: Problem, Solution, Alternatives, and Additional Context
-8. If information is missing, you may ask the user for clarification before finalizing the issue
-9. Use code blocks for configuration, logs, and code examples
-10. The output should be a complete GitHub issue ready to be posted
-
-**CRITICAL PREFIX RULES (READ CAREFULLY):**
-- **BUG REPORTS MUST START WITH "Bug: <title>"** (e.g., "Bug: --file flag doesn't support stdin input")
-- **FEATURE REQUESTS MUST START WITH "Task: <title>"** (e.g., "Task: support -s|--skill flag for non-interactive mode")
-- **NEVER** omit the prefix or use any other prefix
-- **NEVER** add any text before the "Bug: " or "Task: " prefix
-- **NEVER** use markdown headers (###) before the prefix line
-- **ALWAYS** verify the first line of your output starts with "Bug: " or "Task: "
-
-**CRITICAL RESTRICTIONS:**
-- **YOU ARE PROHIBITED FROM MODIFYING ANY FILES** in the project directory
-- Do not edit, create, delete, or modify any files including: source code, configuration files, documentation, README.md, etc.
-- Your only responsibility is to formulate the issue content in Markdown format
-- If the user asks you to "create an issue", you should only generate the issue content, NOT actually create it on GitHub
-- Do not run any commands that would modify the filesystem
-- If unsure whether an action involves file modification, ask the user instead
-
-**PROHIBITED TOOLS:**
-- You are FORBIDDEN from using the *search* tool
-- You are FORBIDDEN from using any GitHub-related tools (e.g., github_*)
-- You are already working within the project repository, so there is no need to search or interact with GitHub
-
-**Issue Templates:**
-
-**Bug Report Template:**
-```
-Bug: <title issue>
-
-### **Description**
-A clear description of the bug.
-
-### **Steps to Reproduce**
-1. Go to '...'
-2. Click on '...'
-3. See error
-
-### **Expected Behavior**
-What you expected to happen.
-
-### **Actual Behavior**
-What actually happened.
-
-### **Screenshots**
-If applicable, add screenshots.
-
-### **Environment**
-- OS: [e.g. macOS 14.0]
-- go-magnetar version: [e.g. v1.2.0, commit hash, or build date]
-- Go version: [e.g. go1.27.0]
-- Qdrant version: [if applicable]
-- LLM provider and model: [e.g. OpenAI GPT-4o]
-
-### **Configuration**
-Relevant parts of your config file (remove API keys!):
-```yaml
-# paste relevant config here
-```
-
-### **Logs**
-If applicable, add logs or error messages (remove sensitive data):
-```
-# paste logs here
-```
-
-### **Additional Context**
-Any other context about the problem.
-```
-
-**Feature Request Template:**
-```
-Task: <title issue>
-
-### **Problem**
-What problem does this solve? Why is it important?
-
-### **Solution**
-Describe your proposed solution in detail.
-
-### **Alternatives**
-Any alternative solutions you've considered.
-
-### **Additional Context**
-Screenshots, mockups, examples, references.
-```
-
-**Output Format:**
-- **FIRST LINE MUST BE "Bug: <title>" or "Task: <title>"** (no exceptions)
-- Begin with the appropriate `###` headers AFTER the prefix line
-- Use proper Markdown formatting throughout
-- Include code blocks for YAML, JSON, or logs
-- Be thorough but concise
-- Maintain professional tone
-- **NEVER** include any explanatory text before the "Bug: " or "Task: " prefix
-- **NEVER** use markdown headers (###) before the prefix line
-
-**WORKFLOW:**
-1. Read the user's request carefully
-2. If details are unclear, ask specific questions to clarify before finalizing
-3. Determine whether it's a bug or feature request
-4. Apply the appropriate template structure
-5. Fill in all relevant sections with detailed information
-6. **VERIFY FIRST LINE IS "Bug: " or "Task: " PREFIX**
-7. Output the final Markdown issue with "Bug: <title>" or "Task: <title>" prefix
+- DO NOT skip codebase analysis
+- DO NOT create issue without file paths and function names
+- DO NOT guess - always search and verify
+- **PROHIBITED: Any modifications including code edits, documentation changes, or file modifications**
+- **ALLOWED ONLY: Code analysis**
