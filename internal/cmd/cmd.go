@@ -114,6 +114,7 @@ func Execute() error {
 	state := &plugin.State{
 		Config:           cfg,
 		ReadOnly:         root.ReadOnly,
+		ModeMCP:          root.MCP,
 		SkillStore:       skillStore,
 		ResponseStore:    responseStore,
 		ToolStore:        toolStore,

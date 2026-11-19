@@ -33,6 +33,8 @@ mcp:
     key: ""  # path to TLS private key (empty for HTTP, required for HTTPS)
     tls: false  # enable TLS encryption (default: false)
     endpoint: "/mcp"  # HTTP endpoint path (default: /mcp)
+  path:
+    allowed: [$env:HOME]  # allowed paths for MCP access
 ```
 
 ### Stdio Mode (Default)
@@ -57,6 +59,8 @@ mcp:
     host: localhost
     port: 8080
     endpoint: "/mcp"
+  path:
+    allowed: [$env:HOME]  # allowed paths for MCP access
 ```
 
 For HTTPS, provide certificate and key paths:
@@ -71,6 +75,8 @@ mcp:
     key: "/path/to/private.key"
     tls: true
     endpoint: "/mcp"
+  path:
+    allowed: [$env:HOME]  # allowed paths for MCP access
 ```
 
 ## Important: Single Instance Constraint with Local RAG Storage
@@ -158,6 +164,8 @@ mcp:
   mode: http
   server:
     port: 9000
+  path:
+    allowed: [$env:HOME]  # allowed paths for MCP access
 ```
 
 ### HTTPS Mode

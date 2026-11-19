@@ -182,6 +182,25 @@ func (t *Tool) Exec(ctx context.Context, params *FileReadParams) (any, error) {
 		return nil, errors.New("invalid params")
 	}
 
+	if t.state.ModeMCP {
+		if !filepath.IsAbs(params.Filename) {
+			return nil, errors.New("supported only absolute paths")
+		}
+		allowedPaths := t.state.Config.Strings("mcp.path.allowed")
+		if len(allowedPaths) != 0 {
+			found := false
+			for _, prefix := range allowedPaths {
+				if strings.HasPrefix(params.Filename, prefix) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return nil, errors.New("read file error")
+			}
+		}
+	}
+
 	readStat.Add(1)
 
 	args := []any{"filename", params.Filename}
@@ -202,7 +221,7 @@ func (t *Tool) Exec(ctx context.Context, params *FileReadParams) (any, error) {
 	var f *os.File
 	var err error
 
-	if t.root == nil {
+	if t.root == nil || t.state.ModeMCP {
 		f, err = os.Open(params.Filename)
 	} else {
 		f, err = t.root.Open(params.Filename)

@@ -175,7 +175,12 @@ func (c *Config) Float64(key string) float64 {
 
 // Strings returns the string slice value for the given key.
 func (c *Config) Strings(key string) []string {
-	return c.cfg.Strings(c.calcKey(key))
+	values := c.cfg.Strings(c.calcKey(key))
+	result := make([]string, len(values))
+	for i, v := range values {
+		result[i] = ResolveEnvVars(v, c.configDir)
+	}
+	return result
 }
 
 // String returns the string value for the given key.

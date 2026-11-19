@@ -7,3 +7,5 @@ mcp:
     key: ""  # path to TLS private key (empty for HTTP, required for HTTPS)
     tls: false  # enable TLS encryption (default: false)
     endpoint: "/mcp"  # HTTP endpoint path (default: /mcp)
+  path:
+    allowed: [$env:HOME]  # allowed paths for MCP access
