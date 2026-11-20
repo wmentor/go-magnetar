@@ -24,6 +24,7 @@ include:
   - plugins/guard.yml
   - plugins/ssh.yml
   - plugins/web.yml
+  - plugins/smtp.yml
 
 profiles:
   default:
@@ -112,6 +113,17 @@ ssh:
   use_ssh_agent: false
   remote_dir: ""
   timeout: 120
+
+# SMTP email sending (optional)
+smtp:
+  enable: false
+  host: smtp.gmail.com
+  port: 587
+  username: your-email@gmail.com
+  password: your-app-password
+  encryption: starttls  # tls, starttls, or none
+  from_name: "Your Name"
+  from_email: your-email@gmail.com
 ```
 
 ### Minimal Configuration
@@ -225,6 +237,16 @@ confluence:
   enable: true
   base_url: https://your-domain.atlassian.net
   api_key: $env:CONFLUENCE_TOKEN
+
+smtp:
+  enable: true
+  host: smtp.gmail.com
+  port: 587
+  username: $env:SMTP_USERNAME
+  password: $env:SMTP_PASSWORD
+  encryption: starttls
+  from_name: "Your Name"
+  from_email: $env:SMTP_USERNAME
 
 # Web proxy settings (optional, applies to all HTTP clients)
 web:

@@ -1,0 +1,9 @@
+smtp:
+  enable: false  # enable/disable SMTP sending (default: false)
+  host: ""       # SMTP server host (e.g., smtp.gmail.com)
+  port: 587      # SMTP server port (25, 465, 587)
+  username: ""   # SMTP authentication username
+  password: ""   # SMTP authentication password
+  encryption: "starttls"  # encryption mode: "tls" (implicit TLS, port 465), "starttls" (port 587), "none" (port 25)
+  from_name: ""  # sender display name
+  from_email: "" # sender email address

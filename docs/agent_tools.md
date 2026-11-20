@@ -36,6 +36,7 @@ Note that some tools have different names in MCP mode vs. regular mode. For exam
 | `confluence_page_fetch` | `(page_id: string) -> string` | Fetches a Confluence page by ID and returns its content in Markdown format |
 | `confluence_page_edit` | `(page_id: string, markdown: string) -> string` | Edits a Confluence page by converting Markdown to HTML and updating via REST API |
 | `confluence_search` | `(query: string, limit: int) -> string` | Search Confluence pages using CQL (Confluence Query Language) and return results in Markdown format. See [tool_confluence_search.md](./tool_confluence_search.md) for complete documentation |
+| `smtp` | `(to: string, subject: string, body: string, attachments: []string) -> string` | Sends an email via SMTP with Markdown body (auto-converted to HTML) and optional file attachments. First recipient goes to "To" field, remaining recipients and sender are added to "Cc" field. See [plugin_smtp.md](./plugin_smtp.md) for complete documentation |
 | `jira_issue_create` | `(project_key: string, summary: string, description: string, issue_type: string) -> object` | Creates a new JIRA issue with Markdown-to-Jira conversion (blocked in read-only mode). See [tool_jira.md](./tool_jira.md) for complete documentation |
 | `agent_<name>` | `(message: string) -> string` | Dynamically generated tools for each available subagent. Each tool invokes a specific agent (e.g., `agent_code_reviewer`, `agent_security_analyzer`). See [tool_agent.md](./tool_agent.md) for complete documentation |
 

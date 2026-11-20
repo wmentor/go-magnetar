@@ -198,6 +198,23 @@ These live in `plugins/web.yml`. Add `plugins/web.yml` to the `include` list of 
 | `remote_dir` | string | Remote working directory (optional, default: `$HOME`) |
 | `timeout` | integer | SSH command timeout in seconds (default: `120`) |
 
+#### SMTP (`smtp`)
+
+| Key | Type | Description |
+|---|---|---|
+| `enable` | boolean | Enable SMTP email sending (default: `false`) |
+| `host` | string | SMTP server hostname (e.g., `smtp.gmail.com`) |
+| `port` | integer | SMTP server port (25, 465, or 587) |
+| `username` | string | SMTP authentication username |
+| `password` | string | SMTP authentication password |
+| `encryption` | string | Encryption mode: `tls` (port 465), `starttls` (port 587), or `none` (port 25) |
+| `from_name` | string | Sender display name |
+| `from_email` | string | Sender email address |
+
+The SMTP plugin enables sending emails with Markdown content (automatically converted to HTML) and file attachments. When multiple recipients are specified, the first goes to the "To" field, while remaining recipients and the sender are added to the "Cc" field.
+
+See [plugin_smtp.md](./plugin_smtp.md) for detailed information about SMTP configuration and usage examples.
+
 #### MCP (`mcp`)
 
 The MCP plugin configures the Model Context Protocol server. It supports two transport modes: `stdio` (default) and `http`.
@@ -413,3 +430,24 @@ jira:
 ```
 
 For more information about JIRA tools and available operations, see [tool_jira.md](./tool_jira.md).
+
+### SMTP Configuration Example
+
+```yaml
+version: "1.0"
+profile: default
+include:
+  - plugins/smtp.yml
+
+smtp:
+  enable: true
+  host: smtp.gmail.com
+  port: 587
+  username: $env:SMTP_USERNAME
+  password: $env:SMTP_PASSWORD
+  encryption: starttls
+  from_name: "Your Name"
+  from_email: your-email@gmail.com
+```
+
+For more information about SMTP tools and available operations, see [plugin_smtp.md](./plugin_smtp.md).

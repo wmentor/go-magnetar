@@ -23,6 +23,7 @@ const (
 	IconFile    = Icon("📄")
 	IconGuard   = Icon("🔒")
 	IconIam     = Icon("👨")
+	IconMail    = Icon("✉️")
 	IconModule  = Icon("🛰️")
 	IconRead    = Icon("📚")
 	IconRobot   = Icon("🤖")
