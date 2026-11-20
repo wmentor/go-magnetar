@@ -7,6 +7,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/alecthomas/kong"
 	"github.com/pkg/errors"
@@ -27,19 +28,21 @@ import (
 	"github.com/wmentor/go-magnetar/internal/skill"
 	"github.com/wmentor/go-magnetar/internal/store"
 	"github.com/wmentor/go-magnetar/internal/template"
+	"github.com/wmentor/go-magnetar/internal/terminal"
 	"github.com/wmentor/go-magnetar/internal/tools"
 )
 
 type Globals struct {
-	ConfigDir string `help:"config directory" env:"MAGNETAR_CONFIG_DIR" type:"path" default:"~/.go-magnetar"`
-	File      string `short:"f" type:"path" help:"Input file"`
-	Profile   string `short:"p" help:"Profile name to use"`
-	Skill     string `help:"Skill name to apply at startup"`
-	Session   string `type:"path" help:"Load conversation session from file"`
-	ReadOnly  bool   `long:"read-only" help:"Run in read-only mode"`
-	Timing    bool   `name:"enable-timing" help:"Show the execution time of every answer"`
-	MCP       bool   `help:"launch in MCP server mode"`
-	Daemon    bool   `long:"daemon" short:"d" help:"Run as daemon"`
+	ConfigDir string   `help:"config directory" env:"MAGNETAR_CONFIG_DIR" type:"path" default:"~/.go-magnetar"`
+	File      string   `short:"f" type:"path" help:"Input file"`
+	Profile   string   `short:"p" help:"Profile name to use"`
+	Skill     string   `help:"Skill name to apply at startup"`
+	Session   string   `type:"path" help:"Load conversation session from file"`
+	ReadOnly  bool     `long:"read-only" help:"Run in read-only mode"`
+	Timing    bool     `name:"enable-timing" help:"Show the execution time of every answer"`
+	MCP       bool     `help:"launch in MCP server mode"`
+	Daemon    bool     `long:"daemon" short:"d" help:"Run as daemon"`
+	Prompt    []string `arg:"" optional:"" help:"Prompt to execute directly"`
 }
 
 type cli struct {
@@ -54,6 +57,22 @@ func Execute() error {
 		kong.UsageOnError(),
 		kong.Bind(&root.Globals),
 	)
+
+	var prompt strings.Builder
+
+	for _, item := range root.Prompt {
+		if v := strings.TrimSpace(item); v != "" {
+			if prompt.Len() > 0 {
+				prompt.WriteString("\n")
+			}
+			prompt.WriteString(v)
+		}
+		if prompt.Len() > 0 {
+			prompt.WriteString("\n\n")
+		}
+	}
+
+	isPipe := terminal.IsStdinPipe()
 
 	configPath := filepath.Join(root.ConfigDir, "config.yml")
 
@@ -78,13 +97,13 @@ func Execute() error {
 		_ = cfg.SetProfile(root.Profile)
 	}
 
-	if root.MCP {
+	if root.MCP || isPipe || prompt.Len() > 0 {
 		printer.SetDefault(printer.New(io.Discard, false))
 	} else {
-		printer.SetDefault(printer.New(os.Stdout, false))
+		printer.SetDefault(printer.New(os.Stderr, false))
 	}
 
-	if root.File == "" && !root.MCP {
+	if root.File == "" && !root.MCP && prompt.Len() == 0 && !isPipe {
 		version.PrintVersion(cfg.ProfileParamString("llm.model"))
 		printEnabledModules(printer.GetDefault(), cfg)
 	}
@@ -116,7 +135,7 @@ func Execute() error {
 	// filesystem access (generic file tools, web preprocessor).
 	plugin.SetRoot(rootFS)
 
-	printer.Verbose(cfg.Bool("verbose") && root.File == "" && !root.MCP)
+	printer.Verbose(cfg.Bool("verbose") && root.File == "" && !root.MCP && prompt.Len() == 0 && !isPipe)
 
 	maskService := mask.NewService(cfg)
 	toolStore := tools.NewStore(maskService)
@@ -183,13 +202,16 @@ func Execute() error {
 		}
 	}
 
-	if root.File != "" {
-		data, err := readFileInput(root.File, os.Stdin)
-		if err != nil {
-			return errors.Wrapf(err, "read file %s error", root.File)
+	if root.File != "" || isPipe || prompt.Len() > 0 {
+		if root.File != "" || isPipe {
+			data, err := readFileInput(root.File, os.Stdin)
+			if err != nil {
+				return errors.Wrapf(err, "read file %s error", root.File)
+			}
+			prompt.Write(data)
 		}
 
-		txt := string(data)
+		txt := prompt.String()
 
 		if skill != nil {
 			txt = skillplugin.MakeApplySkillMessage(skill, txt)
@@ -217,7 +239,7 @@ func Execute() error {
 }
 
 func readFileInput(filename string, stdin io.Reader) ([]byte, error) {
-	if filename == "-" {
+	if filename == "-" || filename == "" {
 		return io.ReadAll(stdin)
 	}
 

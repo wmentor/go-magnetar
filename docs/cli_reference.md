@@ -13,8 +13,9 @@ go-magnetar provides a unified CLI interface with the following flags:
 | `--read-only` | Run in read-only mode. Disables file write operations and shell modifications. |
 | `--enable-timing` | Start with the execution time display on. `/timing on\|off` can still change it during the session. |
 | `--config-dir <path>` | Set the configuration directory. Default: `~/.go-magnetar`. Can also be set via `MAGNETAR_CONFIG_DIR` environment variable. |
+| `<prompt>` | Direct prompt argument(s). When provided, runs in non-interactive mode and executes the prompt(s) as input. Multiple arguments are joined with newlines. |
 | `-d, --daemon` | Run as a background daemon. Requires `--mcp` with `mcp.mode: http` configuration. Starts go-magnetar in detached mode, suitable for long-running server processes. |
-| `--mcp` | Launch in MCP (Model Context Protocol) server mode. Starts a console-based MCP server that exposes the following tools to compatible clients: `web_fetch`, `file_read`, `rag_search`, `cve_info`. |
+| `--mcp` | Launch in MCP (Model Context Protocol) server mode. For detailed configuration options (stdio/HTTP modes) and usage examples, see [docs/mcp_mode.md](./mcp_mode.md). |
 | `-h, --help` | Show help and exit. |
 | `-v, --version` | Show version information and exit. |
 
@@ -52,8 +53,11 @@ go-magnetar --enable-timing
 # Launch in MCP server mode
 go-magnetar --mcp
 
-# Run as a background daemon (requires MCP with mcp.mode: http)
+# Run as a background daemon (requires mcp.mode: http in config)
 go-magnetar --daemon --mcp
+
+# Direct prompt in daemon mode (requires mcp.mode: http in config)
+go-magnetar --daemon --mcp "What is go-magnetar?"
 
 # Combined flags
 go-magnetar -p production --read-only
@@ -64,7 +68,33 @@ go-magnetar --config-dir /custom/path
 # Set config directory via environment variable
 export MAGNETAR_CONFIG_DIR=/custom/path
 go-magnetar
+
+# Direct prompt arguments
+go-magnetar "What is go-magnetar?"
+
+# Multiple prompt arguments
+go-magnetar "Explain the following concept:" "How does RAG work?"
+
+# Combine with other flags
+go-magnetar -p production "What is the default model?"
 ```
+
+## Direct Prompt Arguments
+
+You can pass prompts directly as command-line arguments without using files or stdin. This is useful for quick one-liners or scripting:
+
+```bash
+# Single prompt
+go-magnetar "What is go-magnetar?"
+
+# Multiple prompts (joined with newlines)
+go-magnetar "Explain the following concept:" "How does RAG work?"
+
+# Combine with flags
+go-magnetar -p production "What is the default model?"
+```
+
+Multiple arguments are joined with newlines and processed as a single input. This mode is non-interactive and behaves similarly to `-f` mode.
 
 ## Non-Interactive Mode
 
@@ -72,12 +102,17 @@ When using `-f` or `--file`, the program reads the input file (or stdin if `-`),
 
 ## Reading from stdin
 
-To read input from stdin, use `-` as the file path:
+Pipe commands to go-magnetar for processing:
 
 ```bash
-echo "What is go-magnetar?" | go-magnetar -f -
-cat questions.txt | go-magnetar -f -
+echo "What is go-magnetar?" | go-magnetar
+cat questions.txt | go-magnetar
+
+# Combine stdin with a prompt (stdin comes before prompt)
+ls -la | go-magnetar "Analyze this directory listing:"
 ```
+
+**Note:** When using pipe mode, the content from stdin is combined with any direct prompt arguments. The stdin content appears first, followed by the prompt(s).
 
 ## Configuration Profiles
 
@@ -154,59 +189,4 @@ go-magnetar --config-dir /custom/path --skill dev-docs
 
 ## MCP Server Mode
 
-When launching with the `--mcp` flag, go-magnetar starts a console-based Model Context Protocol (MCP) server that exposes the following tools to compatible MCP clients:
-
-- `web_fetch` — Fetch content from URLs (Confluence, JIRA, GitHub, GitLab, etc.)
-- `file_read` — Read files from the filesystem with support for gzip and various formats
-- `rag_search` — Search the indexed RAG knowledge base
-- `cve_info` — Lookup vulnerability information from OSV database (CVE, GO, GHSA, OSV, and more)
-
-### Starting MCP Server
-
-```bash
-# Launch MCP server
-go-magnetar --mcp
-```
-
-The server will:
-- Start on stdin/stdout transport
-- Advertise the following tools: `web_fetch`, `file_read`, `rag_search`, `cve_info`
-- Wait for MCP client connections
-
-### MCP Client Integration
-
-Any MCP-compatible client can connect to the server and use the available tools. The server implements the [MCP specification](https://modelcontextprotocol.io/) and exposes the following tools registered in go-magnetar:
-
-- `web_fetch` — Fetch content from URLs (Confluence, JIRA, GitHub, GitLab, etc.)
-- `file_read` — Read files from the filesystem with support for gzip and various formats
-- `rag_search` — Search the indexed RAG knowledge base
-- `cve_info` — Lookup vulnerability information from OSV database (CVE, GO, GHSA, OSV, and more)
-
-For example, an MCP client can request the server to:
-- Read files with `file_read`
-- Search the web with `web_fetch`
-- Query the knowledge base with `rag_search`
-- Lookup vulnerabilities with `cve_info`
-
-See [docs/agent_tools.md](./agent_tools.md) for a complete list of available tools.
-
-**Note:** Not all tools registered in go-magnetar are exposed via MCP. The MCP server only exports tools specifically registered for MCP via `RegisterOurToolMCP`. Other tools (like `web_search`, `file_write`, `file_list`, `edit`) are available only through the chat REPL interface.
-
-### Example: Using with Claude Desktop
-
-To use go-magnetar as an MCP server with Claude Desktop:
-
-1. Start the MCP server:
-   ```bash
-   go-magnetar --mcp
-   ```
-
-2. Configure Claude Desktop to connect to the server (follow Claude Desktop's MCP configuration instructions)
-
-The server will handle MCP protocol messages on stdin/stdout and respond to tool invocation requests from the client.
-
-### Notes
-
-- When running in MCP mode, all normal chat REPL functionality is disabled
-- Output is directed to stderr to avoid interfering with MCP protocol communication on stdout
-- The server runs until manually terminated (Ctrl+C)
+When launching with the `--mcp` flag, go-magnetar starts a Model Context Protocol (MCP) server. For detailed information about MCP modes (stdio/HTTP), configuration, and client integration, see [docs/mcp_mode.md](./mcp_mode.md).
