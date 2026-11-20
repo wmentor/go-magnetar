@@ -15,6 +15,7 @@ require (
 	github.com/charmbracelet/x/exp/slice v0.0.0-20260920004010-53e2afe73ae5
 	github.com/docker/go-units v0.5.0
 	github.com/fumiama/go-docx v0.0.0-20250506085032-0c30fd09304b
+	github.com/go-gomail/gomail v0.0.0-20160411212932-81ebce5c23df
 	github.com/go-ozzo/ozzo-validation/v4 v4.5.0
 	github.com/google/uuid v1.6.0
 	github.com/invopop/jsonschema v0.14.0
@@ -106,4 +107,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260918162117-cecb64721679 // indirect
 	google.golang.org/grpc v1.85.0 // indirect
 	google.golang.org/protobuf v1.36.12 // indirect
+	gopkg.in/alexcesaro/quotedprintable.v3 v3.0.0-20150716171945-2caba252f4dc // indirect
+	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df // indirect
 )
