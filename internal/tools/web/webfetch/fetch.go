@@ -104,6 +104,14 @@ func (t *Tool) WebFetchEngine(ctx context.Context, urlStr string, isFetch bool) 
 		urlStr = "https://" + urlStr
 	}
 
+	webRet, webErr := t.state.WebProcStore.Process(ctx, urlStr)
+	if webErr == nil {
+		return webRet, nil
+	}
+	if !errors.Is(webErr, plugin.ErrNoWebProcessor) {
+		return "", errors.Wrap(webErr, "web fetch enigine")
+	}
+
 	if t.cfg.String("confluence.base_url") != "" && t.cfg.Bool("confluence.enable") {
 		if strings.HasPrefix(urlStr, t.cfg.String("confluence.base_url")+"/spaces/") ||
 			strings.HasPrefix(urlStr, t.cfg.String("confluence.base_url")+"/x/") ||

@@ -16,6 +16,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/agent/chat"
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/fork"
+	"github.com/wmentor/go-magnetar/internal/http/processor"
 	"github.com/wmentor/go-magnetar/internal/http/requester"
 	"github.com/wmentor/go-magnetar/internal/mask"
 	"github.com/wmentor/go-magnetar/internal/plugin"
@@ -132,6 +133,7 @@ func Execute() error {
 		AgentStore:       agentStore,
 		MaskService:      maskService,
 		Root:             rootFS,
+		WebProcStore:     processor.NewStore(),
 	}
 	state.TimingEnabled.Store(root.Timing)
 

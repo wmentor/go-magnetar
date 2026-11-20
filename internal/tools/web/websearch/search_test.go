@@ -16,6 +16,8 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/wmentor/go-magnetar/internal/config"
+	"github.com/wmentor/go-magnetar/internal/http/processor"
+	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/plugin/testdata"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
@@ -24,6 +26,13 @@ import (
 
 func newTestPrinter() printer.Printer {
 	return printer.New(io.Discard, false)
+}
+
+// newStateWithWebProcStore creates a new plugin.State with WebProcStore initialized.
+func newStateWithWebProcStore() *plugin.State {
+	return &plugin.State{
+		WebProcStore: processor.NewStore(),
+	}
 }
 
 // newTestConfig creates a test configuration with default values.
@@ -182,7 +191,7 @@ func TestWebSearch_Tool(t *testing.T) {
 			}
 
 			// Create the websearch tool
-			tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+			tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 			// Set up rate limiter if needed
 			if tt.name == "rate limiter error" {
@@ -221,7 +230,7 @@ func TestWebSearch_Name(t *testing.T) {
 	cfg := newTestConfig(t)
 	printerInstance := newTestPrinter()
 	factory := testdata.NewClientFactory(t)
-	tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+	tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 	require.Equal(t, "web_search", tool.Name())
 }
@@ -232,7 +241,7 @@ func TestWebSearch_Description(t *testing.T) {
 	cfg := newTestConfig(t)
 	printerInstance := newTestPrinter()
 	factory := testdata.NewClientFactory(t)
-	tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+	tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 	require.Contains(t, tool.Description(), "web search")
 }
@@ -303,7 +312,7 @@ func TestWebSearch_MultipleQueries(t *testing.T) {
 			`), nil).Once()
 	}
 
-	tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+	tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 	queries := []string{"query 1", "query 2", "query 3"}
 
@@ -354,7 +363,7 @@ func TestWebSearch_EscapedQuery(t *testing.T) {
 			</html>
 		`), nil).Once()
 
-	tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+	tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 	ctx := context.Background()
 	params := &websearch.Params{Query: "test query with spaces"}
@@ -431,7 +440,7 @@ func TestWebSearch_Concurrent(t *testing.T) {
 				</html>
 			`), nil).Once()
 
-		tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+		tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 		go func(q string) {
 			params := &websearch.Params{Query: q}
@@ -509,7 +518,7 @@ func TestWebSearch_WithLimiter(t *testing.T) {
 			</html>
 		`), nil).Once()
 
-	tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+	tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 	tool.SetLimiter(limiter)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -546,7 +555,7 @@ func TestWebSearch_EmptyResponse(t *testing.T) {
 			</html>
 		`), nil).Once()
 
-	tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+	tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 	ctx := context.Background()
 	params := &websearch.Params{Query: "empty response"}
@@ -571,7 +580,7 @@ func TestWebSearch_InvalidHTML(t *testing.T) {
 	client.EXPECT().Do(mock.AnythingOfType("*http.Request")).
 		Return(newTestResponse(http.StatusOK, "text/html", "invalid html"), nil).Once()
 
-	tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+	tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 	ctx := context.Background()
 	params := &websearch.Params{Query: "invalid html"}
@@ -610,7 +619,7 @@ func TestWebSearch_CustomUserAgent(t *testing.T) {
 			</html>
 		`), nil).Once()
 
-	tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+	tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 	ctx := context.Background()
 	params := &websearch.Params{Query: "test user agent"}
@@ -648,7 +657,7 @@ func TestWebSearch_SearchURL(t *testing.T) {
 			</html>
 		`), nil).Once()
 
-	tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+	tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 	ctx := context.Background()
 	params := &websearch.Params{Query: "test url"}
@@ -682,7 +691,7 @@ func TestWebSearch_ResponseFormat(t *testing.T) {
 			</html>
 		`), nil).Once()
 
-	tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+	tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 	ctx := context.Background()
 	params := &websearch.Params{Query: "test format"}
@@ -756,7 +765,7 @@ func TestWebSearch_ErrorHandling(t *testing.T) {
 			client.EXPECT().Do(mock.AnythingOfType("*http.Request")).
 				Return(newTestResponse(tt.responseStatus, "text/html", tt.responseBody), tt.responseErr).Once()
 
-			tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+			tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 			ctx := context.Background()
 			params := &websearch.Params{Query: "error test"}
@@ -805,7 +814,7 @@ func TestWebSearch_DuckDuckGoURLFormat(t *testing.T) {
 			</html>
 		`), nil).Once()
 
-	tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+	tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 	ctx := context.Background()
 	params := &websearch.Params{Query: "duckduckgo url test"}
@@ -838,7 +847,7 @@ func TestWebSearch_MarkdownProcessing(t *testing.T) {
 			</html>
 		`), nil).Once()
 
-	tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+	tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 	ctx := context.Background()
 	params := &websearch.Params{Query: "markdown test"}
@@ -881,7 +890,7 @@ func TestWebSearch_StreamedResponse(t *testing.T) {
 			</html>
 		`), nil).Once()
 
-	tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+	tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 	ctx := context.Background()
 	params := &websearch.Params{Query: "streamed response"}
@@ -921,7 +930,7 @@ func TestWebSearch_ResultExtraction(t *testing.T) {
 			</html>
 		`), nil).Once()
 
-	tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+	tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 	ctx := context.Background()
 	params := &websearch.Params{Query: "result extraction"}
@@ -945,7 +954,7 @@ func TestWebSearch_ToolDescription(t *testing.T) {
 	cfg := newTestConfig(t)
 	printerInstance := newTestPrinter()
 	factory := testdata.NewClientFactory(t)
-	tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+	tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 	description := tool.Description()
 	require.Contains(t, description, "web search")
@@ -1010,7 +1019,7 @@ func TestWebSearch_URLEncodingSpecialChars(t *testing.T) {
 					</html>
 				`), nil).Once()
 
-			tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+			tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 			ctx := context.Background()
 			params := &websearch.Params{Query: tt.query}
@@ -1098,7 +1107,7 @@ func TestWebSearch_StatusCodeChecking(t *testing.T) {
 			client.EXPECT().Do(mock.AnythingOfType("*http.Request")).
 				Return(newTestResponse(tt.responseStatus, "text/html", "error"), nil).Once()
 
-			tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+			tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 			ctx := context.Background()
 			params := &websearch.Params{Query: "status code test"}
@@ -1166,7 +1175,7 @@ func TestWebSearch_ResponseHeaderChecking(t *testing.T) {
 					</html>
 				`), nil).Once()
 
-			tool := websearch.NewTool(cfg, printerInstance, factory, nil)
+			tool := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore())
 
 			ctx := context.Background()
 			params := &websearch.Params{Query: "header test"}
@@ -1197,7 +1206,7 @@ func TestWebSearch_ContextTimeout(t *testing.T) {
 	defer cancel()
 
 	params := &websearch.Params{Query: "timeout test"}
-	_, err := websearch.NewTool(cfg, printerInstance, factory, nil).WebSearch(ctx, params)
+	_, err := websearch.NewTool(cfg, printerInstance, factory, newStateWithWebProcStore()).WebSearch(ctx, params)
 
 	// The error should be related to context cancellation or network error
 	require.Error(t, err)
