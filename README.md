@@ -302,16 +302,32 @@ See [docs/security.md](./docs/security.md) for details.
 |---|---|
 | `-p <profile>` | Use a specific configuration profile |
 | `-f <file>` | Non-interactive mode: read input from file, print answer, exit |
+| `<prompt>` | Direct prompt argument(s) - execute prompt(s) directly without REPL |
 | `--session <file>` | Load a previously saved conversation session |
 | `--read-only` | Run in read-only mode (disable file writes and shell modifications) |
 | `--enable-timing` | Show the execution time after every answer, whatever `/timing` says |
 | `--config-dir <path>` | Set the configuration directory (default: `~/.go-magnetar`). Can also be set via `MAGNETAR_CONFIG_DIR` environment variable. |
 | `-d, --daemon` | Run as a background daemon. Requires `--mcp` with `mcp.mode: http` configuration. Starts go-magnetar in detached mode, suitable for long-running server processes. |
-| `--mcp` | Launch in MCP (Model Context Protocol) server mode |
+| `--mcp` | Launch in MCP (Model Context Protocol) server mode. For detailed information about MCP modes (stdio/HTTP), configuration, and client integration, see [docs/mcp_mode.md](./docs/mcp_mode.md). |
+| `-h, --help` | Show help and exit |
+| `-v, --version` | Show version information and exit |
 
 ```bash
+# Direct prompt (non-interactive)
+go-magnetar "What is go-magnetar?"
+
+# Multiple prompt arguments
+go-magnetar "Explain:" "How does RAG work?"
+
 # Non-interactive (scripting / batch)
 go-magnetar -f questions.txt
+
+# Read from stdin (pipe mode)
+echo "What is go-magnetar?" | go-magnetar
+cat questions.txt | go-magnetar
+
+# Combine stdin with a prompt (stdin comes before prompt)
+ls -la | go-magnetar "Analyze this directory listing:"
 
 # Load a saved session
 go-magnetar --session session.json
@@ -333,11 +349,14 @@ go-magnetar
 
 # Launch in MCP server mode
 go-magnetar --mcp
+
+# Run as background daemon (requires mcp.mode: http)
+go-magnetar --daemon --mcp
 ```
 
 > **Note:** In `-f` mode, chat commands (`/index`, `/fetch`, etc.) are not available. Text preprocessor placeholders like `{{date}}`, `{{uuid}}`, `{{file:path}}` are expanded.
 
-> **Note:** In `--mcp` mode, the agent runs as a console-based MCP server exposing all available tools to compatible MCP clients. Chat REPL functionality is disabled.
+> **Note:** In `--mcp` mode, the agent runs as a console-based MCP server exposing all available tools to compatible MCP clients. Chat REPL functionality is disabled. For detailed information about MCP modes (stdio/HTTP), configuration, and client integration, see [docs/mcp_mode.md](./docs/mcp_mode.md).
 
 ## Documentation
 
