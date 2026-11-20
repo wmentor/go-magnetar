@@ -2,7 +2,10 @@ package mask
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"regexp"
+	"strings"
 
 	"github.com/wmentor/go-magnetar/internal/config"
 )
@@ -15,6 +18,7 @@ type record struct {
 	name        string
 	re          *regexp.Regexp
 	replaceText string
+	replaceFn   func(string) string
 }
 
 type Service struct {
@@ -46,6 +50,15 @@ func NewService(cfg *config.Config) *Service {
 		srv.register("iban", `\b[A-Za-z]{2}\d{2}(?:\s[A-Za-z0-9]{4}){2,7}(?:\s[A-Za-z0-9]{1,4})?\b|\b[A-Za-z]{2}\d{2}[A-Za-z0-9]{11,30}\b`, "[MASK_IBAN]")
 	}
 
+	if !cfg.Bool("mask.skip.jwt") {
+		srv.registerFunc("jwt_token", `\b[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+\.[a-zA-Z0-9_-]+`, func(match string) string {
+			if isJWT(match) {
+				return "[MASK_TOKEN]"
+			}
+			return match
+		})
+	}
+
 	srv.register("github_token", `\b(?:gh[pousr]_[a-zA-Z0-9]{36,255}|github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59})\b`, "[MASKED_TOKEN]")
 	srv.register("gitlab_token", `\bgl(?:pat|dt|ft|oas|rt|ptt|imt|cbt|agent)-[a-zA-Z0-9._-]{20,64}\b`, "[MASKED_TOKEN]")
 
@@ -66,7 +79,11 @@ func NewService(cfg *config.Config) *Service {
 
 func (srv *Service) Process(_ context.Context, input string) string {
 	for _, rec := range srv.records {
-		input = rec.re.ReplaceAllString(input, rec.replaceText)
+		if rec.replaceFn != nil {
+			input = rec.re.ReplaceAllStringFunc(input, rec.replaceFn)
+		} else {
+			input = rec.re.ReplaceAllString(input, rec.replaceText)
+		}
 	}
 	return input
 }
@@ -77,4 +94,53 @@ func (srv *Service) register(name string, pattern string, replaceText string) {
 		re:          regexp.MustCompile(pattern),
 		replaceText: replaceText,
 	})
+}
+
+func (srv *Service) registerFunc(name string, pattern string, fn func(string) string) {
+	srv.records = append(srv.records, record{
+		name:      name,
+		re:        regexp.MustCompile(pattern),
+		replaceFn: fn,
+	})
+}
+
+func isJWT(token string) bool {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return false
+	}
+
+	headerBytes, err := decodeBase64URL(parts[0])
+	if err != nil {
+		return false
+	}
+	var header map[string]any
+	if err := json.Unmarshal(headerBytes, &header); err != nil {
+		return false
+	}
+	if _, ok := header["alg"]; !ok {
+		return false
+	}
+
+	payloadBytes, err := decodeBase64URL(parts[1])
+	if err != nil {
+		return false
+	}
+	var payload any
+	if err := json.Unmarshal(payloadBytes, &payload); err != nil {
+		return false
+	}
+	switch payload.(type) {
+	case map[string]any, []any:
+		return true
+	default:
+		return false
+	}
+}
+
+func decodeBase64URL(s string) ([]byte, error) {
+	if b, err := base64.RawURLEncoding.DecodeString(s); err == nil {
+		return b, nil
+	}
+	return base64.URLEncoding.DecodeString(s)
 }

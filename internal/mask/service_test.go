@@ -58,9 +58,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 9 records: email, phone, iban, github_token, gitlab_token, passport, snils, ssn, card
-	if len(srv.records) != 9 {
-		t.Errorf("expected 9 records when mask is enabled, got %d", len(srv.records))
+	// Service should have 10 records: email, phone, iban, jwt_token, github_token, gitlab_token, passport, snils, ssn, card
+	if len(srv.records) != 10 {
+		t.Errorf("expected 10 records when mask is enabled, got %d", len(srv.records))
 	}
 }
 
@@ -79,9 +79,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 8 records: phone, iban, github_token, gitlab_token, passport, snils, ssn, card (no email)
-	if len(srv.records) != 8 {
-		t.Errorf("expected 8 records when email is skipped, got %d", len(srv.records))
+	// Service should have 9 records: phone, iban, jwt_token, github_token, gitlab_token, passport, snils, ssn, card (no email)
+	if len(srv.records) != 9 {
+		t.Errorf("expected 9 records when email is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -100,9 +100,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 8 records: email, iban, github_token, gitlab_token, passport, snils, ssn, card (no phone)
-	if len(srv.records) != 8 {
-		t.Errorf("expected 8 records when phone is skipped, got %d", len(srv.records))
+	// Service should have 9 records: email, iban, jwt_token, github_token, gitlab_token, passport, snils, ssn, card (no phone)
+	if len(srv.records) != 9 {
+		t.Errorf("expected 9 records when phone is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -121,9 +121,30 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 8 records: email, phone, github_token, gitlab_token, passport, snils, ssn, card (no iban)
-	if len(srv.records) != 8 {
-		t.Errorf("expected 8 records when iban is skipped, got %d", len(srv.records))
+	// Service should have 9 records: email, phone, jwt_token, github_token, gitlab_token, passport, snils, ssn, card (no iban)
+	if len(srv.records) != 9 {
+		t.Errorf("expected 9 records when iban is skipped, got %d", len(srv.records))
+	}
+}
+
+func TestNewServiceWithSkipJWT(t *testing.T) {
+	t.Parallel()
+
+	yaml := `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    jwt: true
+`
+
+	cfg := loadTestConfig(t, yaml)
+	srv := NewService(cfg)
+
+	// Service should have 9 records: email, phone, iban, github_token, gitlab_token, passport, snils, ssn, card (no jwt)
+	if len(srv.records) != 9 {
+		t.Errorf("expected 9 records when jwt is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -143,9 +164,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 7 records: iban, github_token, gitlab_token, passport, snils, ssn, card (no email, no phone)
-	if len(srv.records) != 7 {
-		t.Errorf("expected 7 records when email and phone are skipped, got %d", len(srv.records))
+	// Service should have 8 records: iban, jwt_token, github_token, gitlab_token, passport, snils, ssn, card (no email, no phone)
+	if len(srv.records) != 8 {
+		t.Errorf("expected 8 records when email and phone are skipped, got %d", len(srv.records))
 	}
 }
 
@@ -1240,6 +1261,135 @@ mask:
 `,
 			input: "Account: DE89370400440532013000",
 			want:  "Account: DE89370400440532013000",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Helper()
+
+			cfg := loadTestConfig(t, tt.yaml)
+			srv := NewService(cfg)
+
+			got := srv.Process(context.Background(), tt.input)
+
+			if got != tt.want {
+				t.Errorf("Process() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestProcessJWTMasking(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		yaml  string
+		input string
+		want  string
+	}{
+		{
+			name: "single JWT token in Bearer header",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+`,
+			input: "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dozjgNryP4J3jVmNHl0w5N_XgL0n3I9PlFUP0THsR8U",
+			want:  "Authorization: Bearer [MASK_TOKEN]",
+		},
+		{
+			name: "multiple JWT tokens in URL parameters",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+`,
+			input: "token1=eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyIjoidGVzdCJ9.xIw1I3l123&token2=eyJhbGciOiJSUzI1NiJ9.eyJ1c2VyIjoiYWRtaW4ifQ.abcd1234",
+			want:  "token1=[MASK_TOKEN]&token2=[MASK_TOKEN]",
+		},
+		{
+			name: "JWT in JSON structure",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+`,
+			input: `{"access_token":"eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.abc-def-","expires":3600}`,
+			want:  `{"access_token":"[MASK_TOKEN]","expires":3600}`,
+		},
+		{
+			name: "JWT with signature ending in dash",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+`,
+			input: "token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.abc-def-",
+			want:  "token: [MASK_TOKEN]",
+		},
+		{
+			name: "JWT with signature ending in underscore",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+`,
+			input: "token: eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.abc-def_",
+			want:  "token: [MASK_TOKEN]",
+		},
+		{
+			name: "JWT embedded in URL query string",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+`,
+			input: "https://example.com/callback?code=123&id_token=eyJhbGciOiJSUzI1NiJ9.eyJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIn0.sig456&state=xyz",
+			want:  "https://example.com/callback?code=123&id_token=[MASK_TOKEN]&state=xyz",
+		},
+		{
+			name: "JWT token where first characters are not eyJ",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+`,
+			input: "Token: eyAgImFsZyI6ICJIUzI1NiIgfQ.eyJ1c2VyIjoiYWxpY2UifQ.sig123",
+			want:  "Token: [MASK_TOKEN]",
+		},
+		{
+			name: "JWT token with skip.jwt enabled",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+  skip:
+    jwt: true
+`,
+			input: "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.sig123",
+			want:  "Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.sig123",
+		},
+		{
+			name: "plain text with file extensions and versions not masked",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+`,
+			input: "Archive file.tar.gz and version 1.2.3 should not be masked",
+			want:  "Archive file.tar.gz and version 1.2.3 should not be masked",
+		},
+		{
+			name: "plain text without JWT",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+`,
+			input: "Here is a normal text with dots: a.b.c and random words and domain sub.example.com",
+			want:  "Here is a normal text with dots: a.b.c and random words and domain sub.example.com",
 		},
 	}
 
