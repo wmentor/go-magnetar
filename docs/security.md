@@ -92,6 +92,8 @@ The mask service automatically detects and replaces the following patterns:
 | Russian SNILS | `[MASKED_SNILS]` |
 | US Social Security Number (SSN) | `[MASK_SSN]` |
 | Credit card number (16 digits in groups of 4, separated by spaces or dashes) | `[MASK_CARD]` |
+| IPv4 addresses | `[MASKED_IP]` |
+| IPv6 addresses | `[MASKED_IP]` |
 
 ### Configuration
 
@@ -103,6 +105,11 @@ mask:
   skip:
     email: false        # Set to true to skip email masking
     phone: false        # Set to true to skip phone number masking
+    ip:                 # Optional list of IPs, CIDR ranges, or wildcard patterns to skip
+      - "127.0.0.1"
+      - "192.168.1.0/24"
+      - "2001:db8::/32"
+      - "10.0.*.*"
 ```
 
 ### Important Notes

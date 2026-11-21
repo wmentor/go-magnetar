@@ -59,8 +59,8 @@ mask:
 	srv := NewService(cfg)
 
 	// Service should have 10 records: email, phone, iban, jwt_token, github_token, gitlab_token, passport, snils, ssn, card
-	if len(srv.records) != 10 {
-		t.Errorf("expected 10 records when mask is enabled, got %d", len(srv.records))
+	if len(srv.records) != 11 {
+		t.Errorf("expected 11 records when mask is enabled, got %d", len(srv.records))
 	}
 }
 
@@ -80,8 +80,8 @@ mask:
 	srv := NewService(cfg)
 
 	// Service should have 9 records: phone, iban, jwt_token, github_token, gitlab_token, passport, snils, ssn, card (no email)
-	if len(srv.records) != 9 {
-		t.Errorf("expected 9 records when email is skipped, got %d", len(srv.records))
+	if len(srv.records) != 10 {
+		t.Errorf("expected 10 records when email is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -101,8 +101,8 @@ mask:
 	srv := NewService(cfg)
 
 	// Service should have 9 records: email, iban, jwt_token, github_token, gitlab_token, passport, snils, ssn, card (no phone)
-	if len(srv.records) != 9 {
-		t.Errorf("expected 9 records when phone is skipped, got %d", len(srv.records))
+	if len(srv.records) != 10 {
+		t.Errorf("expected 10 records when phone is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -122,8 +122,8 @@ mask:
 	srv := NewService(cfg)
 
 	// Service should have 9 records: email, phone, jwt_token, github_token, gitlab_token, passport, snils, ssn, card (no iban)
-	if len(srv.records) != 9 {
-		t.Errorf("expected 9 records when iban is skipped, got %d", len(srv.records))
+	if len(srv.records) != 10 {
+		t.Errorf("expected 10 records when iban is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -143,8 +143,8 @@ mask:
 	srv := NewService(cfg)
 
 	// Service should have 9 records: email, phone, iban, github_token, gitlab_token, passport, snils, ssn, card (no jwt)
-	if len(srv.records) != 9 {
-		t.Errorf("expected 9 records when jwt is skipped, got %d", len(srv.records))
+	if len(srv.records) != 10 {
+		t.Errorf("expected 10 records when jwt is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -165,8 +165,8 @@ mask:
 	srv := NewService(cfg)
 
 	// Service should have 8 records: iban, jwt_token, github_token, gitlab_token, passport, snils, ssn, card (no email, no phone)
-	if len(srv.records) != 8 {
-		t.Errorf("expected 8 records when email and phone are skipped, got %d", len(srv.records))
+	if len(srv.records) != 9 {
+		t.Errorf("expected 9 records when email and phone are skipped, got %d", len(srv.records))
 	}
 }
 
@@ -1055,7 +1055,7 @@ mask:
     phone: false
 `,
 			input: "Date is 2026-11-14 and IP is 192.168.1.1",
-			want:  "Date is 2026-11-14 and IP is 192.168.1.1",
+			want:  "Date is 2026-11-14 and IP is [MASKED_IP]",
 		},
 	}
 

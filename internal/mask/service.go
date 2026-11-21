@@ -74,6 +74,11 @@ func NewService(cfg *config.Config) *Service {
 	// Credit card number: XXXX XXXX XXXX XXXX or XXXX-XXXX-XXXX-XXXX (whitespace or dashes, not mixed)
 	srv.register("card", `\b\d{4}(?:\s\d{4}){3}\b|\b\d{4}(?:-\d{4}){3}\b`, "[MASK_CARD]")
 
+	skipIPs := parseIPSkipRules(cfg.Strings("mask.skip.ip"))
+	srv.registerFunc("ip", ipv4Pattern+`|`+ipv6Pattern, func(match string) string {
+		return maskIP(match, skipIPs)
+	})
+
 	return srv
 }
 
