@@ -20,7 +20,6 @@ import (
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
-	"github.com/wmentor/go-magnetar/internal/tools/confluence"
 	"github.com/wmentor/go-magnetar/internal/tools/github"
 	gitlabfile "github.com/wmentor/go-magnetar/internal/tools/gitlab/file"
 	"github.com/wmentor/go-magnetar/internal/tools/gitlab/mr"
@@ -110,31 +109,6 @@ func (t *Tool) WebFetchEngine(ctx context.Context, urlStr string, isFetch bool) 
 	}
 	if !errors.Is(webErr, plugin.ErrNoWebProcessor) {
 		return "", errors.Wrap(webErr, "web fetch enigine")
-	}
-
-	if t.cfg.String("confluence.base_url") != "" && t.cfg.Bool("confluence.enable") {
-		if strings.HasPrefix(urlStr, t.cfg.String("confluence.base_url")+"/spaces/") ||
-			strings.HasPrefix(urlStr, t.cfg.String("confluence.base_url")+"/x/") ||
-			strings.HasPrefix(urlStr, t.cfg.String("confluence.base_url")+"/p/") {
-			pageID, err := confluence.ExtractPageIDURL(urlStr)
-			if err == nil && pageID != "" {
-				isShortID := strings.Contains(urlStr, "/x/") || strings.Contains(urlStr, "/p/")
-				// Use FetchTool directly
-				fetchTool := confluence.NewFetchTool(t.cfg, t.printer, t.clientFactory)
-				result, err := fetchTool.FetchPage(context.Background(), &confluence.FetchPageParams{
-					PageID:  pageID,
-					IsShort: isShortID,
-				})
-				if err != nil {
-					t.printer.Error("confluence_page_fetch: failed to fetch page", "url", urlStr, "err", err)
-					return "", fmt.Errorf("confluence_page_fetch: failed to fetch page %q: %w", urlStr, err)
-				}
-				if resp, ok := result.(*tools.Response); ok {
-					return resp.Result, nil
-				}
-				return "", fmt.Errorf("confluence_page_fetch: unexpected result type: %T", result)
-			}
-		}
 	}
 
 	if t.cfg.String("jira.base_url") != "" && t.cfg.Bool("jira.enable") {

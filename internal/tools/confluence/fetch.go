@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
@@ -46,13 +45,13 @@ type FetchPageParams struct {
 
 // FetchTool provides confluence_page_fetch operation as LLM tool.
 type FetchTool struct {
-	cfg           *config.Config
+	cfg           plugin.Config
 	printer       printer.Printer
 	clientFactory plugin.ClientFactory
 }
 
 // NewFetchTool creates a new FetchTool instance for confluence_page_fetch.
-func NewFetchTool(cfg *config.Config, p printer.Printer, clientFactory plugin.ClientFactory) *FetchTool {
+func NewFetchTool(cfg plugin.Config, p printer.Printer, clientFactory plugin.ClientFactory) *FetchTool {
 	return &FetchTool{
 		cfg:           cfg,
 		printer:       p,
