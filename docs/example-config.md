@@ -14,17 +14,8 @@ verbose: true
 # Default profile name
 profile: default
 
-# Include plugin configurations
-include:
-  - plugins/jira.yml
-  - plugins/github.yml
-  - plugins/confluence.yml
-  - plugins/gitlab.yml
-  - plugins/rag.yml
-  - plugins/guard.yml
-  - plugins/ssh.yml
-  - plugins/web.yml
-  - plugins/smtp.yml
+# Plugin configuration files are automatically loaded from <config_dir>/plugins/*.yml
+# No 'include' directive is required
 
 profiles:
   default:
@@ -157,8 +148,9 @@ To use different API keys for development and production:
 ```yaml
 version: "1.0"
 profile: development
-include:
-  - plugins/rag.yml
+
+# Plugin files are automatically loaded from <config_dir>/plugins/*.yml
+# No 'include' directive is required
 
 profiles:
   development:
@@ -173,8 +165,9 @@ profiles:
 ```yaml
 version: "1.0"
 profile: production
-include:
-  - plugins/rag.yml
+
+# Plugin files are automatically loaded from <config_dir>/plugins/*.yml
+# No 'include' directive is required
 
 profiles:
   production:

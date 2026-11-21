@@ -48,9 +48,10 @@ go-magnetar -p production
 | `language` | string | Language for agent responses (default: `english`) |
 | `verbose` | boolean | Enable verbose tool call output (default: `true`) |
 | `profile` | string | Default profile name to use |
-| `include` | array | List of plugin configuration files to include |
 | `profiles` | object | Profile definitions for multi-environment support |
 | `mcp` | object | MCP server configuration (stdio or HTTP mode) |
+
+**Note:** Plugin configuration files are automatically loaded from `<config_dir>/plugins/*.yml`. The `include` directive is no longer supported.
 
 ### LLM Configuration
 
@@ -366,30 +367,95 @@ llm:
 
 The environment variable is substituted first, then the file is read.
 
-## Include Directive
+## Plugin Configuration Loading
 
-Use the `include` directive to split configuration across multiple files:
+Plugin configuration files are automatically loaded from `<config_dir>/plugins/*.yml`. No `include` directive is required.
 
-```yaml
-version: "1.0"
-profile: default
-include:
-  - plugins/jira.yml
-  - plugins/github.yml
-  - plugins/rag.yml
-  - plugins/guard.yml
-  - plugins/mcp.yml
+### Automatic Plugin Loading
+
+All YAML files matching the pattern `<config_dir>/plugins/*.yml` are automatically loaded and merged with the main configuration. This includes:
+
+- `plugins/jira.yml` — JIRA integration
+- `plugins/github.yml` — GitHub integration
+- `plugins/confluence.yml` — Confluence integration
+- `plugins/gitlab.yml` — GitLab integration
+- `plugins/mask.yml` — Sensitive data masking
+- `plugins/mcp.yml` — Model Context Protocol
+- `plugins/rag.yml` — Retrieval-Augmented Generation
+- `plugins/guard.yml` — Command guard
+- `plugins/smtp.yml` — SMTP email sending
+- `plugins/ssh.yml` — SSH execution
+- `plugins/web.yml` — Web proxy settings
+
+### Example Directory Structure
+
 ```
-
-Include files are loaded **after** the main config, so they **override** values from the main configuration file.
+~/.go-magnetar/
+├── config.yml          # Main configuration file
+└── plugins/
+    ├── jira.yml        # JIRA settings
+    ├── github.yml      # GitHub settings
+    ├── confluence.yml  # Confluence settings
+    ├── gitlab.yml      # GitLab settings
+    ├── mask.yml        # Masking settings
+    ├── mcp.yml         # MCP settings
+    ├── rag.yml         # RAG settings
+    ├── guard.yml       # Guard settings
+    ├── smtp.yml        # SMTP settings
+    ├── ssh.yml         # SSH settings
+    └── web.yml         # Web proxy settings
+```
 
 ### Config Loading Order
 
 1. Default values
 2. Main config file
-3. Include files (override main config values)
+3. Plugin configuration files (`<config_dir>/plugins/*.yml`)
 
-This order ensures that plugin-specific settings in include files take precedence over general settings in the main config.
+Plugin configurations override values from the main config file, allowing you to customize each plugin independently.
+
+### Migration from `include` Directive
+
+Previously, plugin files were included using the `include` directive:
+
+```yaml
+# OLD (no longer supported)
+version: "1.0"
+profile: default
+include:
+  - plugins/jira.yml
+  - plugins/github.yml
+  - plugins/confluence.yml
+  - plugins/gitlab.yml
+  - plugins/mask.yml
+  - plugins/mcp.yml
+  - plugins/rag.yml
+  - plugins/guard.yml
+  - plugins/smtp.yml
+  - plugins/ssh.yml
+  - plugins/web.yml
+```
+
+**This `include` directive is no longer supported.** Plugin files are automatically discovered and loaded from the `plugins/` directory.
+
+To migrate:
+
+1. Create `~/.go-magnetar/plugins/` directory (or `<config_dir>/plugins/`)
+2. Move your plugin YAML files to this directory
+3. Remove the `include` block from your main `config.yml`
+
+Example of updated config:
+
+```yaml
+version: "1.0"
+profile: default
+
+# No include directive needed - plugins are auto-loaded
+
+llm:
+  base_url: https://api.openai.com/v1
+  api_key: $env:OPENAI_API_KEY
+  model: gpt-4o
 
 ## Example Configuration
 
@@ -400,8 +466,9 @@ See [example-config.md](./example-config.md) for a complete example configuratio
 ```yaml
 version: "1.0"
 profile: default
-include:
-  - plugins/mcp.yml
+
+# Plugin files are automatically loaded from <config_dir>/plugins/*.yml
+# No 'include' directive is required
 
 mcp:
   mode: http  # or stdio (default)
@@ -420,8 +487,9 @@ For more information about MCP mode, available tools, and client connection exam
 ```yaml
 version: "1.0"
 profile: default
-include:
-  - plugins/jira.yml
+
+# Plugin files are automatically loaded from <config_dir>/plugins/*.yml
+# No 'include' directive is required
 
 jira:
   enable: true
@@ -437,8 +505,9 @@ For more information about JIRA tools and available operations, see [tool_jira.m
 ```yaml
 version: "1.0"
 profile: default
-include:
-  - plugins/smtp.yml
+
+# Plugin files are automatically loaded from <config_dir>/plugins/*.yml
+# No 'include' directive is required
 
 smtp:
   enable: true
