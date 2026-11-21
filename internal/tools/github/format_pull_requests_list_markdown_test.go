@@ -32,8 +32,8 @@ func TestFormatPullRequestsListMarkdown(t *testing.T) {
 			name: "single PR",
 			prs: []PullRequestListItem{
 				{
-					Number:  1,
-					URL:     "https://github.com/test/repo/pull/1",
+					Number: 1,
+					URL:    "https://github.com/test/repo/pull/1",
 					User: struct {
 						Login string `json:"login"`
 					}{Login: "testuser"},
@@ -48,8 +48,8 @@ func TestFormatPullRequestsListMarkdown(t *testing.T) {
 			name: "multiple PRs",
 			prs: []PullRequestListItem{
 				{
-					Number:  1,
-					URL:     "https://github.com/test/repo/pull/1",
+					Number: 1,
+					URL:    "https://github.com/test/repo/pull/1",
 					User: struct {
 						Login string `json:"login"`
 					}{Login: "alice"},
@@ -58,8 +58,8 @@ func TestFormatPullRequestsListMarkdown(t *testing.T) {
 					Created: "2024-01-10T10:00:00Z",
 				},
 				{
-					Number:  2,
-					URL:     "https://github.com/test/repo/pull/2",
+					Number: 2,
+					URL:    "https://github.com/test/repo/pull/2",
 					User: struct {
 						Login string `json:"login"`
 					}{Login: "bob"},
@@ -68,8 +68,8 @@ func TestFormatPullRequestsListMarkdown(t *testing.T) {
 					Created: "2024-01-08T08:00:00Z",
 				},
 				{
-					Number:  3,
-					URL:     "https://github.com/test/repo/pull/3",
+					Number: 3,
+					URL:    "https://github.com/test/repo/pull/3",
 					User: struct {
 						Login string `json:"login"`
 					}{Login: "charlie"},
@@ -84,8 +84,8 @@ func TestFormatPullRequestsListMarkdown(t *testing.T) {
 			name: "PRs with long title and body",
 			prs: []PullRequestListItem{
 				{
-					Number:  100,
-					URL:     "https://github.com/test/repo/pull/100",
+					Number: 100,
+					URL:    "https://github.com/test/repo/pull/100",
 					User: struct {
 						Login string `json:"login"`
 					}{Login: "developer123"},
@@ -100,8 +100,8 @@ func TestFormatPullRequestsListMarkdown(t *testing.T) {
 			name: "PRs with special characters in title",
 			prs: []PullRequestListItem{
 				{
-					Number:  42,
-					URL:     "https://github.com/test/repo/pull/42",
+					Number: 42,
+					URL:    "https://github.com/test/repo/pull/42",
 					User: struct {
 						Login string `json:"login"`
 					}{Login: "dev_user"},
@@ -110,8 +110,8 @@ func TestFormatPullRequestsListMarkdown(t *testing.T) {
 					Created: "2024-02-20T11:15:00Z",
 				},
 				{
-					Number:  43,
-					URL:     "https://github.com/test/repo/pull/43",
+					Number: 43,
+					URL:    "https://github.com/test/repo/pull/43",
 					User: struct {
 						Login string `json:"login"`
 					}{Login: "qa_tester"},
@@ -126,8 +126,8 @@ func TestFormatPullRequestsListMarkdown(t *testing.T) {
 			name: "PRs sorted by creation date descending",
 			prs: []PullRequestListItem{
 				{
-					Number:  3,
-					URL:     "https://github.com/test/repo/pull/3",
+					Number: 3,
+					URL:    "https://github.com/test/repo/pull/3",
 					User: struct {
 						Login string `json:"login"`
 					}{Login: "charlie"},
@@ -136,8 +136,8 @@ func TestFormatPullRequestsListMarkdown(t *testing.T) {
 					Created: "2024-01-01T00:00:00Z",
 				},
 				{
-					Number:  2,
-					URL:     "https://github.com/test/repo/pull/2",
+					Number: 2,
+					URL:    "https://github.com/test/repo/pull/2",
 					User: struct {
 						Login string `json:"login"`
 					}{Login: "bob"},
@@ -146,8 +146,8 @@ func TestFormatPullRequestsListMarkdown(t *testing.T) {
 					Created: "2024-01-02T00:00:00Z",
 				},
 				{
-					Number:  1,
-					URL:     "https://github.com/test/repo/pull/1",
+					Number: 1,
+					URL:    "https://github.com/test/repo/pull/1",
 					User: struct {
 						Login string `json:"login"`
 					}{Login: "alice"},

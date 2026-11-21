@@ -1756,9 +1756,9 @@ func (g *GitHubTools) ExecPullRequest(ctx context.Context, params *PullRequestPa
 
 // PullRequestListItem represents a single PR item in the list response.
 type PullRequestListItem struct {
-	Number  int    `json:"number"`
-	URL     string `json:"url"`
-	User    struct {
+	Number int    `json:"number"`
+	URL    string `json:"url"`
+	User   struct {
 		Login string `json:"login"`
 	} `json:"user"`
 	Title   string `json:"title"`
