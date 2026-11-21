@@ -186,7 +186,7 @@ func ExtractPageIDURL(url string) (string, error) {
 // This is a shared helper for both FetchTool and EditTool.
 func fetchPage(
 	ctx context.Context,
-	cfg *config.Config,
+	cfg plugin.Config,
 	p printer.Printer,
 	clientFactory plugin.ClientFactory,
 	pageID string,

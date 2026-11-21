@@ -1,7 +1,12 @@
 package confluenceplugin
 
 import (
+	"context"
+	"fmt"
+	"strings"
+
 	"github.com/wmentor/go-magnetar/internal/plugin"
+	"github.com/wmentor/go-magnetar/internal/tools"
 	"github.com/wmentor/go-magnetar/internal/tools/confluence"
 )
 
@@ -29,6 +34,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	// Initialize fetch tool
 	p.fetchTool = confluence.NewFetchTool(cfg, s.Printer, s.RequesterFactory)
 	s.ToolStore.Register(p.fetchTool.Name(), p.fetchTool.Description(), p.fetchTool.Exec)
+	s.WebProcStore.AddProcessorFunc(p.webFetch)
 
 	// Initialize and register edit tool if not in read-only mode
 	if !s.Config.Bool("confluence.readonly") {
@@ -41,4 +47,33 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	s.ToolStore.Register(p.searchTool.Name(), p.searchTool.Description(), p.searchTool.Exec)
 
 	return nil
+}
+
+func (p *Plugin) webFetch(ctx context.Context, srcURL string) (string, error) {
+	cfg := p.state.Config
+
+	if strings.HasPrefix(srcURL, cfg.String("confluence.base_url")+"/spaces/") ||
+		strings.HasPrefix(srcURL, cfg.String("confluence.base_url")+"/x/") ||
+		strings.HasPrefix(srcURL, cfg.String("confluence.base_url")+"/p/") {
+		pageID, err := confluence.ExtractPageIDURL(srcURL)
+		if err == nil && pageID != "" {
+			isShortID := strings.Contains(srcURL, "/x/") || strings.Contains(srcURL, "/p/")
+			// Use FetchTool directly
+			fetchTool := confluence.NewFetchTool(cfg, p.state.Printer, p.state.RequesterFactory)
+			result, err := fetchTool.FetchPage(ctx, &confluence.FetchPageParams{
+				PageID:  pageID,
+				IsShort: isShortID,
+			})
+			if err != nil {
+				p.state.Printer.Error("confluence_page_fetch: failed to fetch page", "url", srcURL, "err", err)
+				return "", fmt.Errorf("confluence_page_fetch: failed to fetch page %q: %w", srcURL, err)
+			}
+			if resp, ok := result.(*tools.Response); ok {
+				return resp.Result, nil
+			}
+			return "", fmt.Errorf("confluence_page_fetch: unexpected result type: %T", result)
+		}
+	}
+
+	return "", plugin.ErrNoWebProcessor
 }
