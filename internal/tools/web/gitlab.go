@@ -125,10 +125,12 @@ func ExtractGitLabTreeURL(rawURL string) (string, string, string, error) {
 }
 
 // ExtractProjectAndMergeRequestFromGitLabURL extracts the project path and merge request ID from a GitLab URL.
-func ExtractProjectAndMergeRequestFromGitLabURL(rawURL string) (string, string, error) {
+// Returns (projectPath, mrID, isListURL, error).
+// If the URL points to a list of MRs (e.g., /-/merge_requests), mrID will be empty and isListURL will be true.
+func ExtractProjectAndMergeRequestFromGitLabURL(rawURL string) (string, string, bool, error) {
 	u, err := url.Parse(rawURL)
 	if err != nil {
-		return "", "", fmt.Errorf("invalid URL: %w", err)
+		return "", "", false, fmt.Errorf("invalid URL: %w", err)
 	}
 
 	// Handle URLs with /-/merge_requests/ and the short /-/mr/ form
@@ -148,21 +150,55 @@ func ExtractProjectAndMergeRequestFromGitLabURL(rawURL string) (string, string, 
 
 		// Extract MR ID (after marker)
 		idPart := parts[1]
-		if idx2 := strings.Index(idPart, "/"); idx2 != -1 {
-			idPart = idPart[:idx2]
+
+		// Check if this is a list URL (no ID after marker, maybe with query params only)
+		if idPart == "" || strings.HasPrefix(idPart, "?") || strings.HasPrefix(idPart, "#") {
+			return projectPath, "", true, nil
 		}
-		if idx2 := strings.Index(idPart, "?"); idx2 != -1 {
-			idPart = idPart[:idx2]
+
+		// Extract ID (before /, ?, or #)
+		if idx := strings.Index(idPart, "/"); idx != -1 {
+			idPart = idPart[:idx]
 		}
-		if idx2 := strings.Index(idPart, "#"); idx2 != -1 {
-			idPart = idPart[:idx2]
+		if idx := strings.Index(idPart, "?"); idx != -1 {
+			idPart = idPart[:idx]
+		}
+		if idx := strings.Index(idPart, "#"); idx != -1 {
+			idPart = idPart[:idx]
 		}
 		if idPart == "" {
-			return "", "", fmt.Errorf("merge request ID is empty")
+			// ID is empty (e.g., /merge_requests/ or /mr/) - this is a list URL
+			return projectPath, "", true, nil
 		}
 
-		return projectPath, idPart, nil
+		return projectPath, idPart, false, nil
 	}
 
-	return "", "", fmt.Errorf("not a GitLab merge request URL: %q", rawURL)
+	// Handle list URLs without trailing slash: /-/merge_requests or /-/mr (with optional query/fragment)
+	for _, marker := range []string{"/-/merge_requests", "/-/mr"} {
+		if !strings.Contains(u.Path, marker) {
+			continue
+		}
+
+		// Find the last occurrence of marker
+		idx := strings.LastIndex(u.Path, marker)
+		if idx == -1 {
+			continue
+		}
+
+		// Extract project path before marker
+		pathBefore := u.Path[:idx]
+
+		// Extract project path (everything after the last slash)
+		// For GitLab URLs like /group/project/-/merge_requests, project path is "group/project"
+		projectPath := strings.TrimPrefix(pathBefore, "/")
+
+		// Check if there's anything after the marker (excluding query/fragment)
+		pathAfter := u.Path[idx+len(marker):]
+		if pathAfter == "" || strings.HasPrefix(pathAfter, "?") || strings.HasPrefix(pathAfter, "#") {
+			return projectPath, "", true, nil
+		}
+	}
+
+	return "", "", false, fmt.Errorf("not a GitLab merge request URL: %q", rawURL)
 }
