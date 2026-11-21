@@ -121,24 +121,25 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("config: unsupported config version %q", ver)
 	}
 
-	// Load include files (override main values)
-	includes := k.Strings("include")
-	for _, includePath := range includes {
-		if includePath == "" {
-			continue
-		}
-		// Resolve include path relative to main config directory
-		includeAbsPath, err := filepath.Abs(filepath.Join(filepath.Dir(path), includePath))
-		if err != nil {
-			return nil, fmt.Errorf("config: failed to resolve include path %q: %w", includePath, err)
-		}
+	configDir := filepath.Dir(path)
+	pluginDir := filepath.Join(configDir, "plugins")
 
-		if err := k.Load(file.Provider(includeAbsPath), yaml.Parser()); err != nil {
-			return nil, fmt.Errorf("config: failed to load include %q: %w", includeAbsPath, err)
+	if items, err := os.ReadDir(pluginDir); err == nil {
+		// Load plugin files (override main values)
+		for _, includePath := range items {
+			if includePath.IsDir() || !strings.HasSuffix(includePath.Name(), ".yml") {
+				continue
+			}
+			includeAbsPath, err := filepath.Abs(filepath.Join(pluginDir, includePath.Name()))
+			if err != nil {
+				return nil, fmt.Errorf("config: failed to resolve include path %q: %w", includePath, err)
+			}
+
+			if err := k.Load(file.Provider(includeAbsPath), yaml.Parser()); err != nil {
+				return nil, fmt.Errorf("config: failed to load include %q: %w", includeAbsPath, err)
+			}
 		}
 	}
-
-	configDir := filepath.Dir(path)
 
 	return &Config{
 		cfg:       k,

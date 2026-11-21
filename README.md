@@ -198,7 +198,7 @@ rag:
     collection: documents  # collection name
 ```
 
-The main `~/.go-magnetar/config.yml` already includes `plugins/rag.yml` via the `include` directive — no changes to it are needed.
+The main `~/.go-magnetar/config.yml` automatically loads plugin configurations from `~/.go-magnetar/plugins/` directory — no `include` directive is needed.
 
 For Qdrant (external store), use:
 
