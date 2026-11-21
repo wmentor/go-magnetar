@@ -258,3 +258,130 @@ func (t *Tool) Exec(ctx context.Context, params *GitLabMRParams) (any, error) {
 		Result: sb.String(),
 	}, nil
 }
+
+// FetchMergeRequestsParams represents parameters for fetching list of merge requests.
+type FetchMergeRequestsParams struct {
+	ProjectPath string `json:"project_path" jsonschema_description:"GitLab project path (e.g., 'namespace/project' or 'group/subgroup/project')"`
+	State       string `json:"state" jsonschema_description:"State of MRs to fetch (e.g., 'opened', 'closed', 'merged', 'all'); default is 'opened'"`
+}
+
+// FetchMergeRequests fetches a list of merge requests and returns them in Markdown format.
+func (t *Tool) FetchMergeRequests(ctx context.Context, params *FetchMergeRequestsParams) (any, error) {
+	if params == nil {
+		return nil, errors.New("invalid params")
+	}
+
+	if params.State == "" {
+		params.State = "opened"
+	}
+
+	t.printer.ToolCall(printer.IconSearch, "gitlab_fetch_mr_list", "project_path", params.ProjectPath, "state", params.State)
+
+	ctx, cancel := context.WithTimeout(ctx, gitlabDefaultTimeout)
+	defer cancel()
+
+	// URL-encode the project path
+	encodedProjectPath := url.PathEscape(params.ProjectPath)
+
+	// Fetch MR list with state filter
+	apiURL := fmt.Sprintf("%s/api/v4/projects/%s/merge_requests?state=%s", t.cfg.String("gitlab.base_url"), encodedProjectPath, params.State)
+
+	client := t.clientFactory.Get()
+	defer t.clientFactory.Put(client)
+
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, http.NoBody)
+	if err != nil {
+		return nil, fmt.Errorf("gitlab: failed to create request for MR list %q: %w", params.ProjectPath, err)
+	}
+
+	request.Header.Set("Authorization", "Bearer "+t.cfg.String("gitlab.api_key"))
+	request.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(request)
+	if err != nil {
+		return nil, fmt.Errorf("gitlab: failed to fetch MR list %q: %w", params.ProjectPath, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("gitlab: MR list %q returned status %d", params.ProjectPath, resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("gitlab: failed to read response body: %w", err)
+	}
+
+	var mrList []struct {
+		ID             int    `json:"id"`
+		IID            int    `json:"iid"`
+		Title          string `json:"title"`
+		Description    string `json:"description"`
+		State          string `json:"state"`
+		Created        string `json:"created_at"`
+		WebURL         string `json:"web_url"`
+		SourceBranch   string `json:"source_branch"`
+		TargetBranch   string `json:"target_branch"`
+		WorkInProgress bool   `json:"work_in_progress"`
+		Author         struct {
+			Username string `json:"username"`
+			Name     string `json:"name"`
+		} `json:"author"`
+		Labels       []string `json:"labels"`
+		ChangesCount string   `json:"changes_count"`
+		Project      struct {
+			Path string `json:"path"`
+		} `json:"project"`
+	}
+
+	if err := json.Unmarshal(body, &mrList); err != nil {
+		return nil, fmt.Errorf("gitlab: failed to parse response: %w", err)
+	}
+
+	t.printer.ToolCall(printer.IconSearch, "gitlab: MR list fetched", "project_path", params.ProjectPath, "state", params.State, "count", len(mrList))
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("# Merge Requests (%s)\n\n", strings.Title(params.State)))
+	sb.WriteString(fmt.Sprintf("Project: %s\n\n", params.ProjectPath))
+
+	if len(mrList) == 0 {
+		sb.WriteString("No merge requests found.\n")
+		return &tools.Response{
+			Status: tools.StatusOK,
+			Result: sb.String(),
+		}, nil
+	}
+
+	sb.WriteString(fmt.Sprintf("Total: %d\n\n", len(mrList)))
+
+	for i, mr := range mrList {
+		if i > 0 {
+			sb.WriteString("\n---\n\n")
+		}
+
+		sb.WriteString(fmt.Sprintf("## MR !%d\n\n", mr.IID))
+		sb.WriteString(fmt.Sprintf("**Number:** %d\n\n", mr.IID))
+		sb.WriteString(fmt.Sprintf("**URL:** %s\n\n", mr.WebURL))
+		sb.WriteString(fmt.Sprintf("**Author:** %s\n\n", mr.Author.Username))
+		sb.WriteString(fmt.Sprintf("**Title:** %s\n\n", mr.Title))
+		sb.WriteString(fmt.Sprintf("**Description:** %s\n\n", mr.Description))
+		sb.WriteString(fmt.Sprintf("**Created:** %s\n\n", mr.Created))
+		sb.WriteString(fmt.Sprintf("**State:** %s\n", mr.State))
+		sb.WriteString(fmt.Sprintf("**Source Branch:** %s\n", mr.SourceBranch))
+		sb.WriteString(fmt.Sprintf("**Target Branch:** %s\n", mr.TargetBranch))
+		if mr.WorkInProgress {
+			sb.WriteString("**WIP:** true\n")
+		}
+		if len(mr.Labels) > 0 {
+			sb.WriteString(fmt.Sprintf("**Labels:** %s\n", strings.Join(mr.Labels, ", ")))
+		}
+		if mr.ChangesCount != "" {
+			sb.WriteString(fmt.Sprintf("**Changes:** %s\n", mr.ChangesCount))
+		}
+	}
+
+	return &tools.Response{
+		Status: tools.StatusOK,
+		Result: sb.String(),
+	}, nil
+}

@@ -150,10 +150,16 @@ func (t *Tool) WebFetchEngine(ctx context.Context, urlStr string, isFetch bool) 
 	if t.cfg.String("gitlab.base_url") != "" && t.cfg.Bool("gitlab.enable") {
 		if strings.HasPrefix(urlStr, t.cfg.String("gitlab.base_url")) {
 			// Check for merge request
-			if strings.Contains(urlStr, "/-/merge_requests/") || strings.Contains(urlStr, "/-/mr/") {
-				projectPath, issueID, err := web.ExtractProjectAndMergeRequestFromGitLabURL(urlStr)
-				if err == nil && projectPath != "" && issueID != "" {
-					return t.fetchGitLabMergeRequest(projectPath, issueID)
+			if strings.Contains(urlStr, "/-/merge_requests") || strings.Contains(urlStr, "/-/mr") {
+				projectPath, mrID, isListURL, err := web.ExtractProjectAndMergeRequestFromGitLabURL(urlStr)
+				if err == nil && projectPath != "" {
+					if isListURL {
+						// URL points to list of MRs - fetch all opened MRs
+						return t.fetchGitLabMergeRequestsList(projectPath)
+					}
+					if mrID != "" {
+						return t.fetchGitLabMergeRequest(projectPath, mrID)
+					}
 				}
 			}
 
@@ -384,6 +390,23 @@ func (t *Tool) fetchGitLabMergeRequest(projectPath string, mrID string) (string,
 	result, err := tool.Exec(context.Background(), &mr.GitLabMRParams{
 		ProjectPath: projectPath,
 		MRID:        mrID,
+	})
+	if err != nil {
+		return "", err
+	}
+	if resp, ok := result.(*tools.Response); ok {
+		return resp.Result, nil
+	}
+	return fmt.Sprintf("%v", result), nil
+}
+
+// fetchGitLabMergeRequestsList fetches a list of GitLab merge requests and returns its content.
+func (t *Tool) fetchGitLabMergeRequestsList(projectPath string) (string, error) {
+	t.printer.ToolCall(printer.IconSearch, "web_fetch: fetch GitLab merge requests list", "project_path", projectPath)
+	tool := mr.New(t.cfg, t.printer, t.clientFactory)
+	result, err := tool.FetchMergeRequests(context.Background(), &mr.FetchMergeRequestsParams{
+		ProjectPath: projectPath,
+		State:       "opened",
 	})
 	if err != nil {
 		return "", err

@@ -41,9 +41,11 @@ Detects JIRA URLs and fetches via API:
 
 ### 4. GitLab Merge Requests
 Fetches GitLab merge requests via API:
-- URL pattern: `https://gitlab.com/namespace/project/-/merge_requests/123`
-- Returns MR details, author, branches, labels, description
-- Includes file changes with diffs
+- URL pattern (single MR): `https://gitlab.com/namespace/project/-/merge_requests/123`
+- URL pattern (list of MRs): `https://gitlab.com/namespace/project/-/merge_requests`
+- Returns MR details, author, branches, labels, description for single MR
+- For list of MRs: returns list of opened MRs with number, URL, author, title, description, creation date
+- Includes file changes with diffs (single MR only)
 
 ### 5. GitHub Repositories
 Fetches repository information:
@@ -138,6 +140,11 @@ web_fetch("https://jira.example.com/browse/PROJECT-123")
 web_fetch("https://gitlab.com/group/project/-/merge_requests/456")
 ```
 
+### Fetch a list of GitLab merge requests
+```go
+web_fetch("https://gitlab.com/group/project/-/merge_requests")
+```
+
 ### Fetch a GitHub repository
 ```go
 web_fetch("https://github.com/golang/go")
@@ -170,7 +177,7 @@ web_fetch("https://example.com/feed.xml")
   "type": "function",
   "function": {
     "name": "web_fetch",
-    "description": "Fetch a web page and return clean Markdown content. Supports Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories, issues, milestones, and releases.",
+    "description": "Fetch a web page and return clean Markdown content. Supports Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories, issues, milestones, and releases. Can fetch either a single merge request or a list of merge requests (returns opened MRs).",
     "parameters": {
       "type": "object",
       "properties": {

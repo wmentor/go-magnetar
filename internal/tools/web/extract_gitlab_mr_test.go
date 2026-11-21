@@ -16,6 +16,7 @@ func TestExtractProjectAndMergeRequestFromGitLabURL(t *testing.T) {
 		baseURL     string
 		wantProject string
 		wantMR      string
+		wantList    bool
 		wantErr     bool
 	}{
 		{
@@ -82,28 +83,84 @@ func TestExtractProjectAndMergeRequestFromGitLabURL(t *testing.T) {
 			wantMR:      "123",
 		},
 		{
-			name:    "empty merge request ID",
-			input:   "https://gitlab.example.com/group/project/-/merge_requests/",
-			baseURL: baseURL,
-			wantErr: true,
+			name:        "merge request list URL (no trailing slash)",
+			input:       "https://gitlab.example.com/group/project/-/merge_requests",
+			baseURL:     baseURL,
+			wantProject: "group/project",
+			wantMR:      "",
+			wantList:    true,
 		},
 		{
-			name:    "merge request ID is only a query",
-			input:   "https://gitlab.example.com/group/project/-/merge_requests/?foo=bar",
-			baseURL: baseURL,
-			wantErr: true,
+			name:        "merge request list URL with trailing slash (empty ID)",
+			input:       "https://gitlab.example.com/group/project/-/merge_requests/",
+			baseURL:     baseURL,
+			wantProject: "group/project",
+			wantMR:      "",
+			wantList:    true,
 		},
 		{
-			name:    "merge request ID is only a fragment",
-			input:   "https://gitlab.example.com/group/project/-/merge_requests/#note_456",
-			baseURL: baseURL,
-			wantErr: true,
+			name:        "merge request list URL (no ID)",
+			input:       "https://gitlab.example.com/group/project/-/merge_requests",
+			baseURL:     baseURL,
+			wantProject: "group/project",
+			wantMR:      "",
+			wantList:    true,
 		},
 		{
-			name:    "empty short merge request ID",
-			input:   "https://gitlab.example.com/group/project/-/mr/",
-			baseURL: baseURL,
-			wantErr: true,
+			name:        "merge request list URL with query",
+			input:       "https://gitlab.example.com/group/project/-/merge_requests?state=opened&author=alice",
+			baseURL:     baseURL,
+			wantProject: "group/project",
+			wantMR:      "",
+			wantList:    true,
+		},
+		{
+			name:        "short merge request list URL (mr)",
+			input:       "https://gitlab.example.com/group/project/-/mr",
+			baseURL:     baseURL,
+			wantProject: "group/project",
+			wantMR:      "",
+			wantList:    true,
+		},
+		{
+			name:        "short merge request list URL with fragment",
+			input:       "https://gitlab.example.com/group/project/-/mr#filter",
+			baseURL:     baseURL,
+			wantProject: "group/project",
+			wantMR:      "",
+			wantList:    true,
+		},
+		{
+			name:        "merge request list URL with subgroup",
+			input:       "https://gitlab.example.com/group/subgroup/project/-/merge_requests?state=opened",
+			baseURL:     baseURL,
+			wantProject: "group/subgroup/project",
+			wantMR:      "",
+			wantList:    true,
+		},
+		{
+			name:        "merge request list URL with trailing slash and query",
+			input:       "https://gitlab.example.com/group/project/-/merge_requests/?foo=bar",
+			baseURL:     baseURL,
+			wantProject: "group/project",
+			wantMR:      "",
+			wantList:    true,
+		},
+		{
+			name:        "merge request list URL with trailing slash and fragment",
+			input:       "https://gitlab.example.com/group/project/-/merge_requests/#note_456",
+			baseURL:     baseURL,
+			wantProject: "group/project",
+			wantMR:      "",
+			wantList:    true,
+		},
+		{
+			name:        "short merge request list URL with trailing slash (empty ID)",
+			input:       "https://gitlab.example.com/group/project/-/mr/",
+			baseURL:     baseURL,
+			wantProject: "group/project",
+			wantMR:      "",
+			wantList:    true,
 		},
 		{
 			name:    "issue URL",
@@ -129,13 +186,13 @@ func TestExtractProjectAndMergeRequestFromGitLabURL(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			gotProject, gotMR, err := ExtractProjectAndMergeRequestFromGitLabURL(tt.input)
+			gotProject, gotMR, isList, err := ExtractProjectAndMergeRequestFromGitLabURL(tt.input)
 			if tt.wantErr {
 				if err == nil {
-					t.Fatalf("ExtractProjectAndMergeRequestFromGitLabURL(%q) = (%q, %q, nil), want an error", tt.input, gotProject, gotMR)
+					t.Fatalf("ExtractProjectAndMergeRequestFromGitLabURL(%q) = (%q, %q, %v, nil), want an error", tt.input, gotProject, gotMR, isList)
 				}
-				if gotProject != "" || gotMR != "" {
-					t.Errorf("ExtractProjectAndMergeRequestFromGitLabURL(%q) = (%q, %q), want empty values with the error", tt.input, gotProject, gotMR)
+				if gotProject != "" || gotMR != "" || isList != tt.wantList {
+					t.Errorf("ExtractProjectAndMergeRequestFromGitLabURL(%q) = (%q, %q, %v), want empty values with the error", tt.input, gotProject, gotMR, isList)
 				}
 				return
 			}
@@ -147,6 +204,9 @@ func TestExtractProjectAndMergeRequestFromGitLabURL(t *testing.T) {
 			}
 			if gotMR != tt.wantMR {
 				t.Errorf("merge request ID = %q, want %q", gotMR, tt.wantMR)
+			}
+			if isList != tt.wantList {
+				t.Errorf("isList = %v, want %v", isList, tt.wantList)
 			}
 		})
 	}
@@ -166,7 +226,7 @@ func TestExtractProjectAndMergeRequestFromGitLabURLErrorIncludesURL(t *testing.T
 	}
 
 	for _, input := range inputs {
-		_, _, err := ExtractProjectAndMergeRequestFromGitLabURL(input)
+		_, _, _, err := ExtractProjectAndMergeRequestFromGitLabURL(input)
 		if err == nil {
 			t.Fatalf("ExtractProjectAndMergeRequestFromGitLabURL(%q) returned no error, want one", input)
 		}

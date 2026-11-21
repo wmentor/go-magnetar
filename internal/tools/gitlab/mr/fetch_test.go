@@ -575,3 +575,476 @@ func TestGitLabMRExec_Timeout(t *testing.T) {
 		require.Nil(t, res)
 	})
 }
+
+// isMRListRequest matches the request for the merge requests list.
+func isMRListRequest(req *http.Request) bool {
+	return strings.HasSuffix(req.URL.Path, "/merge_requests") && strings.Contains(req.URL.RawQuery, "state=opened")
+}
+
+const emptyMRListBody = `[]`
+
+const multiMRListBody = `[
+  {
+    "id": 10,
+    "iid": 7,
+    "title": "Add feature",
+    "description": "Does things",
+    "state": "opened",
+    "created_at": "2024-01-02T03:04:05Z",
+    "web_url": "https://gitlab.example.com/ns/proj/-/merge_requests/7",
+    "source_branch": "feature",
+    "target_branch": "main",
+    "work_in_progress": true,
+    "author": {"username": "alice", "name": "Alice"},
+    "labels": ["bug", "ui"],
+    "changes_count": "4"
+  },
+  {
+    "id": 11,
+    "iid": 8,
+    "title": "Fix bug",
+    "description": "Fixes an important bug",
+    "state": "opened",
+    "created_at": "2024-01-03T04:05:06Z",
+    "web_url": "https://gitlab.example.com/ns/proj/-/merge_requests/8",
+    "source_branch": "fix-bug",
+    "target_branch": "main",
+    "author": {"username": "bob", "name": "Bob"},
+    "labels": ["hotfix"]
+  },
+  {
+    "id": 12,
+    "iid": 9,
+    "title": "Update dependencies",
+    "description": "",
+    "state": "opened",
+    "created_at": "2024-01-04T05:06:07Z",
+    "web_url": "https://gitlab.example.com/ns/proj/-/merge_requests/9",
+    "source_branch": "deps",
+    "target_branch": "main",
+    "author": {"username": "alice", "name": "Alice"}
+  }
+]`
+
+func TestGitLabMRList_NilParams(t *testing.T) {
+	t.Parallel()
+
+	var buf strings.Builder
+	// No Get/Put expectations: a nil params error must come before any client use.
+	factory := testdata.NewClientFactory(t)
+	tool := New(newTestConfig(t, testBaseURL), printer.New(&buf, false), factory)
+
+	res, err := tool.FetchMergeRequests(context.Background(), nil)
+
+	require.EqualError(t, err, "invalid params")
+	require.Nil(t, res)
+}
+
+func TestGitLabMRList_EmptyList(t *testing.T) {
+	t.Parallel()
+
+	var buf strings.Builder
+	factory := testdata.NewClientFactory(t)
+	client := testdata.NewClient(t)
+	factory.EXPECT().Get().Return(client).Once()
+	factory.EXPECT().Put(client).Return().Once()
+
+	client.EXPECT().Do(mock.MatchedBy(isMRListRequest)).Return(newMockHTTPResponse(http.StatusOK, emptyMRListBody), nil).Once()
+
+	tool := New(newTestConfig(t, testBaseURL), printer.New(&buf, false), factory)
+	res, err := tool.FetchMergeRequests(context.Background(), &FetchMergeRequestsParams{ProjectPath: "ns/proj"})
+
+	require.NoError(t, err)
+	resp, ok := res.(*tools.Response)
+	require.True(t, ok, "expected *tools.Response, got %T", res)
+	require.Equal(t, tools.StatusOK, resp.Status)
+
+	want := "# Merge Requests (Opened)\n\n" +
+		"Project: ns/proj\n\n" +
+		"No merge requests found.\n"
+	require.Equal(t, want, resp.Result)
+}
+
+func TestGitLabMRList_Success(t *testing.T) {
+	t.Parallel()
+
+	var buf strings.Builder
+	factory := testdata.NewClientFactory(t)
+	client := testdata.NewClient(t)
+	factory.EXPECT().Get().Return(client).Once()
+	factory.EXPECT().Put(client).Return().Once()
+
+	client.EXPECT().Do(mock.MatchedBy(isMRListRequest)).Return(newMockHTTPResponse(http.StatusOK, multiMRListBody), nil).Once()
+
+	tool := New(newTestConfig(t, testBaseURL), printer.New(&buf, false), factory)
+	res, err := tool.FetchMergeRequests(context.Background(), &FetchMergeRequestsParams{ProjectPath: "ns/proj"})
+
+	require.NoError(t, err)
+	resp, ok := res.(*tools.Response)
+	require.True(t, ok, "expected *tools.Response, got %T", res)
+	require.Equal(t, tools.StatusOK, resp.Status)
+
+	want := "# Merge Requests (Opened)\n\n" +
+		"Project: ns/proj\n\n" +
+		"Total: 3\n\n" +
+		"## MR !7\n\n" +
+		"**Number:** 7\n\n" +
+		"**URL:** https://gitlab.example.com/ns/proj/-/merge_requests/7\n\n" +
+		"**Author:** alice\n\n" +
+		"**Title:** Add feature\n\n" +
+		"**Description:** Does things\n\n" +
+		"**Created:** 2024-01-02T03:04:05Z\n\n" +
+		"**State:** opened\n" +
+		"**Source Branch:** feature\n" +
+		"**Target Branch:** main\n" +
+		"**WIP:** true\n" +
+		"**Labels:** bug, ui\n" +
+		"**Changes:** 4\n" +
+		"\n---\n\n" +
+		"## MR !8\n\n" +
+		"**Number:** 8\n\n" +
+		"**URL:** https://gitlab.example.com/ns/proj/-/merge_requests/8\n\n" +
+		"**Author:** bob\n\n" +
+		"**Title:** Fix bug\n\n" +
+		"**Description:** Fixes an important bug\n\n" +
+		"**Created:** 2024-01-03T04:05:06Z\n\n" +
+		"**State:** opened\n" +
+		"**Source Branch:** fix-bug\n" +
+		"**Target Branch:** main\n" +
+		"**Labels:** hotfix\n" +
+		"\n---\n\n" +
+		"## MR !9\n\n" +
+		"**Number:** 9\n\n" +
+		"**URL:** https://gitlab.example.com/ns/proj/-/merge_requests/9\n\n" +
+		"**Author:** alice\n\n" +
+		"**Title:** Update dependencies\n\n" +
+		"**Description:** \n\n" +
+		"**Created:** 2024-01-04T05:06:07Z\n\n" +
+		"**State:** opened\n" +
+		"**Source Branch:** deps\n" +
+		"**Target Branch:** main\n"
+	require.Equal(t, want, resp.Result)
+}
+
+func TestGitLabMRList_StateFilter(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		state  string
+		expect string
+	}{
+		{"opened", "opened", "/api/v4/projects/namespace%2Fproject/merge_requests?state=opened"},
+		{"closed", "closed", "/api/v4/projects/namespace%2Fproject/merge_requests?state=closed"},
+		{"merged", "merged", "/api/v4/projects/namespace%2Fproject/merge_requests?state=merged"},
+		{"empty uses opened", "", "/api/v4/projects/namespace%2Fproject/merge_requests?state=opened"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var buf strings.Builder
+			factory := testdata.NewClientFactory(t)
+			client := testdata.NewClient(t)
+			factory.EXPECT().Get().Return(client).Once()
+			factory.EXPECT().Put(client).Return().Once()
+
+			client.EXPECT().Do(mock.AnythingOfType("*http.Request")).
+				RunAndReturn(func(req *http.Request) (*http.Response, error) {
+					require.Equal(t, http.MethodGet, req.Method)
+					require.Equal(t, "gitlab.example.com", req.URL.Host)
+					require.Equal(t, tt.expect, req.URL.EscapedPath()+"?"+req.URL.RawQuery)
+					require.Equal(t, "Bearer test-api-key", req.Header.Get("Authorization"))
+					require.Equal(t, "application/json", req.Header.Get("Content-Type"))
+					return newMockHTTPResponse(http.StatusOK, emptyMRListBody), nil
+				}).Once()
+
+			tool := New(newTestConfig(t, testBaseURL), printer.New(&buf, false), factory)
+			params := &FetchMergeRequestsParams{ProjectPath: "namespace/project"}
+			if tt.state != "" {
+				params.State = tt.state
+			}
+			_, err := tool.FetchMergeRequests(context.Background(), params)
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestGitLabMRList_RequestCreationError(t *testing.T) {
+	t.Parallel()
+
+	var buf strings.Builder
+	// The client is taken (and returned) before the request is built.
+	factory := testdata.NewClientFactory(t)
+	client := testdata.NewClient(t)
+	factory.EXPECT().Get().Return(client).Once()
+	factory.EXPECT().Put(client).Return().Once()
+
+	tool := New(newTestConfig(t, "://invalid-url"), printer.New(&buf, false), factory)
+	res, err := tool.FetchMergeRequests(context.Background(), &FetchMergeRequestsParams{ProjectPath: "ns/proj"})
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "failed to create request")
+	require.Nil(t, res)
+}
+
+func TestGitLabMRList_HTTPError(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		setupMocks func(client *testdata.Client)
+		wantErr    string
+	}{
+		{
+			name: "MR list not found",
+			setupMocks: func(client *testdata.Client) {
+				client.EXPECT().Do(mock.AnythingOfType("*http.Request")).
+					Return(newMockHTTPResponse(http.StatusNotFound, `{"message":"404 Not found"}`), nil).Once()
+			},
+			wantErr: `MR list "ns/proj" returned status 404`,
+		},
+		{
+			name: "MR list forbidden",
+			setupMocks: func(client *testdata.Client) {
+				client.EXPECT().Do(mock.AnythingOfType("*http.Request")).
+					Return(newMockHTTPResponse(http.StatusForbidden, `{"message":"403 Forbidden"}`), nil).Once()
+			},
+			wantErr: `MR list "ns/proj" returned status 403`,
+		},
+		{
+			name: "MR list server error",
+			setupMocks: func(client *testdata.Client) {
+				client.EXPECT().Do(mock.AnythingOfType("*http.Request")).
+					Return(newMockHTTPResponse(http.StatusInternalServerError, ``), nil).Once()
+			},
+			wantErr: `MR list "ns/proj" returned status 500`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var buf strings.Builder
+			factory := testdata.NewClientFactory(t)
+			client := testdata.NewClient(t)
+			factory.EXPECT().Get().Return(client).Once()
+			factory.EXPECT().Put(client).Return().Once()
+			tt.setupMocks(client)
+
+			tool := New(newTestConfig(t, testBaseURL), printer.New(&buf, false), factory)
+			res, err := tool.FetchMergeRequests(context.Background(), &FetchMergeRequestsParams{ProjectPath: "ns/proj"})
+
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tt.wantErr)
+			require.Nil(t, res)
+		})
+	}
+}
+
+func TestGitLabMRList_NetworkError(t *testing.T) {
+	t.Parallel()
+
+	netErr := errors.New("connection refused")
+
+	tests := []struct {
+		name       string
+		setupMocks func(client *testdata.Client)
+		wantErr    string
+	}{
+		{
+			name: "error while fetching the MR list",
+			setupMocks: func(client *testdata.Client) {
+				client.EXPECT().Do(mock.AnythingOfType("*http.Request")).Return(nil, netErr).Once()
+			},
+			wantErr: `failed to fetch MR list "ns/proj"`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var buf strings.Builder
+			factory := testdata.NewClientFactory(t)
+			client := testdata.NewClient(t)
+			factory.EXPECT().Get().Return(client).Once()
+			factory.EXPECT().Put(client).Return().Once()
+			tt.setupMocks(client)
+
+			tool := New(newTestConfig(t, testBaseURL), printer.New(&buf, false), factory)
+			res, err := tool.FetchMergeRequests(context.Background(), &FetchMergeRequestsParams{ProjectPath: "ns/proj"})
+
+			require.Error(t, err)
+			require.ErrorIs(t, err, netErr)
+			require.Contains(t, err.Error(), tt.wantErr)
+			require.Nil(t, res)
+		})
+	}
+}
+
+func TestGitLabMRList_JSONError(t *testing.T) {
+	t.Parallel()
+
+	readErr := errors.New("stream broken")
+
+	tests := []struct {
+		name       string
+		setupMocks func(client *testdata.Client)
+		wantErr    string
+	}{
+		{
+			name: "invalid JSON for the MR list",
+			setupMocks: func(client *testdata.Client) {
+				client.EXPECT().Do(mock.AnythingOfType("*http.Request")).
+					Return(newMockHTTPResponse(http.StatusOK, `not json`), nil).Once()
+			},
+			wantErr: "failed to parse response",
+		},
+		{
+			name: "empty body for the MR list",
+			setupMocks: func(client *testdata.Client) {
+				client.EXPECT().Do(mock.AnythingOfType("*http.Request")).
+					Return(newMockHTTPResponse(http.StatusOK, ``), nil).Once()
+			},
+			wantErr: "failed to parse response",
+		},
+		{
+			name: "read error for the MR list body",
+			setupMocks: func(client *testdata.Client) {
+				client.EXPECT().Do(mock.AnythingOfType("*http.Request")).
+					Return(&http.Response{StatusCode: http.StatusOK, Body: errReadCloser{err: readErr}}, nil).Once()
+			},
+			wantErr: "failed to read response body",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var buf strings.Builder
+			factory := testdata.NewClientFactory(t)
+			client := testdata.NewClient(t)
+			factory.EXPECT().Get().Return(client).Once()
+			factory.EXPECT().Put(client).Return().Once()
+			tt.setupMocks(client)
+
+			tool := New(newTestConfig(t, testBaseURL), printer.New(&buf, false), factory)
+			res, err := tool.FetchMergeRequests(context.Background(), &FetchMergeRequestsParams{ProjectPath: "ns/proj"})
+
+			require.Error(t, err)
+			require.Contains(t, err.Error(), tt.wantErr)
+			require.Nil(t, res)
+		})
+	}
+}
+
+func TestGitLabMRList_Timeout(t *testing.T) {
+	t.Parallel()
+
+	t.Run("requests carry a deadline of at most one minute", func(t *testing.T) {
+		t.Parallel()
+
+		var buf strings.Builder
+		factory := testdata.NewClientFactory(t)
+		client := testdata.NewClient(t)
+		factory.EXPECT().Get().Return(client).Once()
+		factory.EXPECT().Put(client).Return().Once()
+
+		client.EXPECT().Do(mock.AnythingOfType("*http.Request")).
+			RunAndReturn(func(req *http.Request) (*http.Response, error) {
+				deadline, ok := req.Context().Deadline()
+				require.True(t, ok, "request context has no deadline")
+				require.LessOrEqual(t, time.Until(deadline), gitlabDefaultTimeout)
+				return newMockHTTPResponse(http.StatusOK, `[]`), nil
+			}).Once()
+
+		tool := New(newTestConfig(t, testBaseURL), printer.New(&buf, false), factory)
+		_, err := tool.FetchMergeRequests(context.Background(), &FetchMergeRequestsParams{ProjectPath: "ns/proj"})
+		require.NoError(t, err)
+	})
+
+	t.Run("a cancelled context stops the fetch", func(t *testing.T) {
+		t.Parallel()
+
+		var buf strings.Builder
+		factory := testdata.NewClientFactory(t)
+		client := testdata.NewClient(t)
+		factory.EXPECT().Get().Return(client).Once()
+		factory.EXPECT().Put(client).Return().Once()
+
+		client.EXPECT().Do(mock.AnythingOfType("*http.Request")).
+			RunAndReturn(func(req *http.Request) (*http.Response, error) {
+				return nil, req.Context().Err()
+			}).Once()
+
+		ctx, cancel := context.WithCancel(context.Background())
+		cancel()
+
+		tool := New(newTestConfig(t, testBaseURL), printer.New(&buf, false), factory)
+		res, err := tool.FetchMergeRequests(ctx, &FetchMergeRequestsParams{ProjectPath: "ns/proj"})
+
+		require.ErrorIs(t, err, context.Canceled)
+		require.Nil(t, res)
+	})
+}
+
+func TestGitLabMRList_ProjectPathEscaping(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		projectPath string
+		wantPath    string
+	}{
+		{
+			name:        "simple project path",
+			projectPath: "namespace/project",
+			wantPath:    "/api/v4/projects/namespace%2Fproject/merge_requests?state=opened",
+		},
+		{
+			name:        "subgroup path",
+			projectPath: "group/subgroup/project",
+			wantPath:    "/api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests?state=opened",
+		},
+		{
+			name:        "spaces are escaped",
+			projectPath: "my group/my project",
+			wantPath:    "/api/v4/projects/my%20group%2Fmy%20project/merge_requests?state=opened",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var buf strings.Builder
+			factory := testdata.NewClientFactory(t)
+			client := testdata.NewClient(t)
+			factory.EXPECT().Get().Return(client).Once()
+			factory.EXPECT().Put(client).Return().Once()
+
+			var seen []*http.Request
+			client.EXPECT().Do(mock.AnythingOfType("*http.Request")).
+				RunAndReturn(func(req *http.Request) (*http.Response, error) {
+					seen = append(seen, req)
+					return newMockHTTPResponse(http.StatusOK, emptyMRListBody), nil
+				}).Once()
+
+			tool := New(newTestConfig(t, testBaseURL), printer.New(&buf, false), factory)
+			_, err := tool.FetchMergeRequests(context.Background(), &FetchMergeRequestsParams{ProjectPath: tt.projectPath})
+			require.NoError(t, err)
+
+			require.Len(t, seen, 1)
+			req := seen[0]
+			require.Equal(t, http.MethodGet, req.Method)
+			require.Equal(t, "gitlab.example.com", req.URL.Host)
+			require.Equal(t, tt.wantPath, req.URL.EscapedPath()+"?"+req.URL.RawQuery)
+			require.Equal(t, "Bearer test-api-key", req.Header.Get("Authorization"))
+			require.Equal(t, "application/json", req.Header.Get("Content-Type"))
+		})
+	}
+}
