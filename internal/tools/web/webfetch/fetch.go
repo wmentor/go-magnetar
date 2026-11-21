@@ -212,6 +212,14 @@ func (t *Tool) WebFetchEngine(ctx context.Context, urlStr string, isFetch bool) 
 					return ghTools.FetchPullRequest(owner+"/"+repo, prNum)
 				}
 			}
+			// Check for pull requests list
+			if web.IsGitHubPullRequestsURL(urlStr) {
+				owner, repo, err := web.ExtractGitHubPullRequestsURL(urlStr)
+				if err == nil && owner != "" && repo != "" {
+					ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+					return ghTools.FetchPullRequestsList(owner + "/" + repo)
+				}
+			}
 			if strings.Contains(urlStr, "/tree/") || strings.Contains(urlStr, "/commits/") || strings.HasSuffix(urlStr, "/") {
 				owner, repo, branch, path, err := web.ExtractGitHubTreeURL(urlStr)
 				if err == nil && owner != "" && repo != "" {

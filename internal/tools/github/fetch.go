@@ -1754,6 +1754,85 @@ func (g *GitHubTools) ExecPullRequest(ctx context.Context, params *PullRequestPa
 	return g.FetchPullRequest(params.Repo, params.PR)
 }
 
+// PullRequestListItem represents a single PR item in the list response.
+type PullRequestListItem struct {
+	Number  int    `json:"number"`
+	URL     string `json:"url"`
+	User    struct {
+		Login string `json:"login"`
+	} `json:"user"`
+	Title   string `json:"title"`
+	Body    string `json:"body"`
+	Created string `json:"created_at"`
+}
+
+// FetchPullRequestsList fetches a list of open pull requests for a repository.
+func (g *GitHubTools) FetchPullRequestsList(repo string) (string, error) {
+	if !g.enabled {
+		return "", errors.New("github tool is disabled")
+	}
+
+	owner, repoName, err := parseGitHubRepoURL(repo)
+	if err != nil {
+		return "", fmt.Errorf("github_pull_requests_list: failed to parse repository URL: %w", err)
+	}
+
+	g.printer.ToolCall(printer.IconSearch, "github_pull_requests_list", "repo", repo)
+
+	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	defer cancel()
+
+	// Fetch open PRs, sorted by created_at descending
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/pulls?state=open&sort=created&direction=desc", owner, repoName)
+
+	resp, err := g.fetchWithHeaders(ctx, http.MethodGet, apiURL)
+	if err != nil {
+		return "", fmt.Errorf("github_pull_requests_list: failed to fetch PRs: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("github_pull_requests_list: PRs endpoint returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("github_pull_requests_list: failed to read response body: %w", err)
+	}
+
+	var prs []PullRequestListItem
+	if err := json.Unmarshal(body, &prs); err != nil {
+		return "", fmt.Errorf("github_pull_requests_list: failed to parse response: %w", err)
+	}
+
+	return g.formatPullRequestsListMarkdown(prs), nil
+}
+
+// formatPullRequestsListMarkdown formats the list of PRs as Markdown.
+func (g *GitHubTools) formatPullRequestsListMarkdown(prs []PullRequestListItem) string {
+	var sb strings.Builder
+
+	fmt.Fprintf(&sb, "# Pull Requests\n\n")
+
+	if len(prs) == 0 {
+		fmt.Fprintf(&sb, "No open pull requests found.\n\n")
+		return sb.String()
+	}
+
+	fmt.Fprintf(&sb, "**Total Open PRs:** %d\n\n", len(prs))
+	sb.WriteString("| PR | Title | Author | Created |\n")
+	sb.WriteString("|----|-------|--------|----------|\n")
+
+	for _, pr := range prs {
+		fmt.Fprintf(&sb, "| [#%d](%s) | %s | @%s | %s |\n", pr.Number, pr.URL, pr.Title, pr.User.Login, pr.Created)
+	}
+
+	sb.WriteString("\n")
+
+	return sb.String()
+}
+
 // ExecRelease executes the github_release_info tool and returns the result.
 func (g *GitHubTools) ExecRelease(ctx context.Context, params *ReleaseParams) (any, error) {
 	if !g.enabled {

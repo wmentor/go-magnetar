@@ -72,10 +72,10 @@ Fetches milestone with associated issues:
 - URL pattern: `https://github.com/owner/repo/milestone/123`
 - Returns milestone details, open/closed issue counts, list of issues
 
-### 10. GitHub Security Advisories
-Fetches repository security advisories:
-- URL patterns: `https://github.com/owner/repo/security/advisories`, `https://github.com/owner/repo/advisories/GHSA-xxxx`
-- Returns advisory details, CVE IDs, severity, affected packages
+### 10. GitHub Pull Requests List
+Fetches list of open pull requests sorted by creation date (newest first):
+- URL pattern: `https://github.com/owner/repo/pulls`
+- Returns PR list with PR number (linked as `#N`), title, author, and creation date
 
 ### 11. GitHub Releases
 Fetches release information by tag:
@@ -165,6 +165,11 @@ web_fetch("https://github.com/golang/go/milestone/123")
 web_fetch("https://github.com/wmentor/go-magnetar/releases/tag/v1.6.0")
 ```
 
+### Fetch a GitHub pull requests list
+```go
+web_fetch("https://github.com/wmentor/go-magnetar/pulls")
+```
+
 ### Fetch an RSS feed
 ```go
 web_fetch("https://example.com/feed.xml")
@@ -177,13 +182,13 @@ web_fetch("https://example.com/feed.xml")
   "type": "function",
   "function": {
     "name": "web_fetch",
-    "description": "Fetch a web page and return clean Markdown content. Supports Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories, issues, milestones, and releases. Can fetch either a single merge request or a list of merge requests (returns opened MRs).",
+    "description": "Fetch a web page and return clean Markdown content. Supports Confluence pages, JIRA issues, GitLab merge requests, and GitHub repositories, issues, milestones, pull requests lists, and releases. Can fetch either a single merge request or a list of merge requests (returns opened MRs).",
     "parameters": {
       "type": "object",
       "properties": {
         "url": {
           "type": "string",
-          "description": "URL of the web page, Confluence page, JIRA issue, GitLab merge request, GitHub repository, or GitHub release to fetch"
+          "description": "URL of the web page, Confluence page, JIRA issue, GitLab merge request, GitHub repository, pull requests list, or GitHub release to fetch"
         }
       },
       "required": ["url"]
