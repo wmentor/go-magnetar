@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/wmentor/go-magnetar/internal/config"
@@ -55,12 +56,17 @@ func createTestState(t *testing.T, configYaml string, enableJira bool) *plugin.S
 	p := printer.GetDefault()
 	clientFactory := testdata.NewClientFactory(t)
 	maskService := mask.NewService(cfg)
+	webProcStore := testdata.NewWebProcessorStore(t)
+	if enableJira {
+		webProcStore.EXPECT().AddProcessorFunc(mock.Anything).Return()
+	}
 
 	return &plugin.State{
 		Config:           cfg,
 		Printer:          p,
 		ToolStore:        tools.NewStore(maskService),
 		RequesterFactory: clientFactory,
+		WebProcStore:     webProcStore,
 	}
 }
 
@@ -145,12 +151,14 @@ func TestPlugin_Init_MissingJiraSection(t *testing.T) {
 	p := printer.GetDefault()
 	clientFactory := testdata.NewClientFactory(t)
 	maskService := mask.NewService(cfgLoaded)
+	webProcStore := testdata.NewWebProcessorStore(t)
 
 	state := &plugin.State{
 		Config:           cfgLoaded,
 		Printer:          p,
 		ToolStore:        tools.NewStore(maskService),
 		RequesterFactory: clientFactory,
+		WebProcStore:     webProcStore,
 	}
 	hub := &mockHub{}
 
@@ -184,12 +192,15 @@ jira:
 	p := printer.GetDefault()
 	clientFactory := testdata.NewClientFactory(t)
 	maskService := mask.NewService(cfgLoaded)
+	webProcStore := testdata.NewWebProcessorStore(t)
+	webProcStore.EXPECT().AddProcessorFunc(mock.Anything).Return()
 
 	state := &plugin.State{
 		Config:           cfgLoaded,
 		Printer:          p,
 		ToolStore:        tools.NewStore(maskService),
 		RequesterFactory: clientFactory,
+		WebProcStore:     webProcStore,
 	}
 	hub := &mockHub{}
 
@@ -225,12 +236,15 @@ jira:
 	p := printer.GetDefault()
 	clientFactory := testdata.NewClientFactory(t)
 	maskService := mask.NewService(cfgLoaded)
+	webProcStore := testdata.NewWebProcessorStore(t)
+	webProcStore.EXPECT().AddProcessorFunc(mock.Anything).Return()
 
 	state := &plugin.State{
 		Config:           cfgLoaded,
 		Printer:          p,
 		ToolStore:        tools.NewStore(maskService),
 		RequesterFactory: clientFactory,
+		WebProcStore:     webProcStore,
 	}
 	hub := &mockHub{}
 
