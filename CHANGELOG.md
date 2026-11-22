@@ -1,5 +1,83 @@
 # CHANGELOG
 
+## [1.11.0] - 2026-11-22
+
+### 🚀 Features
+
+- *(rag)* Add /rag.search chat command to test rag_search tool (#324) (#356)
+- *(codecs)* Support EPUB file format for file_read tool and indexing (#24) (#364)
+- *(web)* HTTP proxy support (#371)
+- *(configure)* Add configurable config directory support (#377)
+- *(mcp)* Added support for running go-magnetar as an MCP server (#378)
+- *(mcp)* Add index tool to MCP server (#386)
+- *(mcp)* Add HTTP mode support for MCP server (#387)
+- *(codecs)* Add support for Apple Numbers spreadsheets (#389)
+- *(tools)* Add MCP mode path restrictions for file read tool (#399)
+- *(tools)* Add GHSA advisory support via cve tool (#401)
+- *(cmd)* Add daemon mode support (#402)
+- *(cli)* Add support for direct prompt arguments and stdin piping (#406)
+- *(smtp)* Add email sending capability via SMTP plugin (#407)
+- *(tools)* Add support for fetching list of GitLab merge requests (#414)
+- *(tools)* Add GitHub pull requests list support (#415)
+- *(tools)* Add support for fetching github open issues list (#424)
+- *(mcp)* Add MCP idxtab tool (#426)
+
+### 🐛 Bug Fixes
+
+- *(chat)* Add validation for command name parsing (#370)
+- *(chat)* Add shell command validation before execution (#376)
+- *(skills)* Skip nil entries in Store.List (#394)
+- *(tools)* Validate non-empty file path in github FetchFile (#395)
+- *(tools)* Include offending URL in GitLab MR parse validation error (#397)
+- *(skills)* Log correct error when skill frontmatter is invalid (#396)
+- *(tools)* Guard the response store with an RWMutex (#423)
+
+### 🛡️ Security
+
+- *(mask)* Add IBAN masking support to internal/mask (#372) (#374)
+- *(mcp)* Add masking service to tool result processing (#388)
+- *(mask)* Add JWT token masking (#379) (#380)
+- *(mask)* Mask credit card numbers (#355)
+
+### 📚 Documentation
+
+- *(demo)* Add RAG usage GIF to README (#369)
+- *(skills)* Simplify make-issue skill instructions (#400)
+
+### 🧹 Refactor
+
+- *(rag)* Adjust error message formatting (#367)
+- *(tools)* Remove root parameter from tool constructors (#368)
+- *(http)* Move requester interfaces into the plugin package (#375)
+- *(mcp)* Improve error messages for MCP server startup (#398)
+- *(http)* Add new web processor infrastructure (#405)
+- *(tools)* Extract confluence pages via web processor (#416)
+- *(config)* Remove `include` directive and auto-load plugin configs (#417)
+- *(http)* Add webFetchProc to handle JIRA URLs via web processor pipeline (#425)
+
+### 🎨 Styling
+
+- *(skill)* Format skill names with backticks like /tools (#365)
+- *(chat)* Format agent names with backticks in /agent output (#363) (#366)
+
+### 🧪 Testing
+
+- *(config)* Add in-memory mock constructors and setters for Config (#42) (#357)
+- *(tools)* Add unit tests for the gitlab_fetch_mr tool (#385)
+- *(tools)* Add tests for GitHub issue Markdown formatting (#403)
+- *(tools)* Add github format repo advisories markdown tests (#404)
+- *(tools)* Cover github milestone markdown formatting (#410)
+- *(config)* Add unit tests for internal/template package (#412)
+- *(tools)* Add github format advisory markdown tests (#413)
+- *(tools)* Add unit tests for github_repo tools (#419)
+
+
+### 👥 Contributors
+
+<div align="left" style="padding-left: 20px;">
+<a href="https://github.com/wmentor" data-hovercard-type="user" data-hovercard-url="/users/wmentor/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/wmentor?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@wmentor" title="@wmentor" style="border-radius: 50% !important;"></a> <a href="https://github.com/dianatofficial" data-hovercard-type="user" data-hovercard-url="/users/dianatofficial/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/dianatofficial?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@dianatofficial" title="@dianatofficial" style="border-radius: 50% !important;"></a> <a href="https://github.com/RiccardoBifulco" data-hovercard-type="user" data-hovercard-url="/users/RiccardoBifulco/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/RiccardoBifulco?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@RiccardoBifulco" title="@RiccardoBifulco" style="border-radius: 50% !important;"></a> <a href="https://github.com/prascli" data-hovercard-type="user" data-hovercard-url="/users/prascli/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/prascli?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@prascli" title="@prascli" style="border-radius: 50% !important;"></a> <a href="https://github.com/bfs2021" data-hovercard-type="user" data-hovercard-url="/users/bfs2021/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/bfs2021?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@bfs2021" title="@bfs2021" style="border-radius: 50% !important;"></a> <a href="https://github.com/urumb" data-hovercard-type="user" data-hovercard-url="/users/urumb/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/urumb?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@urumb" title="@urumb" style="border-radius: 50% !important;"></a> <a href="https://github.com/tyza66" data-hovercard-type="user" data-hovercard-url="/users/tyza66/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/tyza66?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@tyza66" title="@tyza66" style="border-radius: 50% !important;"></a> <a href="https://github.com/O1sumitkumar" data-hovercard-type="user" data-hovercard-url="/users/O1sumitkumar/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/O1sumitkumar?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@O1sumitkumar" title="@O1sumitkumar" style="border-radius: 50% !important;"></a> <a href="https://github.com/marcus-beauregard" data-hovercard-type="user" data-hovercard-url="/users/marcus-beauregard/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/marcus-beauregard?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@marcus-beauregard" title="@marcus-beauregard" style="border-radius: 50% !important;"></a> <a href="https://github.com/majidninja" data-hovercard-type="user" data-hovercard-url="/users/majidninja/hovercard" data-octo-click="hovercard-link-click" data-octo-dimensions="link_type:self" aria-keyshortcuts="Alt+ArrowUp"><img src="https://avatars.githubusercontent.com/majidninja?v=4&s=64" width="32" height="32" data-view-component="true" class="avatar-user" alt="@majidninja" title="@majidninja" style="border-radius: 50% !important;"></a> 
+</div><br/><br/>
+
 ## [1.10.0] - 2026-11-15
 
 ### 🚀 Features
