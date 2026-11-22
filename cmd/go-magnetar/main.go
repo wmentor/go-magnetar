@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/user"
 
+	_ "github.com/joho/godotenv/autoload"
+
 	"github.com/wmentor/go-magnetar/internal/cmd"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/agent"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/agent"
