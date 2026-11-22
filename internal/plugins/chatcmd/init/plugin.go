@@ -123,11 +123,14 @@ var ignoredDirs = map[string]bool{
 	"build":        true,
 }
 
-func scanProject(dir string) (topLevel []string, keyFiles []string, err error) {
+func scanProject(dir string) ([]string, []string, error) {
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, nil, err
 	}
+
+	var topLevel []string
+	var keyFiles []string
 
 	for _, entry := range entries {
 		name := entry.Name()
