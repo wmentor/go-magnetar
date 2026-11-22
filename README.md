@@ -15,6 +15,7 @@ An AI smart shell with an integrated knowledge base and customizable skills. A s
 - **Subagents** — spawn specialized agents for complex tasks (exploration, research, parallel work)
 - **Integrations** — Confluence, JIRA, GitHub, GitLab (all optional, disabled by default); when enabled, simply provide a URL to a page or resource, and the system automatically detects the platform and fetches the content as markdown for AI agent
 - **Smart reading** - Transparent read a wide range of file formats (`.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.pages`, `.odt`, `.pptx`, `.xlsx`, `.html`, `.eml`, `.epub`, `.numbers`) and convert into markdown. For a complete list of supported formats and their available modes, see [docs/file_codecs.md](./docs/file_codecs.md).
+- **MCP mode** — run as an MCP (Model Context Protocol) server for advanced file reading, URL context fetching, knowledge base operations (built-in or external), and search capabilities; see [docs/mcp_mode.md](./docs/mcp_mode.md) for complete documentation
 
 ## Requirements
 
