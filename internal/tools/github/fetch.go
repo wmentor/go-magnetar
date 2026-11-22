@@ -1754,6 +1754,14 @@ func (g *GitHubTools) ExecPullRequest(ctx context.Context, params *PullRequestPa
 	return g.FetchPullRequest(params.Repo, params.PR)
 }
 
+// ExecOpenIssues executes the github_open_issues tool and returns the result.
+func (g *GitHubTools) ExecOpenIssues(ctx context.Context, repo string) (any, error) {
+	if !g.enabled {
+		return nil, errors.New("github tool is disabled")
+	}
+	return g.FetchOpenIssues(repo)
+}
+
 // PullRequestListItem represents a single PR item in the list response.
 type PullRequestListItem struct {
 	Number int    `json:"number"`
@@ -1766,8 +1774,21 @@ type PullRequestListItem struct {
 	Created string `json:"created_at"`
 }
 
+// IssueListItem represents a single issue item in the list response.
+type IssueListItem struct {
+	Number int    `json:"number"`
+	URL    string `json:"url"`
+	User   struct {
+		Login string `json:"login"`
+	} `json:"user"`
+	Title   string `json:"title"`
+	Body    string `json:"body"`
+	Created string `json:"created_at"`
+	State   string `json:"state"`
+}
+
 // FetchPullRequestsList fetches a list of open pull requests for a repository.
-func (g *GitHubTools) FetchPullRequestsList(repo string) (string, error) {
+func (g *GitHubTools) FetchPullRequestsList(repo string) (string, error) { //nolint:dupl // ok.
 	if !g.enabled {
 		return "", errors.New("github tool is disabled")
 	}
@@ -1826,6 +1847,73 @@ func (g *GitHubTools) formatPullRequestsListMarkdown(prs []PullRequestListItem) 
 
 	for _, pr := range prs {
 		fmt.Fprintf(&sb, "| [#%d](%s) | %s | @%s | %s |\n", pr.Number, pr.URL, pr.Title, pr.User.Login, pr.Created)
+	}
+
+	sb.WriteString("\n")
+
+	return sb.String()
+}
+
+// FetchOpenIssues fetches a list of open issues for a repository, sorted by newest first.
+func (g *GitHubTools) FetchOpenIssues(repo string) (string, error) { //nolint:dupl // ok.
+	if !g.enabled {
+		return "", errors.New("github tool is disabled")
+	}
+
+	owner, repoName, err := parseGitHubRepoURL(repo)
+	if err != nil {
+		return "", fmt.Errorf("github_open_issues: failed to parse repository URL: %w", err)
+	}
+
+	g.printer.ToolCall(printer.IconSearch, "github_open_issues", "repo", repo)
+
+	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	defer cancel()
+
+	// Fetch open issues, sorted by created_at descending (newest first)
+	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues?state=open&sort=created&direction=desc", owner, repoName)
+
+	resp, err := g.fetchWithHeaders(ctx, http.MethodGet, apiURL)
+	if err != nil {
+		return "", fmt.Errorf("github_open_issues: failed to fetch issues: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("github_open_issues: issues endpoint returned status %d: %s", resp.StatusCode, string(body))
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("github_open_issues: failed to read response body: %w", err)
+	}
+
+	var issues []IssueListItem
+	if err := json.Unmarshal(body, &issues); err != nil {
+		return "", fmt.Errorf("github_open_issues: failed to parse response: %w", err)
+	}
+
+	return g.formatOpenIssuesListMarkdown(issues), nil
+}
+
+// formatOpenIssuesListMarkdown formats the list of issues as Markdown.
+func (g *GitHubTools) formatOpenIssuesListMarkdown(issues []IssueListItem) string {
+	var sb strings.Builder
+
+	fmt.Fprintf(&sb, "# Open Issues\n\n")
+
+	if len(issues) == 0 {
+		fmt.Fprintf(&sb, "No open issues found.\n\n")
+		return sb.String()
+	}
+
+	fmt.Fprintf(&sb, "**Total Open Issues:** %d\n\n", len(issues))
+	sb.WriteString("| Issue | Title | Author | Created |\n")
+	sb.WriteString("|-------|-------|--------|----------|\n")
+
+	for _, issue := range issues {
+		fmt.Fprintf(&sb, "| [#%d](%s) | %s | @%s | %s |\n", issue.Number, issue.URL, issue.Title, issue.User.Login, issue.Created)
 	}
 
 	sb.WriteString("\n")
