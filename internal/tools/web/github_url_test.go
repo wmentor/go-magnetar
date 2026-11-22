@@ -229,3 +229,153 @@ func TestExtractGitHubPullRequestsURL(t *testing.T) {
 		})
 	}
 }
+
+func TestIsGitHubIssuesURL(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input string
+		want  bool
+	}{
+		{
+			name:  "valid issues list URL",
+			input: "https://github.com/prometheus-community/pgbouncer_exporter/issues",
+			want:  true,
+		},
+		{
+			name:  "valid issues list URL with query",
+			input: "https://github.com/owner/repo/issues?q=is%3Aopen+is%3Aissue",
+			want:  true,
+		},
+		{
+			name:  "not a GitHub URL",
+			input: "https://gitlab.com/owner/repo/issues",
+			want:  false,
+		},
+		{
+			name:  "URL with /issue/ (single issue)",
+			input: "https://github.com/owner/repo/issues/123",
+			want:  false,
+		},
+		{
+			name:  "URL with /issues/ and number",
+			input: "https://github.com/owner/repo/issues/123",
+			want:  false,
+		},
+		{
+			name:  "pulls URL is not issues list",
+			input: "https://github.com/owner/repo/pulls",
+			want:  false,
+		},
+		{
+			name:  "tree URL is not issues list",
+			input: "https://github.com/owner/repo/tree/main",
+			want:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := IsGitHubIssuesURL(tt.input)
+			if got != tt.want {
+				t.Errorf("IsGitHubIssuesURL(%q) = %v, want %v", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestExtractGitHubIssuesURL(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input string
+		want  struct {
+			owner string
+			repo  string
+		}
+		wantErr bool
+	}{
+		{
+			name:  "valid issues list URL",
+			input: "https://github.com/prometheus-community/pgbouncer_exporter/issues",
+			want: struct {
+				owner string
+				repo  string
+			}{
+				owner: "prometheus-community",
+				repo:  "pgbouncer_exporter",
+			},
+			wantErr: false,
+		},
+		{
+			name:  "issues list URL with query params",
+			input: "https://github.com/owner/repo/issues?q=is%3Aopen",
+			want: struct {
+				owner string
+				repo  string
+			}{
+				owner: "owner",
+				repo:  "repo",
+			},
+			wantErr: false,
+		},
+		{
+			name:  "issues list URL with fragment",
+			input: "https://github.com/owner/repo/issues#issues-123",
+			want: struct {
+				owner string
+				repo  string
+			}{
+				owner: "owner",
+				repo:  "repo",
+			},
+			wantErr: false,
+		},
+		{
+			name:  "not an issues list URL",
+			input: "https://github.com/owner/repo/issues/123",
+			want: struct {
+				owner string
+				repo  string
+			}{
+				owner: "",
+				repo:  "",
+			},
+			wantErr: true,
+		},
+		{
+			name:  "not a GitHub URL",
+			input: "https://gitlab.com/owner/repo/issues",
+			want: struct {
+				owner string
+				repo  string
+			}{
+				owner: "",
+				repo:  "",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			owner, repo, err := ExtractGitHubIssuesURL(tt.input)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ExtractGitHubIssuesURL(%q) error = %v, wantErr %v", tt.input, err, tt.wantErr)
+				return
+			}
+			if !tt.wantErr {
+				if owner != tt.want.owner {
+					t.Errorf("ExtractGitHubIssuesURL(%q) owner = %q, want %q", tt.input, owner, tt.want.owner)
+				}
+				if repo != tt.want.repo {
+					t.Errorf("ExtractGitHubIssuesURL(%q) repo = %q, want %q", tt.input, repo, tt.want.repo)
+				}
+			}
+		})
+	}
+}

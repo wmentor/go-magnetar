@@ -240,6 +240,14 @@ func (t *Tool) WebFetchEngine(ctx context.Context, urlStr string, isFetch bool) 
 					return ghTools.FetchRelease(owner+"/"+repo, tag)
 				}
 			}
+			// Check for issues list URL
+			if web.IsGitHubIssuesURL(urlStr) {
+				owner, repo, err := web.ExtractGitHubIssuesURL(urlStr)
+				if err == nil && owner != "" && repo != "" {
+					ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)
+					return ghTools.FetchOpenIssues(owner + "/" + repo)
+				}
+			}
 			owner, repo, err := web.ExtractGitHubRepoURL(urlStr)
 			if err == nil && owner != "" && repo != "" {
 				ghTools := github.New(t.cfg, t.printer, t.clientFactory, nil)

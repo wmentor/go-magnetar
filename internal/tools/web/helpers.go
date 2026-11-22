@@ -17,6 +17,7 @@ var (
 	errNotGitHubPRURL        = errors.New("not a GitHub pull request URL")
 	errNotGitHubReleaseURL   = errors.New("not a GitHub release URL")
 	errNotGitHubPRsURL       = errors.New("not a GitHub pull requests list URL")
+	errNotGitHubIssuesURL    = errors.New("not a GitHub issues list URL")
 )
 
 // Patterns for the path of a github.com URL (see githubURLPath).
@@ -34,6 +35,8 @@ var (
 	githubPRPathRe = regexp.MustCompile(`^/([^/]+)/([^/]+)/pull/(\d+)(?:/(files|commits))?$`)
 	// Matches /{owner}/{repo}/pulls (list of pull requests).
 	githubPRsPathRe = regexp.MustCompile(`^/([^/]+)/([^/]+)/pulls$`)
+	// Matches /{owner}/{repo}/issues (list of issues).
+	githubIssuesPathRe = regexp.MustCompile(`^/([^/]+)/([^/]+)/issues$`)
 )
 
 // IsGitHubPullRequestURL checks if the URL is likely a GitHub PR URL.
@@ -238,6 +241,53 @@ func ExtractGitHubPullRequestsURL(rawURL string) (string, string, error) {
 		return matches[1], matches[2], nil
 	}
 	return "", "", errNotGitHubPRsURL
+}
+
+// IsGitHubIssuesURL checks if the URL is a list of GitHub issues.
+func IsGitHubIssuesURL(rawURL string) bool {
+	if !strings.Contains(rawURL, "github.com/") {
+		return false
+	}
+
+	// Parse URL
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return false
+	}
+
+	path := strings.TrimPrefix(parsed.Path, "/")
+	parts := strings.Split(path, "/")
+
+	// Expected structure: [owner, repo, issues]
+	if len(parts) < 3 {
+		return false
+	}
+
+	// Check that parts[2] is exactly "issues"
+	if parts[2] != "issues" {
+		return false
+	}
+
+	// Ensure there's no path after /issues
+	if len(parts) > 3 {
+		return false
+	}
+
+	return true
+}
+
+// ExtractGitHubIssuesURL extracts owner and repo from GitHub issues list URL.
+func ExtractGitHubIssuesURL(rawURL string) (string, string, error) {
+	path, err := githubURLPath(rawURL)
+	if err != nil {
+		return "", "", err
+	}
+
+	matches := githubIssuesPathRe.FindStringSubmatch(path)
+	if matches != nil {
+		return matches[1], matches[2], nil
+	}
+	return "", "", errNotGitHubIssuesURL
 }
 
 func ExtractGitHubAdvisoryURL(url string) (string, error) {

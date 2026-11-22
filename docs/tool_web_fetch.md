@@ -77,7 +77,12 @@ Fetches list of open pull requests sorted by creation date (newest first):
 - URL pattern: `https://github.com/owner/repo/pulls`
 - Returns PR list with PR number (linked as `#N`), title, author, and creation date
 
-### 11. GitHub Releases
+### 11. GitHub Issues List
+Fetches list of open issues sorted by creation date (newest first):
+- URL pattern: `https://github.com/owner/repo/issues`
+- Returns issues list with issue number (linked as `#N`), title, author, and creation date
+
+### 12. GitHub Releases
 Fetches release information by tag:
 - URL pattern: `https://github.com/owner/repo/releases/tag/v1.6.0`
 - Returns release details, author, publish date, changelog, and assets (downloads, sizes, download URLs)
@@ -170,6 +175,11 @@ web_fetch("https://github.com/wmentor/go-magnetar/releases/tag/v1.6.0")
 web_fetch("https://github.com/wmentor/go-magnetar/pulls")
 ```
 
+### Fetch a GitHub issues list
+```go
+web_fetch("https://github.com/wmentor/go-magnetar/issues")
+```
+
 ### Fetch an RSS feed
 ```go
 web_fetch("https://example.com/feed.xml")
@@ -188,7 +198,7 @@ web_fetch("https://example.com/feed.xml")
       "properties": {
         "url": {
           "type": "string",
-          "description": "URL of the web page, Confluence page, JIRA issue, GitLab merge request, GitHub repository, pull requests list, or GitHub release to fetch"
+          "description": "URL of the web page, Confluence page, JIRA issue, GitLab merge request, GitHub repository, pull requests list, issues list, or GitHub release to fetch"
         }
       },
       "required": ["url"]
