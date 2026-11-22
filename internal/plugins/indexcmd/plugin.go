@@ -32,6 +32,10 @@ type IndexParams struct {
 	Comment string `json:"comment" jsonschema_description:"Optional context or metadata to prepend to each chunk"`
 }
 
+type IdxTabParams struct {
+	Config string `json:"config" jsonschema_description:"Path to configuration file"`
+}
+
 func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	if !s.Config.Bool("rag.enable") || s.Config.String("rag.llm.base_url") == "" {
 		return nil
@@ -67,6 +71,10 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 		s.ToolStore.RegisterOurToolMCP("index", "Indexes files, URLs, or repositories into the RAG knowledge base for search and retrieval. "+
 			"Accepts file paths, URLs, or repository names (e.g., 'owner/repo' for GitHub/GitLab repos), with optional comment for chunk context.",
 			p.IndexToolMCP)
+
+		s.ToolStore.RegisterOurToolMCP("idxtab", "Index multiple files/URLs from a JSON lines file (one per line, format: "+
+			"{\"source\":\"path|url\",\"message\":\"text\"})",
+			p.idxTabMCP)
 	}
 
 	return nil
@@ -109,6 +117,27 @@ func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (
 }
 
 func (p *Plugin) IndexToolMCP(ctx context.Context, params *IndexParams) (any, error) {
+	if params.Source == "" {
+		return nil, errors.New("invalid value of source param")
+	}
+
+	switch {
+	case isURL(params.Source):
+		if err := p.idx.IndexURL(params.Source, params.Comment); err != nil {
+			return nil, fmt.Errorf("index URL failed: %w", err)
+		}
+	case isDir(params.Source):
+		return nil, fmt.Errorf("source %q must be url of file", params.Source)
+	default:
+		if err := p.idx.IndexFile(params.Source, params.Comment); err != nil {
+			return nil, fmt.Errorf("index file failed: %w", err)
+		}
+	}
+
+	return &tools.Response{Status: "SUCCESS", Result: "indexed"}, nil
+}
+
+func (p *Plugin) IdxTabToolMCP(ctx context.Context, params *IndexParams) (any, error) {
 	if params.Source == "" {
 		return nil, errors.New("invalid value of source param")
 	}
@@ -196,7 +225,7 @@ func (p *Plugin) executeTab(ctx context.Context, params *plugin.ChatCommandInput
 	scanner := bufio.NewScanner(file)
 	count := 0
 
-	for scanner.Scan() {
+	for scanner.Scan() { //nolint:dupl // ok.
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, "#") {
 			continue
@@ -234,4 +263,66 @@ func (p *Plugin) executeTab(ctx context.Context, params *plugin.ChatCommandInput
 	}
 
 	return plugin.NopChatCommandResponse, nil
+}
+
+func (p *Plugin) idxTabMCP(_ context.Context, params *IdxTabParams) (any, error) {
+	if params == nil {
+		return nil, errors.New("invalid value of params")
+	}
+
+	filename := common.ExpandHome(strings.TrimSpace(params.Config))
+
+	if !filepath.IsAbs(filename) {
+		return nil, errors.New("expected absolute filename")
+	}
+
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, fmt.Errorf("open file error: %w", err)
+	}
+	defer file.Close()
+
+	workDir := filepath.Dir(filename)
+
+	scanner := bufio.NewScanner(file)
+	count := 0
+
+	for scanner.Scan() { //nolint:dupl // later.
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		var entry Entry
+		if err := json.Unmarshal([]byte(line), &entry); err != nil {
+			printer.Error("json parse error", "line", line, "error", err)
+			continue
+		}
+
+		source := entry.Source
+		message := entry.Message
+
+		if strings.HasPrefix(source, "http://") || strings.HasPrefix(source, "https://") {
+			if err := p.idx.IndexURL(source, message); err != nil {
+				printer.Error("index URL failed", "url", source, "error", err)
+				continue
+			}
+		} else {
+			if !filepath.IsAbs(source) {
+				source = filepath.Join(workDir, source)
+			}
+			if err := p.idx.IndexFile(source, message); err != nil {
+				printer.Error("index file failed", "file", source, "error", err)
+				continue
+			}
+		}
+
+		count++
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, fmt.Errorf("scan error: %w", err)
+	}
+
+	return &tools.Response{Status: "success", Result: "DONE"}, nil
 }

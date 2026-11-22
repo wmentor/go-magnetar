@@ -279,6 +279,7 @@ Once connected, the MCP client can use the following tools from go-magnetar:
 - `rag_search` — Search the indexed RAG knowledge base
 - `cve_info` — Lookup vulnerability information from OSV database (CVE, GO, GHSA, OSV, and more)
 - `index` — Index files or URLs into the RAG knowledge base
+- `idxtab` — Index multiple files/URLs from a JSON lines file (batch indexing)
 
 For detailed documentation on each tool, see [agent_tools.md](./agent_tools.md).
 

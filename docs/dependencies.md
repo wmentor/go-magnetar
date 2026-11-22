@@ -19,5 +19,7 @@
 | `github.com/stretchr/testify` | Testing framework (test mocks and assertions) |
 | `github.com/vektra/mockery` | Mock generation for testing |
 | `github.com/wmentor/iwaread` | Apple Pages document parsing (iWork '13 and newer) |
+| `github.com/sevlyar/go-daemon` | Daemon process management for background execution |
+| `github.com/modelcontextprotocol/go-sdk` | MCP (Model Context Protocol) server implementation |
 
 See [docs/dev_tools.md](./dev_tools.md) for development tools documentation.
