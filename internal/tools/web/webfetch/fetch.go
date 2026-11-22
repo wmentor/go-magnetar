@@ -25,7 +25,6 @@ import (
 	"github.com/wmentor/go-magnetar/internal/tools/gitlab/mr"
 	"github.com/wmentor/go-magnetar/internal/tools/gitlab/repo"
 	"github.com/wmentor/go-magnetar/internal/tools/gitlab/tree"
-	"github.com/wmentor/go-magnetar/internal/tools/jira"
 	"github.com/wmentor/go-magnetar/internal/tools/rss"
 	"github.com/wmentor/go-magnetar/internal/tools/web"
 )
@@ -109,15 +108,6 @@ func (t *Tool) WebFetchEngine(ctx context.Context, urlStr string, isFetch bool) 
 	}
 	if !errors.Is(webErr, plugin.ErrNoWebProcessor) {
 		return "", errors.Wrap(webErr, "web fetch enigine")
-	}
-
-	if t.cfg.String("jira.base_url") != "" && t.cfg.Bool("jira.enable") {
-		if strings.HasPrefix(urlStr, t.cfg.String("jira.base_url")) && (strings.Contains(urlStr, "/browse/") || strings.Contains(urlStr, "/issues/")) {
-			issueKey, err := web.ExtractIssueKeyFromJIRAURL(urlStr)
-			if err == nil && issueKey != "" {
-				return jira.New(t.cfg, t.printer, t.clientFactory).FetchIssue(issueKey)
-			}
-		}
 	}
 
 	//nolint:nestif // TODO.

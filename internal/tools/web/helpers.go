@@ -366,25 +366,6 @@ func ExtractGitHubReleaseURL(rawURL string) (string, string, string, error) {
 	return owner, repo, tag, nil
 }
 
-// ExtractIssueKeyFromJIRAURL extracts the issue key (e.g., GOARCH-60) from a JIRA URL.
-func ExtractIssueKeyFromJIRAURL(url string) (string, error) {
-	for _, path := range []string{"/browse/", "/issues/"} {
-		_, idPart, ok := strings.Cut(url, path)
-		if !ok {
-			continue
-		}
-		if idx := strings.IndexAny(idPart, "/?#"); idx != -1 {
-			idPart = idPart[:idx]
-		}
-		if idPart == "" {
-			return "", fmt.Errorf("issue key is empty")
-		}
-		return idPart, nil
-	}
-
-	return "", fmt.Errorf("not a JIRA issue URL")
-}
-
 // ExtractGitHubRepoURL extracts owner and repo from GitHub repository URL.
 func ExtractGitHubRepoURL(url string) (string, string, error) {
 	// Remove protocol prefix if present

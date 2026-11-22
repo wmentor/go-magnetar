@@ -27,7 +27,7 @@ type JiraTaskGetParams struct {
 
 // GetTool provides jira_task_get operation as LLM tool.
 type GetTool struct {
-	cfg           *config.Config
+	cfg           plugin.Config
 	printer       printer.Printer
 	clientFactory plugin.ClientFactory
 }
@@ -286,14 +286,14 @@ func (t *GetTool) Exec(ctx context.Context, params *JiraTaskGetParams) (any, err
 // JiraTools provides backward compatibility for existing code.
 // Deprecated: Use GetTool, SearchTool, or CreateTool instead.
 type JiraTools struct {
-	cfg           *config.Config
+	cfg           plugin.Config
 	printer       printer.Printer
 	clientFactory plugin.ClientFactory
 }
 
 // New creates a new JiraTools instance.
 // Deprecated: Use NewGetTool, NewSearchTool, or NewCreateTool instead.
-func New(cfg *config.Config, p printer.Printer, clientFactory plugin.ClientFactory) *JiraTools {
+func New(cfg plugin.Config, p printer.Printer, clientFactory plugin.ClientFactory) *JiraTools {
 	return &JiraTools{
 		cfg:           cfg,
 		printer:       p,

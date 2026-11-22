@@ -1,4 +1,4 @@
-package web
+package jiraplug
 
 import (
 	"testing"
