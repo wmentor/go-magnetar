@@ -24,6 +24,7 @@ go-magnetar provides several built-in chat commands accessible from the interact
 | `/profile` | — | Show current profile or switch to a different profile |
 | `/timing` | — | Toggle execution time display (on\|off) |
 | `/tools` | `/t` | List all available tools and their descriptions |
+| `/init` | — | Initialize project documentation (AGENTS.md) by analyzing codebase structure |
 | `/skill` | `/sk` | List available skills or load/activate a skill |
 | `/agent [agent_name] [request]` | — | List available subagents or switch to a named subagent |
 
@@ -365,6 +366,21 @@ Available tools:
 ```
 
 Tools are sorted alphabetically by their name for easy discovery.
+
+## /init Command
+
+Initialize project documentation by scanning project structure and generating an `AGENTS.md` file:
+
+```
+> /init
+Initializing project: analyzing structure and generating AGENTS.md...
+```
+
+The command:
+- Checks if `AGENTS.md` or `CLAUDE.md` already exists in the current directory; if found, reports that the project is already initialized.
+- Scans top-level files and directories to detect key build configurations, dependencies, and project conventions (e.g., `go.mod`, `package.json`, `Cargo.toml`, `Makefile`, `Dockerfile`).
+- Invokes the language model to analyze the codebase and write a comprehensive `AGENTS.md` file in the project root.
+
 
 ## Command Syntax
 
