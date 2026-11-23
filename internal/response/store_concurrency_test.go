@@ -27,25 +27,17 @@ func TestStoreConcurrentAccess(t *testing.T) {
 	start := make(chan struct{})
 
 	for w := range writers {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
+		wg.Go(func() {
 			<-start
 
 			for i := range rounds {
 				s.Push(fmt.Sprintf("w%d-%d", w, i))
 			}
-		}()
+		})
 	}
 
 	for range readers {
-		wg.Add(1)
-
-		go func() {
-			defer wg.Done()
-
+		wg.Go(func() {
 			<-start
 
 			for range rounds {
@@ -60,7 +52,7 @@ func TestStoreConcurrentAccess(t *testing.T) {
 					t.Errorf("size %d out of range 0..%d", size, s.Capacity())
 				}
 			}
-		}()
+		})
 	}
 
 	close(start)
