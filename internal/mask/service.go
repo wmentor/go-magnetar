@@ -59,6 +59,31 @@ func NewService(cfg *config.Config) *Service {
 		})
 	}
 
+	if !cfg.Bool("mask.skip.ip") {
+		rawRules := cfg.Strings("mask.skip.ip")
+		if len(rawRules) == 0 {
+			if s := cfg.String("mask.skip.ip"); s != "" && s != "false" {
+				rawRules = []string{s}
+			}
+		}
+		skipRules := parseIPSkipRules(rawRules)
+		ipPattern := `(?:\b(?:\d{1,4}\.){3,}\d{1,4}\b|` +
+			`\b(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}\b|` +
+			`\b(?:[0-9a-fA-F]{1,4}:){1,7}:[0-9a-fA-F]{1,4}\b|` +
+			`\b(?:[0-9a-fA-F]{1,4}:){1,6}:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){1,1}\b|` +
+			`\b(?:[0-9a-fA-F]{1,4}:){1,5}:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){1,2}\b|` +
+			`\b(?:[0-9a-fA-F]{1,4}:){1,4}:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){1,3}\b|` +
+			`\b(?:[0-9a-fA-F]{1,4}:){1,3}:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){1,4}\b|` +
+			`\b(?:[0-9a-fA-F]{1,4}:){1,2}:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){1,5}\b|` +
+			`\b[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}\b|` +
+			`\b:(?::[0-9a-fA-F]{1,4}){1,7}\b|` +
+			`\b(?:[0-9a-fA-F]{1,4}:){1,7}:\b|` +
+			`\b::1\b|\b::\b)`
+		srv.registerFunc("ip", ipPattern, func(match string) string {
+			return maskIPAddress(match, skipRules)
+		})
+	}
+
 	srv.register("github_token", `\b(?:gh[pousr]_[a-zA-Z0-9]{36,255}|github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59})\b`, "[MASKED_TOKEN]")
 	srv.register("gitlab_token", `\bgl(?:pat|dt|ft|oas|rt|ptt|imt|cbt|agent)-[a-zA-Z0-9._-]{20,64}\b`, "[MASKED_TOKEN]")
 

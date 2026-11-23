@@ -86,6 +86,7 @@ The mask service automatically detects and replaces the following patterns:
 |---------|-------------|
 | Email addresses | `[MASKED_EMAIL]` |
 | Phone numbers | `[MASKED_PHONE]` |
+| IPv4 and IPv6 addresses | `[MASKED_IP]` |
 | GitHub tokens | `[MASKED_TOKEN]` |
 | GitLab tokens | `[MASKED_TOKEN]` |
 | Russian passport | `[MASKED_PASSPORT]` |
@@ -103,6 +104,11 @@ mask:
   skip:
     email: false        # Set to true to skip email masking
     phone: false        # Set to true to skip phone number masking
+    ip: false           # Set to true to skip all IP address masking, or specify exclusion rules:
+    # ip:
+    #   - "192.168.1.1"     # Single IP exclusion (IPv4 or IPv6 e.g., "2001:db8::1")
+    #   - "192.168.1.0/24"  # CIDR subnet exclusion (e.g., "2001:db8::/32")
+    #   - "10.0.*.*"        # Wildcard pattern exclusion
 ```
 
 ### Important Notes
