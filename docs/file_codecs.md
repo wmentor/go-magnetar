@@ -18,6 +18,7 @@ go-magnetar supports reading multiple file formats through a unified codec inter
 | `.epub` | `epub.Codec` | EPUB electronic books (EPUB 2.0 & EPUB 3.0) | ✅ | ❌ |
 | `.pages` | `pages.Codec` | Apple Pages documents (iWork '13 and newer) | ✅ | ❌ |
 | `.numbers` | `numbers.Codec` | Apple Numbers spreadsheets (iWork '13 and newer) | ✅ | ❌ |
+| `.ipynb` | `ipynb.Codec` | Jupyter Notebook files | ✅ | ❌ |
 
 Additionally, all text-based formats are supported with read and write capabilities: `.txt`, `.md`, `.pl`, `.py`, `.go`, `.java`, `.c`, `.cpp`, `.h`, `.hpp`, `.js`, `.ts`, `.rs`, `.rb`, `.php`, `.swift`, `.kt`, `.scala`, `.r`, `.m`, `.cs`, `.vb`, `.sh`, `.bash`, `.zsh`, `.fish`, `.yaml`, `.yml`, `.json`, `.xml`, `.toml`, `.ini`, `.cfg`, `.conf`, `.properties`, `.sql`, `.graphql`, `.proto`, `.tf`, `.hcl`, `.rst`, `.asciidoc`, `.org`, `.lua`, `.tex`, `.ltx`, `.bib`, `.log`, `.env`, `.gitignore`, `.dockerignore`, `.gitattributes`, `.editorconfig`, `.license`, `.notice`, `.readme`, `.changelog`, `.contributing`, `.code-of-conduct`, `.security`, `.authors`, `.maintainers`, `.contributors`.
 
@@ -47,6 +48,8 @@ if err != nil {
 text, err := reader.ReadFile("data.csv")
 ```
 
+For Jupyter Notebook files (`.ipynb`), the codec uses the [github.com/wmentor/joveleaf](https://github.com/wmentor/joveleaf) library to extract text content from notebook cells.
+
 File paths can be absolute or use `~/` for the home directory prefix.
 
 ## Indexer Support
@@ -65,6 +68,7 @@ The indexer automatically uses codecs when reading files for indexing. Supported
 > /index path/to/document.html
 > /index path/to/document.epub
 > /index path/to/document.pages
+> /index path/to/document.ipynb
 ```
 
 ## File Content Substitution
@@ -77,6 +81,8 @@ llm:
 ```
 
 When reading a `.pages` file, the content is extracted using the iwaread library and converted to plain text.
+
+When reading an `.ipynb` file, the content is extracted using the [github.com/wmentor/joveleaf](https://github.com/wmentor/joveleaf) library and automatically converted to Markdown.
 
 ## Adding a New Codec
 
