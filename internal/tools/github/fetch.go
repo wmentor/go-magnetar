@@ -13,7 +13,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 )
@@ -65,7 +64,7 @@ type ReleaseParams struct {
 
 // GitHubTools provides GitHub repository fetching as an LLM tool.
 type GitHubTools struct {
-	cfg           *config.Config
+	cfg           plugin.Config
 	printer       printer.Printer
 	clientFactory plugin.ClientFactory
 	state         *plugin.State
@@ -73,7 +72,7 @@ type GitHubTools struct {
 }
 
 // New creates a new GitHubTools instance.
-func New(cfg *config.Config, p printer.Printer, clientFactory plugin.ClientFactory, state *plugin.State) *GitHubTools {
+func New(cfg plugin.Config, p printer.Printer, clientFactory plugin.ClientFactory, state *plugin.State) *GitHubTools {
 	return &GitHubTools{
 		cfg:           cfg,
 		printer:       p,
@@ -111,7 +110,7 @@ func parseGitHubRepoURL(repoURL string) (string, string, error) {
 }
 
 // FetchRepository fetches GitHub repository information and returns Markdown content.
-func (g *GitHubTools) FetchRepository(repo string) (string, error) {
+func (g *GitHubTools) FetchRepository(ctx context.Context, repo string) (string, error) {
 	if !g.enabled {
 		return "", errors.New("github tool is disabled")
 	}
@@ -123,7 +122,7 @@ func (g *GitHubTools) FetchRepository(repo string) (string, error) {
 
 	g.printer.ToolCall(printer.IconSearch, "github_repo", "repo", repo)
 
-	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	ctx, cancel := context.WithTimeout(ctx, githubDefaultTimeout)
 	defer cancel()
 
 	// Fetch repository details
@@ -279,14 +278,14 @@ type SecurityAdvisory struct {
 	} `json:"cvss"`
 }
 
-func (g *GitHubTools) FetchAdvisory(advisoryID string) (string, error) {
+func (g *GitHubTools) FetchAdvisory(ctx context.Context, advisoryID string) (string, error) {
 	if !g.enabled {
 		return "", errors.New("github tool is disabled")
 	}
 
 	g.printer.ToolCall(printer.IconSearch, "github_advisory", "advisory", advisoryID)
 
-	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	ctx, cancel := context.WithTimeout(ctx, githubDefaultTimeout)
 	defer cancel()
 
 	apiURL := fmt.Sprintf("https://api.github.com/advisories/%s", advisoryID)
@@ -369,7 +368,7 @@ func (g *GitHubTools) formatAdvisoryMarkdown(advisory *SecurityAdvisory) string 
 	return sb.String()
 }
 
-func (g *GitHubTools) FetchRepoAdvisories(repo string) (string, error) {
+func (g *GitHubTools) FetchRepoAdvisories(ctx context.Context, repo string) (string, error) {
 	if !g.enabled {
 		return "", errors.New("github tool is disabled")
 	}
@@ -381,7 +380,7 @@ func (g *GitHubTools) FetchRepoAdvisories(repo string) (string, error) {
 
 	g.printer.ToolCall(printer.IconSearch, "github_repo_advisories", "repo", repo)
 
-	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	ctx, cancel := context.WithTimeout(ctx, githubDefaultTimeout)
 	defer cancel()
 
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/security-advisories", owner, repoName)
@@ -518,7 +517,7 @@ func (g *GitHubTools) fetchReadme(owner string, repo string) (string, error) {
 }
 
 // FetchFile fetches a file from GitHub repository.
-func (g *GitHubTools) FetchFile(repo string, branch string, file string) (string, error) {
+func (g *GitHubTools) FetchFile(ctx context.Context, repo string, branch string, file string) (string, error) {
 	if !g.enabled {
 		return "", errors.New("github tool is disabled")
 	}
@@ -538,7 +537,7 @@ func (g *GitHubTools) FetchFile(repo string, branch string, file string) (string
 
 	g.printer.ToolCall(printer.IconSearch, "github_file", "repo", repo, "branch", branch, "file", file)
 
-	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	ctx, cancel := context.WithTimeout(ctx, githubDefaultTimeout)
 	defer cancel()
 
 	// URL-encode the file path
@@ -603,7 +602,7 @@ func (g *GitHubTools) FetchFile(repo string, branch string, file string) (string
 }
 
 // FetchTree lists repository contents at the root or specified path.
-func (g *GitHubTools) FetchTree(repo string, branch string, path string) (string, error) {
+func (g *GitHubTools) FetchTree(ctx context.Context, repo string, branch string, path string) (string, error) {
 	if !g.enabled {
 		return "", errors.New("github tool is disabled")
 	}
@@ -619,7 +618,7 @@ func (g *GitHubTools) FetchTree(repo string, branch string, path string) (string
 
 	g.printer.ToolCall(printer.IconSearch, "github_tree", "repo", repo, "branch", branch, "path", path)
 
-	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	ctx, cancel := context.WithTimeout(ctx, githubDefaultTimeout)
 	defer cancel()
 
 	// Build API URL
@@ -740,7 +739,7 @@ func (g *GitHubTools) fetchWithHeaders(ctx context.Context, method string, apiUR
 	return resp, nil
 }
 
-func (g *GitHubTools) FetchIssue(repo string, issueNum string) (string, error) {
+func (g *GitHubTools) FetchIssue(ctx context.Context, repo string, issueNum string) (string, error) {
 	if !g.enabled {
 		return "", errors.New("github tool is disabled")
 	}
@@ -751,12 +750,12 @@ func (g *GitHubTools) FetchIssue(repo string, issueNum string) (string, error) {
 	}
 
 	if strings.HasPrefix(issueNum, "GHSA-") {
-		return g.FetchAdvisory(issueNum)
+		return g.FetchAdvisory(ctx, issueNum)
 	}
 
 	g.printer.ToolCall(printer.IconSearch, "github_issue", "repo", repo, "issue", issueNum)
 
-	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	ctx, cancel := context.WithTimeout(ctx, githubDefaultTimeout)
 	defer cancel()
 
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/issues/%s", owner, repoName, issueNum)
@@ -944,7 +943,7 @@ func (g *GitHubTools) formatIssueMarkdown(issueData *struct {
 	return sb.String()
 }
 
-func (g *GitHubTools) FetchMilestone(repo string, milestoneNum string) (string, error) {
+func (g *GitHubTools) FetchMilestone(ctx context.Context, repo string, milestoneNum string) (string, error) {
 	if !g.enabled {
 		return "", errors.New("github tool is disabled")
 	}
@@ -956,7 +955,7 @@ func (g *GitHubTools) FetchMilestone(repo string, milestoneNum string) (string, 
 
 	g.printer.ToolCall(printer.IconSearch, "github_milestone", "repo", repo, "milestone", milestoneNum)
 
-	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	ctx, cancel := context.WithTimeout(ctx, githubDefaultTimeout)
 	defer cancel()
 
 	apiURL := fmt.Sprintf("https://api.github.com/repos/%s/%s/milestones/%s", owner, repoName, milestoneNum)
@@ -1237,7 +1236,7 @@ type PullRequest struct {
 }
 
 // FetchPullRequest fetches a GitHub pull request with all its details including files, comments, and reviews.
-func (g *GitHubTools) FetchPullRequest(repo string, prNum string) (string, error) {
+func (g *GitHubTools) FetchPullRequest(ctx context.Context, repo string, prNum string) (string, error) {
 	if !g.enabled {
 		return "", errors.New("github tool is disabled")
 	}
@@ -1249,7 +1248,7 @@ func (g *GitHubTools) FetchPullRequest(repo string, prNum string) (string, error
 
 	g.printer.ToolCall(printer.IconSearch, "github_pull_request", "repo", repo, "pr", prNum)
 
-	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	ctx, cancel := context.WithTimeout(ctx, githubDefaultTimeout)
 	defer cancel()
 
 	// Fetch PR details
@@ -1612,7 +1611,7 @@ type Release struct {
 }
 
 // FetchRelease fetches a GitHub release by tag name and returns its details in Markdown format.
-func (g *GitHubTools) FetchRelease(repo string, tag string) (string, error) {
+func (g *GitHubTools) FetchRelease(ctx context.Context, repo string, tag string) (string, error) {
 	if !g.enabled {
 		return "", errors.New("github tool is disabled")
 	}
@@ -1624,7 +1623,7 @@ func (g *GitHubTools) FetchRelease(repo string, tag string) (string, error) {
 
 	g.printer.ToolCall(printer.IconSearch, "github_release_info", "repo", repo, "tag", tag)
 
-	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	ctx, cancel := context.WithTimeout(ctx, githubDefaultTimeout)
 	defer cancel()
 
 	// GitHub API uses /releases/tags/{tag} endpoint
@@ -1696,7 +1695,7 @@ func (g *GitHubTools) Exec(ctx context.Context, params *RepositoryParams) (any, 
 	if !g.enabled {
 		return nil, errors.New("github tool is disabled")
 	}
-	return g.FetchRepository(params.Repo)
+	return g.FetchRepository(ctx, params.Repo)
 }
 
 // ExecFile executes the github_file tool and returns the result.
@@ -1707,7 +1706,7 @@ func (g *GitHubTools) ExecFile(ctx context.Context, params *FileParams) (any, er
 	if params == nil {
 		return nil, errors.New("invalid params for github_file")
 	}
-	return g.FetchFile(params.Repo, params.Branch, params.File)
+	return g.FetchFile(ctx, params.Repo, params.Branch, params.File)
 }
 
 // ExecTree executes the github_tree tool and returns the result.
@@ -1718,7 +1717,7 @@ func (g *GitHubTools) ExecTree(ctx context.Context, params *TreeParams) (any, er
 	if params == nil {
 		return nil, errors.New("invalid params for github_tree")
 	}
-	return g.FetchTree(params.Repo, params.Branch, params.Path)
+	return g.FetchTree(ctx, params.Repo, params.Branch, params.Path)
 }
 
 // ExecIssue executes the github_issue tool and returns the result.
@@ -1729,7 +1728,7 @@ func (g *GitHubTools) ExecIssue(ctx context.Context, params *IssueParams) (any, 
 	if params == nil {
 		return nil, errors.New("invalid params for github_issue")
 	}
-	return g.FetchIssue(params.Repo, params.Issue)
+	return g.FetchIssue(ctx, params.Repo, params.Issue)
 }
 
 // ExecMilestone executes the github_milestone tool and returns the result.
@@ -1740,7 +1739,7 @@ func (g *GitHubTools) ExecMilestone(ctx context.Context, params *MilestoneParams
 	if params == nil {
 		return nil, errors.New("invalid params for github_milestone")
 	}
-	return g.FetchMilestone(params.Repo, params.Milestone)
+	return g.FetchMilestone(ctx, params.Repo, params.Milestone)
 }
 
 // ExecPullRequest executes the github_pull_request tool and returns the result.
@@ -1751,7 +1750,7 @@ func (g *GitHubTools) ExecPullRequest(ctx context.Context, params *PullRequestPa
 	if params == nil {
 		return nil, errors.New("invalid params for github_pull_request")
 	}
-	return g.FetchPullRequest(params.Repo, params.PR)
+	return g.FetchPullRequest(ctx, params.Repo, params.PR)
 }
 
 // ExecOpenIssues executes the github_open_issues tool and returns the result.
@@ -1759,7 +1758,7 @@ func (g *GitHubTools) ExecOpenIssues(ctx context.Context, repo string) (any, err
 	if !g.enabled {
 		return nil, errors.New("github tool is disabled")
 	}
-	return g.FetchOpenIssues(repo)
+	return g.FetchOpenIssues(ctx, repo)
 }
 
 // PullRequestListItem represents a single PR item in the list response.
@@ -1788,7 +1787,7 @@ type IssueListItem struct {
 }
 
 // FetchPullRequestsList fetches a list of open pull requests for a repository.
-func (g *GitHubTools) FetchPullRequestsList(repo string) (string, error) { //nolint:dupl // ok.
+func (g *GitHubTools) FetchPullRequestsList(ctx context.Context, repo string) (string, error) { //nolint:dupl // ok.
 	if !g.enabled {
 		return "", errors.New("github tool is disabled")
 	}
@@ -1800,7 +1799,7 @@ func (g *GitHubTools) FetchPullRequestsList(repo string) (string, error) { //nol
 
 	g.printer.ToolCall(printer.IconSearch, "github_pull_requests_list", "repo", repo)
 
-	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	ctx, cancel := context.WithTimeout(ctx, githubDefaultTimeout)
 	defer cancel()
 
 	// Fetch open PRs, sorted by created_at descending
@@ -1855,7 +1854,7 @@ func (g *GitHubTools) formatPullRequestsListMarkdown(prs []PullRequestListItem) 
 }
 
 // FetchOpenIssues fetches a list of open issues for a repository, sorted by newest first.
-func (g *GitHubTools) FetchOpenIssues(repo string) (string, error) { //nolint:dupl // ok.
+func (g *GitHubTools) FetchOpenIssues(ctx context.Context, repo string) (string, error) { //nolint:dupl // ok.
 	if !g.enabled {
 		return "", errors.New("github tool is disabled")
 	}
@@ -1867,7 +1866,7 @@ func (g *GitHubTools) FetchOpenIssues(repo string) (string, error) { //nolint:du
 
 	g.printer.ToolCall(printer.IconSearch, "github_open_issues", "repo", repo)
 
-	ctx, cancel := context.WithTimeout(context.Background(), githubDefaultTimeout)
+	ctx, cancel := context.WithTimeout(ctx, githubDefaultTimeout)
 	defer cancel()
 
 	// Fetch open issues, sorted by created_at descending (newest first)
@@ -1929,5 +1928,5 @@ func (g *GitHubTools) ExecRelease(ctx context.Context, params *ReleaseParams) (a
 	if params == nil {
 		return nil, errors.New("invalid params for github_release_info")
 	}
-	return g.FetchRelease(params.Repo, params.Tag)
+	return g.FetchRelease(ctx, params.Repo, params.Tag)
 }

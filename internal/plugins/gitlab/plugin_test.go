@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/wmentor/go-magnetar/internal/config"
@@ -42,6 +43,7 @@ gitlab:
 	hub := &mockHub{}
 
 	// Create plugin with properly initialized State
+	// WebProcStore is not needed when gitlab is disabled (enable: false)
 	pluginInstance := &Plugin{
 		state: &plugin.State{
 			Config:           cfg,
@@ -77,6 +79,7 @@ gitlab:
 	toolStore := tools.NewStore(maskService)
 	hub := &mockHub{}
 
+	// WebProcStore is not needed when gitlab is disabled
 	pluginInstance := &Plugin{
 		state: &plugin.State{
 			Config:           cfg,
@@ -112,6 +115,7 @@ gitlab:
 	toolStore := tools.NewStore(maskService)
 	hub := &mockHub{}
 
+	// WebProcStore is not needed when base_url is empty
 	pluginInstance := &Plugin{
 		state: &plugin.State{
 			Config:           cfg,
@@ -145,6 +149,8 @@ gitlab:
 	clientFactory := testdata.NewClientFactory(t)
 	maskService := mask.NewService(cfg)
 	toolStore := tools.NewStore(maskService)
+	webProcStore := testdata.NewWebProcessorStore(t)
+	webProcStore.EXPECT().AddProcessorFunc(mock.Anything).Return()
 	hub := &mockHub{}
 
 	pluginInstance := &Plugin{
@@ -153,6 +159,7 @@ gitlab:
 			Printer:          p,
 			ToolStore:        toolStore,
 			RequesterFactory: clientFactory,
+			WebProcStore:     webProcStore,
 		},
 	}
 

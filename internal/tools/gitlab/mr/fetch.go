@@ -12,7 +12,6 @@ import (
 
 	"github.com/pkg/errors"
 
-	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
@@ -28,13 +27,13 @@ type GitLabMRParams struct {
 
 // Tool provides gitlab_fetch_mr operation as LLM tool.
 type Tool struct {
-	cfg           *config.Config
+	cfg           plugin.Config
 	printer       printer.Printer
 	clientFactory plugin.ClientFactory
 }
 
 // New creates a new Tool instance.
-func New(cfg *config.Config, p printer.Printer, clientFactory plugin.ClientFactory) *Tool {
+func New(cfg plugin.Config, p printer.Printer, clientFactory plugin.ClientFactory) *Tool {
 	return &Tool{
 		cfg:           cfg,
 		printer:       p,
