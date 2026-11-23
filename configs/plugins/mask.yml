@@ -5,3 +5,4 @@ mask:
     email: true # skipping email masking
     phone: false # skipping phone masking
     iban: false # skipping iban masking
+    ip: false # skipping ip masking

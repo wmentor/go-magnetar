@@ -58,9 +58,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 10 records: email, phone, iban, jwt_token, github_token, gitlab_token, passport, snils, ssn, card
-	if len(srv.records) != 10 {
-		t.Errorf("expected 10 records when mask is enabled, got %d", len(srv.records))
+	// Service should have 11 records: email, phone, iban, jwt_token, ip, github_token, gitlab_token, passport, snils, ssn, card
+	if len(srv.records) != 11 {
+		t.Errorf("expected 11 records when mask is enabled, got %d", len(srv.records))
 	}
 }
 
@@ -79,9 +79,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 9 records: phone, iban, jwt_token, github_token, gitlab_token, passport, snils, ssn, card (no email)
-	if len(srv.records) != 9 {
-		t.Errorf("expected 9 records when email is skipped, got %d", len(srv.records))
+	// Service should have 10 records: phone, iban, jwt_token, ip, github_token, gitlab_token, passport, snils, ssn, card (no email)
+	if len(srv.records) != 10 {
+		t.Errorf("expected 10 records when email is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -100,9 +100,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 9 records: email, iban, jwt_token, github_token, gitlab_token, passport, snils, ssn, card (no phone)
-	if len(srv.records) != 9 {
-		t.Errorf("expected 9 records when phone is skipped, got %d", len(srv.records))
+	// Service should have 10 records: email, iban, jwt_token, ip, github_token, gitlab_token, passport, snils, ssn, card (no phone)
+	if len(srv.records) != 10 {
+		t.Errorf("expected 10 records when phone is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -121,9 +121,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 9 records: email, phone, jwt_token, github_token, gitlab_token, passport, snils, ssn, card (no iban)
-	if len(srv.records) != 9 {
-		t.Errorf("expected 9 records when iban is skipped, got %d", len(srv.records))
+	// Service should have 10 records: email, phone, jwt_token, ip, github_token, gitlab_token, passport, snils, ssn, card (no iban)
+	if len(srv.records) != 10 {
+		t.Errorf("expected 10 records when iban is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -142,9 +142,30 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 9 records: email, phone, iban, github_token, gitlab_token, passport, snils, ssn, card (no jwt)
-	if len(srv.records) != 9 {
-		t.Errorf("expected 9 records when jwt is skipped, got %d", len(srv.records))
+	// Service should have 10 records: email, phone, iban, ip, github_token, gitlab_token, passport, snils, ssn, card (no jwt)
+	if len(srv.records) != 10 {
+		t.Errorf("expected 10 records when jwt is skipped, got %d", len(srv.records))
+	}
+}
+
+func TestNewServiceWithSkipIP(t *testing.T) {
+	t.Parallel()
+
+	yaml := `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    ip: true
+`
+
+	cfg := loadTestConfig(t, yaml)
+	srv := NewService(cfg)
+
+	// Service should have 10 records: email, phone, iban, jwt_token, github_token, gitlab_token, passport, snils, ssn, card (no ip)
+	if len(srv.records) != 10 {
+		t.Errorf("expected 10 records when ip is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -164,9 +185,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 8 records: iban, jwt_token, github_token, gitlab_token, passport, snils, ssn, card (no email, no phone)
-	if len(srv.records) != 8 {
-		t.Errorf("expected 8 records when email and phone are skipped, got %d", len(srv.records))
+	// Service should have 9 records: iban, jwt_token, ip, github_token, gitlab_token, passport, snils, ssn, card (no email, no phone)
+	if len(srv.records) != 9 {
+		t.Errorf("expected 9 records when email and phone are skipped, got %d", len(srv.records))
 	}
 }
 
@@ -1053,6 +1074,7 @@ mask:
   enable: true
   skip:
     phone: false
+    ip: true
 `,
 			input: "Date is 2026-11-14 and IP is 192.168.1.1",
 			want:  "Date is 2026-11-14 and IP is 192.168.1.1",
@@ -1390,6 +1412,166 @@ mask:
 `,
 			input: "Here is a normal text with dots: a.b.c and random words and domain sub.example.com",
 			want:  "Here is a normal text with dots: a.b.c and random words and domain sub.example.com",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Helper()
+
+			cfg := loadTestConfig(t, tt.yaml)
+			srv := NewService(cfg)
+
+			got := srv.Process(context.Background(), tt.input)
+
+			if got != tt.want {
+				t.Errorf("Process() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestProcessIPMasking(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		yaml  string
+		input string
+		want  string
+	}{
+		{
+			name: "single IPv4 address",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+`,
+			input: "Server running at 192.168.1.1 on local network",
+			want:  "Server running at [MASKED_IP] on local network",
+		},
+		{
+			name: "multiple IPv4 addresses",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+`,
+			input: "Route from 10.0.0.1 through gateway 172.16.0.1 to 8.8.8.8",
+			want:  "Route from [MASKED_IP] through gateway [MASKED_IP] to [MASKED_IP]",
+		},
+		{
+			name: "IPv4 with port",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+`,
+			input: "Listening on 127.0.0.1:8080 and 0.0.0.0:443",
+			want:  "Listening on [MASKED_IP]:8080 and [MASKED_IP]:443",
+		},
+		{
+			name: "IPv4 in URL",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+`,
+			input: "Healthcheck at http://192.168.1.50:8000/health",
+			want:  "Healthcheck at http://[MASKED_IP]:8000/health",
+		},
+		{
+			name: "standard IPv6 address",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+`,
+			input: "Host address is 2001:0db8:85a3:0000:0000:8a2e:0370:7334",
+			want:  "Host address is [MASKED_IP]",
+		},
+		{
+			name: "compressed IPv6 address",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+`,
+			input: "Connect to 2001:db8::1 for service discovery",
+			want:  "Connect to [MASKED_IP] for service discovery",
+		},
+		{
+			name: "IPv6 loopback",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+`,
+			input: "Binding to ::1 localhost",
+			want:  "Binding to [MASKED_IP] localhost",
+		},
+		{
+			name: "dates and versions not masked as IP",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+`,
+			input: "Release on 2026-11-14 with version 1.2.3.4.5 and invalid 999.999.999.999",
+			want:  "Release on 2026-11-14 with version 1.2.3.4.5 and invalid 999.999.999.999",
+		},
+		{
+			name: "skip single IP address",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+  skip:
+    ip:
+      - "192.168.1.1"
+      - "2001:db8::1"
+`,
+			input: "Gateway 192.168.1.1 is allowed, but client 192.168.1.50 is masked. IPv6 2001:db8::1 is kept while 2001:db8::2 is masked.",
+			want:  "Gateway 192.168.1.1 is allowed, but client [MASKED_IP] is masked. IPv6 2001:db8::1 is kept while [MASKED_IP] is masked.",
+		},
+		{
+			name: "skip CIDR range",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+  skip:
+    ip:
+      - "192.168.1.0/24"
+      - "2001:db8::/32"
+`,
+			input: "Internal 192.168.1.42 is skipped, external 10.0.0.1 is masked, and 2001:db8::dead:beef is skipped.",
+			want:  "Internal 192.168.1.42 is skipped, external [MASKED_IP] is masked, and 2001:db8::dead:beef is skipped.",
+		},
+		{
+			name: "skip wildcard pattern",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+  skip:
+    ip:
+      - "10.0.*.*"
+`,
+			input: "Office 10.0.5.23 is skipped, but 172.16.0.5 is masked",
+			want:  "Office 10.0.5.23 is skipped, but [MASKED_IP] is masked",
+		},
+		{
+			name: "skip all IP masking via boolean",
+			yaml: `version: "1.0"
+profile: test
+mask:
+  enable: true
+  skip:
+    ip: true
+`,
+			input: "All IPs preserved: 192.168.1.1, 10.0.0.1, and 2001:db8::1",
+			want:  "All IPs preserved: 192.168.1.1, 10.0.0.1, and 2001:db8::1",
 		},
 	}
 
