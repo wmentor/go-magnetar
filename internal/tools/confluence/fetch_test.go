@@ -69,6 +69,7 @@ func TestFetchTool_FetchPage(t *testing.T) {
 		wantPageID  string
 		wantErr     string
 		wantContent []string
+		cancelCtx   bool
 	}{
 		{
 			name:       "numeric page ID parses and formats response",
@@ -174,6 +175,36 @@ func TestFetchTool_FetchPage(t *testing.T) {
 			baseURL: "https://confluence.example.com",
 			wantErr: "invalid params",
 		},
+		{
+			name:       "empty response body",
+			baseURL:    "https://confluence.example.com",
+			params:     &confluence.FetchPageParams{PageID: "12345"},
+			response:   newFetchTestResponse(http.StatusOK, "application/json", ""),
+			doRequest:  true,
+			wantPageID: "12345",
+			wantErr:    "decode page",
+		},
+		{
+			name:       "special characters in page ID are escaped in the request URL",
+			baseURL:    "https://confluence.example.com",
+			params:     &confluence.FetchPageParams{PageID: "12 345"},
+			response:   newFetchTestResponse(http.StatusOK, "application/json", pageBody),
+			doRequest:  true,
+			wantPageID: "12%20345",
+			wantContent: []string{
+				"Confluence page ID: 12345",
+				"Title: Test Page",
+			},
+		},
+		{
+			name:       "canceled context",
+			baseURL:    "https://confluence.example.com",
+			params:     &confluence.FetchPageParams{PageID: "12345"},
+			doRequest:  true,
+			cancelCtx:  true,
+			wantPageID: "12345",
+			wantErr:    "context canceled",
+		},
 	}
 
 	for _, tt := range tests {
@@ -202,6 +233,12 @@ func TestFetchTool_FetchPage(t *testing.T) {
 						)
 						require.NotEmpty(t, req.Header.Get("Authorization"))
 						require.Equal(t, "application/json", req.Header.Get("Content-Type"))
+						deadline, hasDeadline := req.Context().Deadline()
+						require.True(t, hasDeadline)
+						require.False(t, deadline.IsZero())
+						if tt.cancelCtx {
+							return nil, req.Context().Err()
+						}
 						return tt.response, tt.requestErr
 					}).Once()
 			}
@@ -212,7 +249,14 @@ func TestFetchTool_FetchPage(t *testing.T) {
 				factory,
 			)
 
-			got, err := tool.FetchPage(context.Background(), tt.params)
+			ctx := context.Background()
+			if tt.cancelCtx {
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithCancel(context.Background())
+				cancel()
+			}
+
+			got, err := tool.FetchPage(ctx, tt.params)
 			if tt.wantErr != "" {
 				require.ErrorContains(t, err, tt.wantErr)
 				require.Nil(t, got)
