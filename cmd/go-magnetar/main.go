@@ -6,6 +6,10 @@ import (
 	"os/user"
 
 	"github.com/wmentor/go-magnetar/internal/cmd"
+
+	// Load .env from the current directory, if present. Does not override
+	// variables that are already set in the environment.
+	_ "github.com/joho/godotenv/autoload"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/compact"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/copy"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/edit"
