@@ -78,11 +78,15 @@ func isIPSkipped(ip net.IP, ipStr string, rules []ipSkipRule) bool {
 	return false
 }
 
+func isHexOrColon(b byte) bool {
+	return b == ':' || (b >= '0' && b <= '9') || (b >= 'a' && b <= 'f') || (b >= 'A' && b <= 'F')
+}
+
 // maskIPAddress handles unified IPv4 and IPv6 masking.
 func maskIPAddress(match string, skipRules []ipSkipRule) string {
 	prefix := ""
 	clean := match
-	if len(match) > 0 && match[0] != ':' && (match[0] < '0' || match[0] > '9') && (match[0] < 'a' || match[0] > 'f') && (match[0] < 'A' || match[0] > 'F') {
+	if len(match) > 0 && !isHexOrColon(match[0]) {
 		prefix = string(match[0])
 		clean = match[1:]
 	}
