@@ -233,3 +233,32 @@ github:
 	tools := state.ToolStore.Tools()
 	assert.GreaterOrEqual(t, len(tools), 1, "tools should be registered even without API key")
 }
+
+func TestPlugin_execWebFetch_SkipsNonGitHubURLs(t *testing.T) {
+	t.Parallel()
+
+	state := createTestState(t, "", true)
+	p := &Plugin{}
+	require.NoError(t, p.Init(state, &mockHub{}))
+
+	tests := []struct {
+		name string
+		url  string
+	}{
+		{name: "empty url", url: ""},
+		{name: "plain text", url: "not a url"},
+		{name: "other host", url: "https://example.com/owner/repo/issues/1"},
+		{name: "gitlab host", url: "https://gitlab.com/owner/repo/-/merge_requests/1"},
+		{name: "github without trailing slash", url: "https://github.com"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			got, err := p.execWebFetch(context.Background(), tt.url)
+			require.ErrorIs(t, err, plugin.ErrNoWebProcessor)
+			assert.Empty(t, got)
+		})
+	}
+}
