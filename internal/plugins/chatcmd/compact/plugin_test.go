@@ -10,6 +10,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/plugin/testdata"
+	printerdata "github.com/wmentor/go-magnetar/internal/printer/testdata"
 )
 
 type mockCompactHub struct {
@@ -25,13 +26,14 @@ func TestCompactCommandModes(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name     string
-		args     string
-		wantMode []string
+		name       string
+		args       string
+		wantMode   []string
+		wantStdout string
 	}{
-		{name: "default mode", args: "", wantMode: nil},
-		{name: "soft mode", args: "soft", wantMode: []string{"soft"}},
-		{name: "full mode", args: "full", wantMode: []string{"full"}},
+		{name: "default mode", args: "", wantMode: nil, wantStdout: "Context compacted: 2 → 2 messages.\n\n"},
+		{name: "soft mode", args: "soft", wantMode: []string{"soft"}, wantStdout: "Context compacted: 2 → 2 messages.\n\n"},
+		{name: "full mode", args: "full", wantMode: []string{"full"}, wantStdout: "Context compacted: 2 → 2 messages.\n\n"},
 	}
 
 	for _, tt := range tests {
@@ -56,12 +58,50 @@ func TestCompactCommandModes(t *testing.T) {
 				})
 			}
 
-			_, err := hub.cmd.Execute(context.Background(), &plugin.ChatCommandInput{
+			resp, err := hub.cmd.Execute(context.Background(), &plugin.ChatCommandInput{
 				AgentHandler: handler,
 				Args:         tt.args,
 			})
 			require.NoError(t, err)
+			require.NotNil(t, resp)
 			assert.Equal(t, tt.wantMode, gotMode)
+			assert.Equal(t, tt.wantStdout, resp.Stdout)
 		})
 	}
+}
+
+func TestCompactCommandUsage(t *testing.T) {
+	t.Parallel()
+
+	hub := &mockCompactHub{}
+	require.NoError(t, (&Plugin{}).Init(&plugin.State{}, hub))
+
+	resp, err := hub.cmd.Execute(context.Background(), &plugin.ChatCommandInput{
+		Args: "nope",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, "Usage: /compact [soft|full]\n", resp.Stdout)
+}
+
+func TestCompactCommandError(t *testing.T) {
+	t.Parallel()
+
+	hub := &mockCompactHub{}
+	pr := printerdata.NewPrinter(t)
+	compactErr := assert.AnError
+	pr.EXPECT().Error("chat: manual compaction failed", "err", compactErr).Once()
+
+	require.NoError(t, (&Plugin{}).Init(&plugin.State{Printer: pr}, hub))
+
+	handler := testdata.NewAgentHandle(t)
+	handler.EXPECT().Messages().Return([]openai.ChatCompletionMessage{{Role: "system"}}).Once()
+	handler.EXPECT().Compact().Return(compactErr).Once()
+
+	resp, err := hub.cmd.Execute(context.Background(), &plugin.ChatCommandInput{
+		AgentHandler: handler,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	assert.Equal(t, "Error: compaction failed — see logs for details.\n", resp.Stdout)
 }
