@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/wmentor/go-magnetar/internal/config"
@@ -55,12 +56,19 @@ func createTestState(t *testing.T, configYaml string, enableGithub bool) *plugin
 	p := printer.GetDefault()
 	clientFactory := testdata.NewClientFactory(t)
 	maskService := mask.NewService(cfg)
+	toolStore := tools.NewStore(maskService)
+
+	webProcStore := testdata.NewWebProcessorStore(t)
+	if enableGithub {
+		webProcStore.EXPECT().AddProcessorFunc(mock.Anything).Return()
+	}
 
 	return &plugin.State{
 		Config:           cfg,
 		Printer:          p,
-		ToolStore:        tools.NewStore(maskService),
+		ToolStore:        toolStore,
 		RequesterFactory: clientFactory,
+		WebProcStore:     webProcStore,
 	}
 }
 
@@ -160,12 +168,16 @@ func TestPlugin_Init_MissingGitHubSection(t *testing.T) {
 	p := printer.GetDefault()
 	clientFactory := testdata.NewClientFactory(t)
 	maskService := mask.NewService(cfgLoaded)
+	toolStore := tools.NewStore(maskService)
+	webProcStore := testdata.NewWebProcessorStore(t)
+	// WebProcStore is not needed when github section is missing
 
 	state := &plugin.State{
 		Config:           cfgLoaded,
 		Printer:          p,
-		ToolStore:        tools.NewStore(maskService),
+		ToolStore:        toolStore,
 		RequesterFactory: clientFactory,
+		WebProcStore:     webProcStore,
 	}
 	hub := &mockHub{}
 
@@ -199,12 +211,16 @@ github:
 	p := printer.GetDefault()
 	clientFactory := testdata.NewClientFactory(t)
 	maskService := mask.NewService(cfgLoaded)
+	toolStore := tools.NewStore(maskService)
+	webProcStore := testdata.NewWebProcessorStore(t)
+	webProcStore.EXPECT().AddProcessorFunc(mock.Anything).Return()
 
 	state := &plugin.State{
 		Config:           cfgLoaded,
 		Printer:          p,
-		ToolStore:        tools.NewStore(maskService),
+		ToolStore:        toolStore,
 		RequesterFactory: clientFactory,
+		WebProcStore:     webProcStore,
 	}
 	hub := &mockHub{}
 
