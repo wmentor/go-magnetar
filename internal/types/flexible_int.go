@@ -11,7 +11,7 @@ type FlexibleInt int
 func (fi *FlexibleInt) UnmarshalJSON(data []byte) error {
 	var num float64
 	if err := json.Unmarshal(data, &num); err == nil {
-		*fi = FlexibleInt(int(num)) // Отрезаем дробную часть (5.7 станет 5)
+		*fi = FlexibleInt(int(num))
 		return nil
 	}
 
