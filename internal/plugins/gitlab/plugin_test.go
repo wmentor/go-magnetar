@@ -2,8 +2,12 @@ package gitlabplug
 
 import (
 	"context"
+	"errors"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -189,4 +193,167 @@ func (h *mockHub) Go(f func(ctx context.Context)) {
 
 func (h *mockHub) Stop() {
 	// No-op for testing
+}
+
+func newMergeRequestListResponse(t *testing.T, status int, body string) *http.Response {
+	t.Helper()
+
+	return &http.Response{
+		StatusCode: status,
+		Header:     http.Header{"Content-Type": []string{"application/json"}},
+		Body:       io.NopCloser(strings.NewReader(body)),
+	}
+}
+
+func TestFetchGitLabMergeRequestsList(t *testing.T) {
+	t.Parallel()
+
+	const baseURL = "https://gitlab.example.com"
+	const mrListBody = `[
+		{
+			"iid": 7,
+			"title": "Add feature",
+			"description": "details",
+			"state": "opened",
+			"created_at": "2026-01-02T03:04:05Z",
+			"web_url": "https://gitlab.example.com/group/proj/-/merge_requests/7",
+			"source_branch": "feature",
+			"target_branch": "main",
+			"author": {"username": "alice", "name": "Alice"}
+		}
+	]`
+
+	tests := []struct {
+		name         string
+		projectPath  string
+		baseURL      string
+		response     *http.Response
+		requestErr   error
+		doRequest    bool
+		wantAPIKey   bool
+		wantErr      string
+		wantContent  []string
+		wantURLParts []string
+	}{
+		{
+			name:        "valid project path returns markdown",
+			projectPath: "group/proj",
+			baseURL:     baseURL,
+			response:    newMergeRequestListResponse(t, http.StatusOK, mrListBody),
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantContent: []string{
+				"# Merge Requests (Opened)",
+				"Project: group/proj",
+				"Total: 1",
+				"## MR !7",
+				"**Title:** Add feature",
+				"**Author:** alice",
+				"**State:** opened",
+			},
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fproj/merge_requests",
+				"state=opened",
+			},
+		},
+		{
+			name:        "empty project path returns an API error",
+			projectPath: "",
+			baseURL:     baseURL,
+			response:    newMergeRequestListResponse(t, http.StatusNotFound, `{"message":"404 Project Not Found"}`),
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantErr:     `MR list "" returned status 404`,
+			wantURLParts: []string{
+				"/api/v4/projects//merge_requests",
+				"state=opened",
+			},
+		},
+		{
+			name:        "API error",
+			projectPath: "group/proj",
+			baseURL:     baseURL,
+			requestErr:  errors.New("connection refused"),
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantErr:     "connection refused",
+		},
+		{
+			name:        "HTTP error status",
+			projectPath: "group/proj",
+			baseURL:     baseURL,
+			response:    newMergeRequestListResponse(t, http.StatusInternalServerError, `{"message":"boom"}`),
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantErr:     "returned status 500",
+		},
+		{
+			name:        "empty merge request list",
+			projectPath: "group/proj",
+			baseURL:     baseURL,
+			response:    newMergeRequestListResponse(t, http.StatusOK, "[]"),
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantContent: []string{
+				"# Merge Requests (Opened)",
+				"Project: group/proj",
+				"No merge requests found.",
+			},
+		},
+		{
+			name:        "malformed base URL",
+			projectPath: "group/proj",
+			baseURL:     "https://[::1",
+			wantErr:     "failed to create request",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := testdata.NewConfig(t)
+			cfg.EXPECT().String("gitlab.base_url").Return(tt.baseURL).Once()
+			if tt.wantAPIKey {
+				cfg.EXPECT().String("gitlab.api_key").Return("test-token").Once()
+			}
+
+			factory := testdata.NewClientFactory(t)
+			client := testdata.NewClient(t)
+			factory.EXPECT().Get().Return(client).Once()
+			factory.EXPECT().Put(client).Once()
+			if tt.doRequest {
+				client.EXPECT().Do(mock.AnythingOfType("*http.Request")).
+					RunAndReturn(func(req *http.Request) (*http.Response, error) {
+						require.Equal(t, http.MethodGet, req.Method)
+						require.Equal(t, "Bearer test-token", req.Header.Get("Authorization"))
+						require.Equal(t, "application/json", req.Header.Get("Content-Type"))
+						for _, part := range tt.wantURLParts {
+							require.Contains(t, req.URL.String(), part)
+						}
+						return tt.response, tt.requestErr
+					}).Once()
+			}
+
+			pluginInstance := &Plugin{
+				state: &plugin.State{
+					Config:           cfg,
+					Printer:          printer.New(io.Discard, false),
+					RequesterFactory: factory,
+				},
+			}
+
+			got, err := pluginInstance.fetchGitLabMergeRequestsList(context.Background(), tt.projectPath)
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+				require.Empty(t, got)
+				return
+			}
+
+			require.NoError(t, err)
+			for _, content := range tt.wantContent {
+				require.Contains(t, got, content)
+			}
+		})
+	}
 }
