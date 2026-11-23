@@ -77,8 +77,8 @@ func NewService(cfg *config.Config) *Service {
 			`\b(?:[0-9a-fA-F]{1,4}:){1,2}:[0-9a-fA-F]{1,4}(?::[0-9a-fA-F]{1,4}){1,5}\b|` +
 			`\b[0-9a-fA-F]{1,4}:(?::[0-9a-fA-F]{1,4}){1,6}\b|` +
 			`\b:(?::[0-9a-fA-F]{1,4}){1,7}\b|` +
-			`\b(?:[0-9a-fA-F]{1,4}:){1,7}:\b|` +
-			`\b::1\b|\b::\b)`
+			`\b(?:[0-9a-fA-F]{1,4}:){1,7}:|` +
+			`(?:\A|[^0-9a-zA-Z_:])(?:::1\b|::(?::[0-9a-fA-F]{1,4}){1,7}\b|::(?:\z|[^0-9a-zA-Z_:])))`
 		srv.registerFunc("ip", ipPattern, func(match string) string {
 			return maskIPAddress(match, skipRules)
 		})

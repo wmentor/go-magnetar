@@ -80,12 +80,18 @@ func isIPSkipped(ip net.IP, ipStr string, rules []ipSkipRule) bool {
 
 // maskIPAddress handles unified IPv4 and IPv6 masking.
 func maskIPAddress(match string, skipRules []ipSkipRule) string {
-	ip := net.ParseIP(match)
+	prefix := ""
+	clean := match
+	if len(match) > 0 && match[0] != ':' && (match[0] < '0' || match[0] > '9') && (match[0] < 'a' || match[0] > 'f') && (match[0] < 'A' || match[0] > 'F') {
+		prefix = string(match[0])
+		clean = match[1:]
+	}
+	ip := net.ParseIP(clean)
 	if ip == nil {
 		return match
 	}
-	if isIPSkipped(ip, match, skipRules) {
+	if isIPSkipped(ip, clean, skipRules) {
 		return match
 	}
-	return "[MASKED_IP]"
+	return prefix + "[MASKED_IP]"
 }
