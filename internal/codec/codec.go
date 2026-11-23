@@ -10,6 +10,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/codec/epub"
 	"github.com/wmentor/go-magnetar/internal/codec/excel"
 	"github.com/wmentor/go-magnetar/internal/codec/html"
+	"github.com/wmentor/go-magnetar/internal/codec/ipynb"
 	"github.com/wmentor/go-magnetar/internal/codec/numbers"
 	"github.com/wmentor/go-magnetar/internal/codec/odt"
 	"github.com/wmentor/go-magnetar/internal/codec/pages"
@@ -28,6 +29,7 @@ var (
 		".epub":    &epub.Codec{},
 		".htm":     &html.Codec{},
 		".html":    &html.Codec{},
+		".ipynb":   &ipynb.Codec{},
 		".numbers": &numbers.Codec{},
 		".odt":     &odt.Codec{},
 		".pages":   &pages.Codec{},
@@ -41,6 +43,7 @@ var (
 		"epub":     &epub.Codec{},
 		"htm":      &html.Codec{},
 		"html":     &html.Codec{},
+		"ipynb":    &ipynb.Codec{},
 		"numbers":  &numbers.Codec{},
 		"odt":      &odt.Codec{},
 		"pages":    &pages.Codec{},
@@ -65,6 +68,7 @@ var (
 		"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":         &excel.Codec{},
 		"application/vnd.oasis.opendocument.text":                                   &odt.Codec{},
 		"application/vnd.openxmlformats-officedocument.presentationml.presentation": &pptx.Codec{},
+		"application/x-ipynb+json":                                                  &ipynb.Codec{},
 		"application/x-iwork-numbers-sffnumbers":                                    &numbers.Codec{},
 		"application/x-iwork-pages-sffpages":                                        &pages.Codec{},
 		"message/rfc822":                                                            &eml.Codec{},

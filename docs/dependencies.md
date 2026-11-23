@@ -21,5 +21,6 @@
 | `github.com/wmentor/iwaread` | Apple Pages document parsing (iWork '13 and newer) |
 | `github.com/sevlyar/go-daemon` | Daemon process management for background execution |
 | `github.com/modelcontextprotocol/go-sdk` | MCP (Model Context Protocol) server implementation |
+| `github.com/wmentor/joveleaf` | Jupyter Notebook (.ipynb) file parsing |
 
 See [docs/dev_tools.md](./dev_tools.md) for development tools documentation.

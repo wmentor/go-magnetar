@@ -14,7 +14,7 @@ An AI smart shell with an integrated knowledge base and customizable skills. A s
 - **Skills** — customize agent behavior with reusable skill files for specialized tasks
 - **Subagents** — spawn specialized agents for complex tasks (exploration, research, parallel work)
 - **Integrations** — Confluence, JIRA, GitHub, GitLab (all optional, disabled by default); when enabled, simply provide a URL to a page or resource, and the system automatically detects the platform and fetches the content as markdown for AI agent
-- **Smart reading** - Transparent read a wide range of file formats (`.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.pages`, `.odt`, `.pptx`, `.xlsx`, `.html`, `.eml`, `.epub`, `.numbers`) and convert into markdown. For a complete list of supported formats and their available modes, see [docs/file_codecs.md](./docs/file_codecs.md).
+- **Smart reading** - Transparent read a wide range of file formats (`.md`, `.txt`, `.csv`, `.tsv`, `.docx`, `.pdf`, `.pages`, `.odt`, `.pptx`, `.xlsx`, `.html`, `.eml`, `.epub`, `.numbers`, `.ipynb`) and convert into markdown. For a complete list of supported formats and their available modes, see [docs/file_codecs.md](./docs/file_codecs.md).
 - **MCP mode** — run as an MCP (Model Context Protocol) server for advanced file reading, URL context fetching, knowledge base operations (built-in or external), and search capabilities; see [docs/mcp_mode.md](./docs/mcp_mode.md) for complete documentation
 
 ## Requirements
@@ -116,7 +116,7 @@ Beyond answering questions, the agent has access to tools it can call automatica
 
 | Tool | Description |
 |---|---|
-| `file_read` | Read local files (`.md`, `.txt`, `.pdf`, `.docx`, `.xlsx`, and more) |
+| `file_read` | Read local files (`.md`, `.txt`, `.pdf`, `.docx`, `.xlsx`, `.ipynb`, and more) |
 | `file_list` | List files in the current directory by glob pattern |
 | `file_write` | Write content to a file |
 | `edit` | Edit a plain-text file by replacing text (case-sensitive, exact match required) |

@@ -65,7 +65,8 @@ func (t *Tool) NameMCP() string {
 
 // Description returns the tool description.
 func (t *Tool) Description() string {
-	return "Read the contents of a file by its path. Supports transparent gzip decompression (no manual decompression needed)."
+	return "Read the contents of a file by its path. Supports transparent gzip decompression (no manual decompression needed) " +
+		"and smart decoding of various file formats (e.g., .docx, .pdf, .epub, .ipynb) by automatically converting them to Markdown."
 }
 
 // recoverableExtension returns the file extension to use for codec lookup.
