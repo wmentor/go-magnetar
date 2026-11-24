@@ -84,36 +84,14 @@ func (t *FetchTool) FetchPage(ctx context.Context, params *FetchPageParams) (any
 
 	var sb strings.Builder
 
-	sb.WriteString("Confluence page ID: ")
-	sb.WriteString(page.ID)
-	sb.WriteRune('\n')
-
-	sb.WriteString("Space: ")
-	sb.WriteString(page.Space.Key)
-	sb.WriteRune('\n')
-
-	sb.WriteString("Title: ")
-	sb.WriteString(page.Title)
-	sb.WriteRune('\n')
-
-	sb.WriteString("Created: ")
-	sb.WriteString(page.History.Created)
-	sb.WriteRune('\n')
-
-	sb.WriteString("Author: ")
-	sb.WriteString(page.History.CreatedBy.DisplayName)
-	sb.WriteString(" (")
-	sb.WriteString(page.History.CreatedBy.Username)
-	sb.WriteString(")\n")
-
-	sb.WriteString("Updated: ")
-	sb.WriteString(page.Version.Updated)
-	sb.WriteRune('\n')
-
+	fmt.Fprintf(&sb, "Confluence page ID: %s\n", page.ID)
+	fmt.Fprintf(&sb, "Space: %s\n", page.Space.Key)
+	fmt.Fprintf(&sb, "Title: %s\n", page.Title)
+	fmt.Fprintf(&sb, "Created: %s\n", page.History.Created)
+	fmt.Fprintf(&sb, "Author: %s (%s)\n", page.History.CreatedBy.DisplayName, page.History.CreatedBy.Username)
+	fmt.Fprintf(&sb, "Updated: %s\n", page.Version.Updated)
 	fmt.Fprintf(&sb, "Version: %d\n", page.Version.Number)
-
-	sb.WriteString("Body:\n")
-	sb.WriteString(page.Body.Storage.Value)
+	fmt.Fprintf(&sb, "Body:\n%s\n", page.Body.Storage.Value)
 
 	return &tools.Response{
 		Status: tools.StatusOK,
