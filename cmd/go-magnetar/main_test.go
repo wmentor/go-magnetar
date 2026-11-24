@@ -13,7 +13,7 @@ func TestDotenvLoading(t *testing.T) {
 	envFile := filepath.Join(tempDir, ".env")
 	content := "MAGNETAR_TEST_VAR=autoloaded_value\n"
 
-	if err := os.WriteFile(envFile, []byte(content), 0644); err != nil {
+	if err := os.WriteFile(envFile, []byte(content), 0o644); err != nil {
 		t.Fatalf("failed to write test .env file: %v", err)
 	}
 
