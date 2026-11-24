@@ -715,6 +715,12 @@ func (g *GitHubTools) formatTreeMarkdown(files []struct {
 
 // fetchWithHeaders performs an HTTP request with GitHub API headers.
 func (g *GitHubTools) fetchWithHeaders(ctx context.Context, method string, apiURL string) (*http.Response, error) { //nolint:unparam // ok.
+	// A configured base_url (GitHub Enterprise, or a local test server) has to
+	// be applied before the request is built, or it never reaches the wire.
+	if base := g.cfg.String("github.base_url"); base != "" {
+		apiURL = strings.Replace(apiURL, "https://api.github.com", strings.TrimRight(base, "/"), 1)
+	}
+
 	req, err := http.NewRequestWithContext(ctx, method, apiURL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("github: failed to create request for %q: %w", apiURL, err)
@@ -723,10 +729,6 @@ func (g *GitHubTools) fetchWithHeaders(ctx context.Context, method string, apiUR
 	req.Header.Set("Authorization", "Bearer "+g.cfg.String("github.api_key"))
 	req.Header.Set("Accept", "application/vnd.github+json")
 	req.Header.Set("X-GitHub-Api-Version", "2026-03-10")
-
-	if g.cfg.String("github.base_url") != "" {
-		apiURL = strings.Replace(apiURL, "https://api.github.com", g.cfg.String("github.base_url"), 1)
-	}
 
 	client := g.clientFactory.Get()
 	defer g.clientFactory.Put(client)
