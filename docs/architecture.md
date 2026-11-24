@@ -272,7 +272,7 @@ When both `limit` and `offset` are `0`, the entire file is read using the optimi
 
 ### Supported file formats
 
-The `file_read` tool supports the following file formats. See [docs/file_codecs.md](./docs/file_codecs.md) for a complete list of supported formats and codec implementation details:
+The `file_read` tool supports the following file formats. See [docs/file_codecs.md](file_codecs.md) for a complete list of supported formats and codec implementation details:
 
 | Format | Description |
 |---|---|
