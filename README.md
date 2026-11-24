@@ -1,4 +1,18 @@
-<img src="./docs/images/logo.jpeg" width="400px;" style="border-radius:10px;">
+<img src="./docs/images/logo.jpeg" width="400px;" style="border-radius:10px">
+
+---
+
+<br/>
+
+  <img src="https://img.shields.io/badge/Go-1.27.4-00ADD8?style=flat" alt="Go Version">
+  <img src="https://img.shields.io/github/v/release/wmentor/go-magnetar?label=Release&color=00ADD8&style=flat" alt="Latest Release">
+  <img src="https://img.shields.io/badge/License-MIT-00ADD8?style=flat" alt="MIT License">
+  <img src="https://img.shields.io/badge/AI-Agent-00ADD8?style=flat" alt="AI Agent">
+  <img src="https://img.shields.io/badge/RAG-Enabled-00ADD8?style=flat" alt="RAG Enabled">
+  <img src="https://img.shields.io/badge/MCP-Server-00ADD8?style=flat" alt="MCP Server">
+  <img src="https://img.shields.io/github/stars/wmentor/go-magnetar?label=Stars&color=00ADD8&style=flat" alt="GitHub Stars">
+  <img src="https://img.shields.io/github/forks/wmentor/go-magnetar?label=Forks&color=00ADD8&style=flat" alt="GitHub Forks">
+  <img src="https://img.shields.io/badge/PRs-welcome-00ADD8?style=flat" alt="PRs Welcome">
 
 ---
 
