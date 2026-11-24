@@ -2,6 +2,7 @@ package initplugin
 
 import (
 	"context"
+	_ "embed"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,6 +11,9 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/plugin"
 )
+
+//go:embed prompt.txt
+var promptTemplate string
 
 func init() {
 	plugin.Register("chatcmd.init", &Plugin{})
@@ -61,20 +65,7 @@ func (p *Plugin) Init(_ *plugin.State, hub plugin.Hub) error {
 				topLevelStr = "empty directory"
 			}
 
-			content := fmt.Sprintf(`Please initialize this project by analyzing the codebase and creating a comprehensive AGENTS.md file in the project root.
-
-Detected project structure:
-- Key configuration and build files: %s
-- Top-level files and directories: %s
-
-Please:
-1. Examine the codebase structure, dependencies, build/test workflows, and key conventions.
-2. Generate and write an AGENTS.md file in the project root with the following sections:
-   - Project overview and purpose
-   - Architecture and component structure
-   - Build, run, and test commands
-   - Development conventions and guidelines
-Use the file_write tool to save the resulting AGENTS.md file.`, keyFilesStr, topLevelStr)
+			content := fmt.Sprintf(promptTemplate, keyFilesStr, topLevelStr)
 
 			return &plugin.ChatCommandResponse{
 				Stdout:  "Initializing project: analyzing structure and generating AGENTS.md...\n",
