@@ -11,6 +11,7 @@ import (
 	"github.com/wmentor/go-magnetar/internal/codec/excel"
 	"github.com/wmentor/go-magnetar/internal/codec/html"
 	"github.com/wmentor/go-magnetar/internal/codec/ipynb"
+	"github.com/wmentor/go-magnetar/internal/codec/keynote"
 	"github.com/wmentor/go-magnetar/internal/codec/numbers"
 	"github.com/wmentor/go-magnetar/internal/codec/odt"
 	"github.com/wmentor/go-magnetar/internal/codec/pages"
@@ -30,6 +31,7 @@ var (
 		".htm":     &html.Codec{},
 		".html":    &html.Codec{},
 		".ipynb":   &ipynb.Codec{},
+		".key":     &keynote.Codec{},
 		".numbers": &numbers.Codec{},
 		".odt":     &odt.Codec{},
 		".pages":   &pages.Codec{},
@@ -44,6 +46,7 @@ var (
 		"htm":      &html.Codec{},
 		"html":     &html.Codec{},
 		"ipynb":    &ipynb.Codec{},
+		"key":      &keynote.Codec{},
 		"numbers":  &numbers.Codec{},
 		"odt":      &odt.Codec{},
 		"pages":    &pages.Codec{},
@@ -62,6 +65,7 @@ var (
 	mimeReadCodecs = map[string]ReadCodec{
 		"application/epub+zip":          &epub.Codec{},
 		"application/pdf":               &pdf.Codec{},
+		"application/vnd.apple.keynote": &keynote.Codec{},
 		"application/vnd.apple.numbers": &numbers.Codec{},
 		"application/vnd.apple.pages":   &pages.Codec{},
 		"application/vnd.openxmlformats-officedocument.wordprocessingml.document":   &docx.Codec{},

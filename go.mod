@@ -36,7 +36,7 @@ require (
 	github.com/sevlyar/go-daemon v0.1.7
 	github.com/stretchr/testify v1.12.1
 	github.com/wmentor/html v1.0.5
-	github.com/wmentor/iwaread v1.2.0
+	github.com/wmentor/iwaread v1.3.0
 	github.com/wmentor/joveleaf v1.0.0
 	github.com/xuri/excelize/v2 v2.11.1
 	github.com/yuin/goldmark v1.8.6
