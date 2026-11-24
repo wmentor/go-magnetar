@@ -649,3 +649,296 @@ func TestFetchGitLabMergeRequest(t *testing.T) {
 		})
 	}
 }
+
+func newGitLabFileResponse(t *testing.T, status int, body string) *http.Response {
+	t.Helper()
+
+	return &http.Response{
+		StatusCode: status,
+		Header:     http.Header{"Content-Type": []string{"application/json"}},
+		Body:       io.NopCloser(strings.NewReader(body)),
+	}
+}
+
+func TestFetchGitLabFile(t *testing.T) {
+	t.Parallel()
+
+	const baseURL = "https://gitlab.example.com"
+
+	tests := []struct {
+		name         string
+		projectPath  string
+		branch       string
+		fileName     string
+		baseURL      string
+		doRequest    bool
+		wantAPIKey   bool
+		wantURLParts []string
+		response     *http.Response
+		requestErr   error
+		useExpiredCx bool
+		wantResult   string
+		wantErr      string
+		wantErrIs    error
+	}{
+		{
+			name:        "valid base64 encoded file fetch",
+			projectPath: "group/subgroup/project",
+			branch:      "main",
+			fileName:    "src/main.go",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fsubgroup%2Fproject/repository/files/src%2Fmain.go",
+				"ref=main",
+			},
+			response: newGitLabFileResponse(t, http.StatusOK, `{
+				"name": "main.go",
+				"path": "src/main.go",
+				"size": 26,
+				"encoding": "base64",
+				"content": "cGFja2FnZSBtYWluCgpmdW5jIG1haW4oKSB7fQo=",
+				"ref": "main"
+			}`),
+			wantResult: "package main\n\nfunc main() {}\n",
+		},
+		{
+			name:        "valid plain text encoded file fetch",
+			projectPath: "namespace/repo",
+			branch:      "feature-branch",
+			fileName:    "README.md",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/namespace%2Frepo/repository/files/README.md",
+				"ref=feature-branch",
+			},
+			response: newGitLabFileResponse(t, http.StatusOK, `{
+				"name": "README.md",
+				"path": "README.md",
+				"size": 12,
+				"encoding": "text",
+				"content": "# My Project",
+				"ref": "feature-branch"
+			}`),
+			wantResult: "# My Project",
+		},
+		{
+			name:        "empty branch defaults to main",
+			projectPath: "user/repo",
+			branch:      "",
+			fileName:    "config.yml",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/user%2Frepo/repository/files/config.yml",
+				"ref=main",
+			},
+			response: newGitLabFileResponse(t, http.StatusOK, `{
+				"name": "config.yml",
+				"path": "config.yml",
+				"size": 13,
+				"encoding": "base64",
+				"content": "dmVyc2lvbjogMS4wCg==",
+				"ref": "main"
+			}`),
+			wantResult: "version: 1.0\n",
+		},
+		{
+			name:        "special characters in branch and filename",
+			projectPath: "group/repo",
+			branch:      "feature/test#1",
+			fileName:    "docs/path with spaces/file.txt",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Frepo/repository/files/docs%2Fpath%20with%20spaces%2Ffile.txt",
+				"ref=feature/test#1",
+			},
+			response: newGitLabFileResponse(t, http.StatusOK, `{
+				"name": "file.txt",
+				"path": "docs/path with spaces/file.txt",
+				"size": 15,
+				"encoding": "base64",
+				"content": "c3BlY2lhbCBjb250ZW50",
+				"ref": "feature/test#1"
+			}`),
+			wantResult: "special content",
+		},
+		{
+			name:        "HTTP 404 file not found",
+			projectPath: "group/proj",
+			branch:      "main",
+			fileName:    "missing.txt",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fproj/repository/files/missing.txt",
+			},
+			response: newGitLabFileResponse(t, http.StatusNotFound, `{"message":"404 File Not Found"}`),
+			wantErr:  `file "missing.txt" in project "group/proj" returned status 404`,
+		},
+		{
+			name:        "HTTP 401 unauthorized",
+			projectPath: "group/proj",
+			branch:      "main",
+			fileName:    "secret.txt",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fproj/repository/files/secret.txt",
+			},
+			response: newGitLabFileResponse(t, http.StatusUnauthorized, `{"message":"401 Unauthorized"}`),
+			wantErr:  `file "secret.txt" in project "group/proj" returned status 401`,
+		},
+		{
+			name:        "HTTP 500 internal server error",
+			projectPath: "group/proj",
+			branch:      "main",
+			fileName:    "app.go",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fproj/repository/files/app.go",
+			},
+			response: newGitLabFileResponse(t, http.StatusInternalServerError, `{"message":"Internal Server Error"}`),
+			wantErr:  `file "app.go" in project "group/proj" returned status 500`,
+		},
+		{
+			name:        "invalid JSON response",
+			projectPath: "group/proj",
+			branch:      "main",
+			fileName:    "broken.json",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fproj/repository/files/broken.json",
+			},
+			response: newGitLabFileResponse(t, http.StatusOK, `{invalid json`),
+			wantErr:  "failed to parse response",
+		},
+		{
+			name:        "empty response body with no content",
+			projectPath: "group/proj",
+			branch:      "main",
+			fileName:    "empty.txt",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fproj/repository/files/empty.txt",
+			},
+			response: newGitLabFileResponse(t, http.StatusOK, `{"name":"empty.txt","content":""}`),
+			wantErr:  "file empty.txt has no content",
+		},
+		{
+			name:        "invalid base64 content",
+			projectPath: "group/proj",
+			branch:      "main",
+			fileName:    "corrupted.bin",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fproj/repository/files/corrupted.bin",
+			},
+			response: newGitLabFileResponse(t, http.StatusOK, `{
+				"name": "corrupted.bin",
+				"encoding": "base64",
+				"content": "not-valid-base64!!!"
+			}`),
+			wantErr: "failed to decode file",
+		},
+		{
+			name:         "context timeout error",
+			projectPath:  "group/proj",
+			branch:       "main",
+			fileName:     "timeout.txt",
+			baseURL:      baseURL,
+			doRequest:    true,
+			wantAPIKey:   true,
+			useExpiredCx: true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fproj/repository/files/timeout.txt",
+			},
+			requestErr: context.DeadlineExceeded,
+			wantErr:    "failed to fetch file",
+			wantErrIs:  context.DeadlineExceeded,
+		},
+		{
+			name:        "malformed base URL",
+			projectPath: "group/proj",
+			branch:      "main",
+			fileName:    "file.txt",
+			baseURL:     "https://[::1",
+			doRequest:   false,
+			wantErr:     "failed to create request",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := testdata.NewConfig(t)
+			cfg.EXPECT().String("gitlab.base_url").Return(tt.baseURL).Once()
+			if tt.wantAPIKey {
+				cfg.EXPECT().String("gitlab.api_key").Return("test-token").Once()
+			}
+
+			factory := testdata.NewClientFactory(t)
+			client := testdata.NewClient(t)
+			factory.EXPECT().Get().Return(client).Once()
+			factory.EXPECT().Put(client).Once()
+
+			if tt.doRequest {
+				client.EXPECT().Do(mock.AnythingOfType("*http.Request")).
+					RunAndReturn(func(req *http.Request) (*http.Response, error) {
+						require.Equal(t, http.MethodGet, req.Method)
+						require.Equal(t, "Bearer test-token", req.Header.Get("Authorization"))
+						require.Equal(t, "application/json", req.Header.Get("Content-Type"))
+						for _, part := range tt.wantURLParts {
+							require.Contains(t, req.URL.String(), part)
+						}
+						return tt.response, tt.requestErr
+					}).Once()
+			}
+
+			pluginInstance := &Plugin{
+				state: &plugin.State{
+					Config:           cfg,
+					Printer:          printer.New(io.Discard, false),
+					RequesterFactory: factory,
+				},
+			}
+
+			ctx := context.Background()
+			if tt.useExpiredCx {
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithDeadline(ctx, time.Now().Add(-time.Second))
+				defer cancel()
+			}
+
+			got, err := pluginInstance.fetchGitLabFile(ctx, tt.projectPath, tt.branch, tt.fileName)
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+				if tt.wantErrIs != nil {
+					require.ErrorIs(t, err, tt.wantErrIs)
+				}
+				require.Empty(t, got)
+				return
+			}
+
+			require.NoError(t, err)
+			require.Equal(t, tt.wantResult, got)
+		})
+	}
+}
