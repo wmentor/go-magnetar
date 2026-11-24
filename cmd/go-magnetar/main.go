@@ -42,6 +42,7 @@ import (
 	_ "github.com/wmentor/go-magnetar/internal/plugins/rag"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/smtp"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/system"
+	_ "github.com/wmentor/go-magnetar/internal/plugins/telegram"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/web"
 )
 
