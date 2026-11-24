@@ -25,7 +25,7 @@ The guard agent (see [Configuration > Guard](./configuration.md#guard-agent)) us
 
 ## File content substitution
 
-The `{{file:filename}}` placeholder supports reading file contents. See [docs/file_codecs.md](./docs/file_codecs.md) for a complete list of supported file formats and codec implementation details.
+The `{{file:filename}}` placeholder supports reading file contents. See [docs/file_codecs.md](./file_codecs.md) for a complete list of supported file formats and codec implementation details.
 
 File paths can be absolute or use `~/` for the home directory prefix.
 
