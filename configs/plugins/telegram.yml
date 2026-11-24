@@ -13,3 +13,11 @@
 # List of allowed chat IDs for security
 # If not empty, only messages to these chat IDs will be sent
 # telegram.allowed_chat_ids: []
+
+telegram:
+  enable: false             # Enable Telegram integration (default: false)
+  bot_token: "YOUR_TOKEN"   # Telegram bot token from @BotFather
+  default_chat_id: "123456" # Default chat ID for messages
+  allowed_chat_ids:         # Optional: list of allowed chat IDs for security
+    - "123456"
+    - "789012"
