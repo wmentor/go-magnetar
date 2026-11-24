@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -346,6 +347,297 @@ func TestFetchGitLabMergeRequestsList(t *testing.T) {
 			got, err := pluginInstance.fetchGitLabMergeRequestsList(context.Background(), tt.projectPath)
 			if tt.wantErr != "" {
 				require.ErrorContains(t, err, tt.wantErr)
+				require.Empty(t, got)
+				return
+			}
+
+			require.NoError(t, err)
+			for _, content := range tt.wantContent {
+				require.Contains(t, got, content)
+			}
+		})
+	}
+}
+
+func TestFetchGitLabMergeRequest(t *testing.T) {
+	t.Parallel()
+
+	const baseURL = "https://gitlab.example.com"
+	const mrDetailBody = `{
+		"id": 100,
+		"iid": 42,
+		"title": "Fix login flow",
+		"description": "Resolves token expiry edge case",
+		"state": "opened",
+		"created_at": "2026-01-02T03:04:05Z",
+		"updated_at": "2026-01-03T04:05:06Z",
+		"web_url": "https://gitlab.example.com/group/proj/-/merge_requests/42",
+		"source_branch": "fix-login",
+		"target_branch": "main",
+		"author": {"username": "alice", "name": "Alice"},
+		"labels": ["bug", "security"],
+		"milestone": {"title": "v1.0"},
+		"changes_count": "1"
+	}`
+	const mrChangesBody = `{
+		"changes": [
+			{
+				"old_path": "auth.go",
+				"new_path": "auth.go",
+				"new_file": false,
+				"deleted_file": false,
+				"renamed_file": false,
+				"diff": "@@ -1,1 +1,1 @@\n-old\n+new"
+			}
+		]
+	}`
+
+	type mockCall struct {
+		wantURLPart string
+		response    *http.Response
+		err         error
+	}
+
+	tests := []struct {
+		name         string
+		projectPath  string
+		mrID         string
+		baseURL      string
+		useExpiredCx bool
+		calls        []mockCall
+		wantErr      string
+		wantErrIs    error
+		wantContent  []string
+	}{
+		{
+			name:        "successful request returns formatted markdown",
+			projectPath: "group/proj",
+			mrID:        "42",
+			baseURL:     baseURL,
+			calls: []mockCall{
+				{
+					wantURLPart: "/api/v4/projects/group%2Fproj/merge_requests/42",
+					response:    newMergeRequestListResponse(t, http.StatusOK, mrDetailBody),
+				},
+				{
+					wantURLPart: "/api/v4/projects/group%2Fproj/merge_requests/42/changes",
+					response:    newMergeRequestListResponse(t, http.StatusOK, mrChangesBody),
+				},
+			},
+			wantContent: []string{
+				"Project: group/proj",
+				"Title: Fix login flow",
+				"Status: opened",
+				"Author: alice",
+				"Source Branch: fix-login",
+				"Target Branch: main",
+				"Milestone: v1.0",
+				"Labels: bug, security",
+				"Description:\nResolves token expiry edge case",
+				"File Changes:",
+				"1. Modified: auth.go",
+			},
+		},
+		{
+			name:        "invalid empty projectPath returns API error",
+			projectPath: "",
+			mrID:        "42",
+			baseURL:     baseURL,
+			calls: []mockCall{
+				{
+					wantURLPart: "/api/v4/projects//merge_requests/42",
+					response:    newMergeRequestListResponse(t, http.StatusNotFound, `{"message":"404 Project Not Found"}`),
+				},
+			},
+			wantErr: `MR ""/"42" returned status 404`,
+		},
+		{
+			name:        "invalid empty mrID returns API error",
+			projectPath: "group/proj",
+			mrID:        "",
+			baseURL:     baseURL,
+			calls: []mockCall{
+				{
+					wantURLPart: "/api/v4/projects/group%2Fproj/merge_requests/",
+					response:    newMergeRequestListResponse(t, http.StatusNotFound, `{"message":"404 Not Found"}`),
+				},
+			},
+			wantErr: `MR "group/proj"/"" returned status 404`,
+		},
+		{
+			name:        "HTTP 404 error",
+			projectPath: "group/proj",
+			mrID:        "999",
+			baseURL:     baseURL,
+			calls: []mockCall{
+				{
+					wantURLPart: "/api/v4/projects/group%2Fproj/merge_requests/999",
+					response:    newMergeRequestListResponse(t, http.StatusNotFound, `{"message":"404 Not Found"}`),
+				},
+			},
+			wantErr: `MR "group/proj"/"999" returned status 404`,
+		},
+		{
+			name:        "HTTP 401 unauthorized error",
+			projectPath: "group/proj",
+			mrID:        "42",
+			baseURL:     baseURL,
+			calls: []mockCall{
+				{
+					wantURLPart: "/api/v4/projects/group%2Fproj/merge_requests/42",
+					response:    newMergeRequestListResponse(t, http.StatusUnauthorized, `{"message":"401 Unauthorized"}`),
+				},
+			},
+			wantErr: `MR "group/proj"/"42" returned status 401`,
+		},
+		{
+			name:        "HTTP 403 forbidden error",
+			projectPath: "group/proj",
+			mrID:        "42",
+			baseURL:     baseURL,
+			calls: []mockCall{
+				{
+					wantURLPart: "/api/v4/projects/group%2Fproj/merge_requests/42",
+					response:    newMergeRequestListResponse(t, http.StatusForbidden, `{"message":"403 Forbidden"}`),
+				},
+			},
+			wantErr: `MR "group/proj"/"42" returned status 403`,
+		},
+		{
+			name:        "HTTP 500 server error",
+			projectPath: "group/proj",
+			mrID:        "42",
+			baseURL:     baseURL,
+			calls: []mockCall{
+				{
+					wantURLPart: "/api/v4/projects/group%2Fproj/merge_requests/42",
+					response:    newMergeRequestListResponse(t, http.StatusInternalServerError, `{"message":"boom"}`),
+				},
+			},
+			wantErr: `MR "group/proj"/"42" returned status 500`,
+		},
+		{
+			name:         "context timeout error",
+			projectPath:  "group/proj",
+			mrID:         "42",
+			baseURL:      baseURL,
+			useExpiredCx: true,
+			calls: []mockCall{
+				{
+					wantURLPart: "/api/v4/projects/group%2Fproj/merge_requests/42",
+					err:         context.DeadlineExceeded,
+				},
+			},
+			wantErr:   "failed to fetch MR",
+			wantErrIs: context.DeadlineExceeded,
+		},
+		{
+			name:        "empty or invalid JSON API response",
+			projectPath: "group/proj",
+			mrID:        "42",
+			baseURL:     baseURL,
+			calls: []mockCall{
+				{
+					wantURLPart: "/api/v4/projects/group%2Fproj/merge_requests/42",
+					response:    newMergeRequestListResponse(t, http.StatusOK, "{invalid"),
+				},
+			},
+			wantErr: "failed to parse response",
+		},
+		{
+			name:        "changes endpoint HTTP 500 error",
+			projectPath: "group/proj",
+			mrID:        "42",
+			baseURL:     baseURL,
+			calls: []mockCall{
+				{
+					wantURLPart: "/api/v4/projects/group%2Fproj/merge_requests/42",
+					response:    newMergeRequestListResponse(t, http.StatusOK, mrDetailBody),
+				},
+				{
+					wantURLPart: "/api/v4/projects/group%2Fproj/merge_requests/42/changes",
+					response:    newMergeRequestListResponse(t, http.StatusInternalServerError, `{"message":"boom"}`),
+				},
+			},
+			wantErr: `MR changes "group/proj"/"42" returned status 500`,
+		},
+		{
+			name:        "changes endpoint invalid JSON response",
+			projectPath: "group/proj",
+			mrID:        "42",
+			baseURL:     baseURL,
+			calls: []mockCall{
+				{
+					wantURLPart: "/api/v4/projects/group%2Fproj/merge_requests/42",
+					response:    newMergeRequestListResponse(t, http.StatusOK, mrDetailBody),
+				},
+				{
+					wantURLPart: "/api/v4/projects/group%2Fproj/merge_requests/42/changes",
+					response:    newMergeRequestListResponse(t, http.StatusOK, ""),
+				},
+			},
+			wantErr: "failed to parse changes response",
+		},
+		{
+			name:        "malformed base URL",
+			projectPath: "group/proj",
+			mrID:        "42",
+			baseURL:     "https://[::1",
+			wantErr:     "failed to create request",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := testdata.NewConfig(t)
+			baseURLCalls := max(1, len(tt.calls))
+			cfg.EXPECT().String("gitlab.base_url").Return(tt.baseURL).Times(baseURLCalls)
+			if len(tt.calls) > 0 {
+				cfg.EXPECT().String("gitlab.api_key").Return("test-token").Times(len(tt.calls))
+			}
+
+			factory := testdata.NewClientFactory(t)
+			client := testdata.NewClient(t)
+			factory.EXPECT().Get().Return(client).Once()
+			factory.EXPECT().Put(client).Once()
+
+			callIdx := 0
+			if len(tt.calls) > 0 {
+				client.EXPECT().Do(mock.AnythingOfType("*http.Request")).
+					RunAndReturn(func(req *http.Request) (*http.Response, error) {
+						c := tt.calls[callIdx]
+						callIdx++
+						require.Equal(t, http.MethodGet, req.Method)
+						require.Equal(t, "Bearer test-token", req.Header.Get("Authorization"))
+						require.Equal(t, "application/json", req.Header.Get("Content-Type"))
+						require.Contains(t, req.URL.String(), c.wantURLPart)
+						return c.response, c.err
+					}).Times(len(tt.calls))
+			}
+
+			pluginInstance := &Plugin{
+				state: &plugin.State{
+					Config:           cfg,
+					Printer:          printer.New(io.Discard, false),
+					RequesterFactory: factory,
+				},
+			}
+
+			ctx := context.Background()
+			if tt.useExpiredCx {
+				var cancel context.CancelFunc
+				ctx, cancel = context.WithDeadline(ctx, time.Now().Add(-time.Second))
+				defer cancel()
+			}
+
+			got, err := pluginInstance.fetchGitLabMergeRequest(ctx, tt.projectPath, tt.mrID)
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+				if tt.wantErrIs != nil {
+					require.ErrorIs(t, err, tt.wantErrIs)
+				}
 				require.Empty(t, got)
 				return
 			}
