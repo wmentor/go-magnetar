@@ -1,0 +1,21 @@
+# Slack integration configuration
+# Enable the Slack tool (default: false)
+# slack.enable: false
+
+# Slack bot token (required when enabled), starts with xoxb-
+# Create an app at https://api.slack.com/apps, add the chat:write scope and install it
+# slack.token: ""
+
+# Default channel for messages when the tool call does not name one (ID or #name)
+# slack.default_channel_id: ""
+
+# Optional allow-list: when set, the tool refuses any other channel
+# slack.allowed_channel_ids: []
+
+slack:
+  enable: false                 # Enable the Slack tool (default: false)
+  token: "xoxb-YOUR-TOKEN"      # Bot token with the chat:write scope
+  default_channel_id: "C01234567" # Default channel for messages
+  allowed_channel_ids:          # Optional: restrict where the tool may post
+    - "C01234567"
+    - "C89012345"
