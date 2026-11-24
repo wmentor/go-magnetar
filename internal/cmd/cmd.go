@@ -287,8 +287,16 @@ func printEnabledModules(prnt printer.Printer, cfg *config.Config) {
 		prnt.Print(printer.IconModule, "rag plugin is enabled")
 		has = true
 	}
+	if cfg.String("smtp.host") != "" && cfg.Bool("smtp.enable") {
+		prnt.Print(printer.IconModule, "smtp plugin is enabled")
+		has = true
+	}
 	if cfg.Bool("ssh.enable") {
 		prnt.Print(printer.IconModule, "ssh plugin is enabled")
+		has = true
+	}
+	if cfg.String("telegram.bot_token") != "" && cfg.Bool("telegram.enable") {
+		prnt.Print(printer.IconModule, "telegram plugin is enabled")
 		has = true
 	}
 	if has {
