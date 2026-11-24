@@ -19,6 +19,7 @@ go-magnetar supports reading multiple file formats through a unified codec inter
 | `.pages` | `pages.Codec` | Apple Pages documents (iWork '13 and newer) | ✅ | ❌ |
 | `.numbers` | `numbers.Codec` | Apple Numbers spreadsheets (iWork '13 and newer) | ✅ | ❌ |
 | `.ipynb` | `ipynb.Codec` | Jupyter Notebook files | ✅ | ❌ |
+| `.key` | `key.Codec` | Apple Keynote presentations (iWork '13 and newer) | ✅ | ❌ |
 
 Additionally, all text-based formats are supported with read and write capabilities: `.txt`, `.md`, `.pl`, `.py`, `.go`, `.java`, `.c`, `.cpp`, `.h`, `.hpp`, `.js`, `.ts`, `.rs`, `.rb`, `.php`, `.swift`, `.kt`, `.scala`, `.r`, `.m`, `.cs`, `.vb`, `.sh`, `.bash`, `.zsh`, `.fish`, `.yaml`, `.yml`, `.json`, `.xml`, `.toml`, `.ini`, `.cfg`, `.conf`, `.properties`, `.sql`, `.graphql`, `.proto`, `.tf`, `.hcl`, `.rst`, `.asciidoc`, `.org`, `.lua`, `.tex`, `.ltx`, `.bib`, `.log`, `.env`, `.gitignore`, `.dockerignore`, `.gitattributes`, `.editorconfig`, `.license`, `.notice`, `.readme`, `.changelog`, `.contributing`, `.code-of-conduct`, `.security`, `.authors`, `.maintainers`, `.contributors`.
 
@@ -80,9 +81,9 @@ llm:
   api_key: $file:$env:API_KEY_FILE
 ```
 
-When reading a `.pages` file, the content is extracted using the iwaread library and converted to plain text.
+When reading a `.pages`, `.numbers` and `.key` files, the content is extracted using the [iwaread](https://github.com/wmentor/iwaread) library and converted to plain text.
 
-When reading an `.ipynb` file, the content is extracted using the [github.com/wmentor/joveleaf](https://github.com/wmentor/joveleaf) library and automatically converted to Markdown.
+When reading an `.ipynb` file, the content is extracted using the [joveleaf](https://github.com/wmentor/joveleaf) library and automatically converted to Markdown.
 
 ## Adding a New Codec
 
