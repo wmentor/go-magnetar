@@ -1,0 +1,15 @@
+# Telegram integration configuration
+# Enable telegram integration (default: false)
+# telegram.enable: false
+
+# Telegram bot token (required when enabled)
+# Get your bot token from @BotFather on Telegram
+# telegram.bot_token: ""
+
+# Default chat ID where messages will be sent
+# Can be a user ID, group ID, or channel username (with @)
+# telegram.default_chat_id: ""
+
+# List of allowed chat IDs for security
+# If not empty, only messages to these chat IDs will be sent
+# telegram.allowed_chat_ids: []
