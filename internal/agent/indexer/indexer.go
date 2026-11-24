@@ -95,7 +95,7 @@ func (idx *Indexer) indexFileChunks(filename, msg string) (int, error) {
 	if data, ok := result.(*tools.Response); ok {
 		return idx.chunkAndSave(data.Result, msg)
 	}
-	return 0, fmt.Errorf("indexer: invalid result value of read file tool: %w", err)
+	return 0, fmt.Errorf("indexer: invalid result type %T from read file tool for %q", result, filename)
 }
 
 // IndexURL fetches content from a URL, chunks it, and stores it in the RAG knowledge base.
