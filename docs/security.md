@@ -89,6 +89,7 @@ The mask service automatically detects and replaces the following patterns:
 | IPv4 and IPv6 addresses | `[MASKED_IP]` |
 | GitHub tokens | `[MASKED_TOKEN]` |
 | GitLab tokens | `[MASKED_TOKEN]` |
+| AWS tokens | `[MASKED_TOKEN]` |
 | Russian passport | `[MASKED_PASSPORT]` |
 | Russian SNILS | `[MASKED_SNILS]` |
 | US Social Security Number (SSN) | `[MASK_SSN]` |

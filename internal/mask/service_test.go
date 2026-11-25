@@ -58,9 +58,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 11 records: email, phone, iban, jwt_token, ip, github_token, gitlab_token, passport, snils, ssn, card
-	if len(srv.records) != 11 {
-		t.Errorf("expected 11 records when mask is enabled, got %d", len(srv.records))
+	// Service should have 12 records: email, phone, iban, jwt_token, ip, github_token, gitlab_token, aws_access_key, passport, snils, ssn, card
+	if len(srv.records) != 12 {
+		t.Errorf("expected 12 records when mask is enabled, got %d", len(srv.records))
 	}
 }
 
@@ -79,9 +79,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 10 records: phone, iban, jwt_token, ip, github_token, gitlab_token, passport, snils, ssn, card (no email)
-	if len(srv.records) != 10 {
-		t.Errorf("expected 10 records when email is skipped, got %d", len(srv.records))
+	// Service should have 11 records: phone, iban, jwt_token, ip, github_token, gitlab_token, aws_access_key, passport, snils, ssn, card (no email)
+	if len(srv.records) != 11 {
+		t.Errorf("expected 11 records when email is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -100,9 +100,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 10 records: email, iban, jwt_token, ip, github_token, gitlab_token, passport, snils, ssn, card (no phone)
-	if len(srv.records) != 10 {
-		t.Errorf("expected 10 records when phone is skipped, got %d", len(srv.records))
+	// Service should have 11 records: email, iban, jwt_token, ip, github_token, gitlab_token, aws_access_key, passport, snils, ssn, card (no phone)
+	if len(srv.records) != 11 {
+		t.Errorf("expected 11 records when phone is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -121,9 +121,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 10 records: email, phone, jwt_token, ip, github_token, gitlab_token, passport, snils, ssn, card (no iban)
-	if len(srv.records) != 10 {
-		t.Errorf("expected 10 records when iban is skipped, got %d", len(srv.records))
+	// Service should have 11 records: email, phone, jwt_token, ip, github_token, gitlab_token, aws_access_key, passport, snils, ssn, card (no iban)
+	if len(srv.records) != 11 {
+		t.Errorf("expected 11 records when iban is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -142,9 +142,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 10 records: email, phone, iban, ip, github_token, gitlab_token, passport, snils, ssn, card (no jwt)
-	if len(srv.records) != 10 {
-		t.Errorf("expected 10 records when jwt is skipped, got %d", len(srv.records))
+	// Service should have 11 records: email, phone, iban, ip, github_token, gitlab_token, aws_access_key, passport, snils, ssn, card (no jwt)
+	if len(srv.records) != 11 {
+		t.Errorf("expected 11 records when jwt is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -163,9 +163,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 10 records: email, phone, iban, jwt_token, github_token, gitlab_token, passport, snils, ssn, card (no ip)
-	if len(srv.records) != 10 {
-		t.Errorf("expected 10 records when ip is skipped, got %d", len(srv.records))
+	// Service should have 11 records: email, phone, iban, jwt_token, github_token, gitlab_token, aws_access_key, passport, snils, ssn, card (no ip)
+	if len(srv.records) != 11 {
+		t.Errorf("expected 11 records when ip is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -185,9 +185,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 9 records: iban, jwt_token, ip, github_token, gitlab_token, passport, snils, ssn, card (no email, no phone)
-	if len(srv.records) != 9 {
-		t.Errorf("expected 9 records when email and phone are skipped, got %d", len(srv.records))
+	// Service should have 10 records: iban, jwt_token, ip, github_token, gitlab_token, aws_access_key, passport, snils, ssn, card (no email, no phone)
+	if len(srv.records) != 10 {
+		t.Errorf("expected 10 records when email and phone are skipped, got %d", len(srv.records))
 	}
 }
 
@@ -375,6 +375,176 @@ mask:
 	}
 }
 
+func TestProcessAWSAccessKeyMasking(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		yaml  string
+		input string
+		want  string
+	}{
+		{
+			name: "aws access key AKIA",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "Key: AKIAIOSFODNN7EXAMPLE",
+			want:  "Key: [MASKED_TOKEN]",
+		},
+		{
+			name: "aws access key ASIA",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "Key: ASIAIJR6YR2QEXAMPLEZ",
+			want:  "Key: [MASKED_TOKEN]",
+		},
+		{
+			name: "multiple aws access keys",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "Access key AKIAIOSFODNN7EXAMPLE and secret key wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+			want:  "Access key [MASKED_TOKEN] and secret key wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
+		},
+		{
+			name: "aws access key in environment variable",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "export AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE",
+			want:  "export AWS_ACCESS_KEY_ID=[MASKED_TOKEN]",
+		},
+		{
+			name: "aws access key in JSON",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: `{"aws_access_key_id": "AKIAIOSFODNN7EXAMPLE", "aws_secret_access_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}`,
+			want:  `{"aws_access_key_id": "[MASKED_TOKEN]", "aws_secret_access_key": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"}`,
+		},
+		{
+			name: "invalid aws access key (too short)",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "Key: AKIA12345",
+			want:  "Key: AKIA12345",
+		},
+		{
+			name: "invalid aws access key (too long)",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "Key: AKIAIOSFODNN7EXAMPLEEXTRA",
+			want:  "Key: AKIAIOSFODNN7EXAMPLEEXTRA",
+		},
+		{
+			name: "aws access key with lowercase letters (invalid)",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "Key: AKIAiosfodnn7example",
+			want:  "Key: AKIAiosfodnn7example",
+		},
+		{
+			name: "aws access key with special characters (invalid)",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "Key: AKIA!OSFODNN7EX@MPLE",
+			want:  "Key: AKIA!OSFODNN7EX@MPLE",
+		},
+		{
+			name: "aws access key in URL",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "https://s3.amazonaws.com/bucket?access_key=AKIAIOSFODNN7EXAMPLE",
+			want:  "https://s3.amazonaws.com/bucket?access_key=[MASKED_TOKEN]",
+		},
+		{
+			name: "aws access key in code",
+			yaml: `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+  skip:
+    email: false
+`,
+			input: "aws.AccessKey = \"AKIAIOSFODNN7EXAMPLE\"  // not secret",
+			want:  "aws.AccessKey = \"[MASKED_TOKEN]\"  // not secret",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Helper()
+
+			cfg := loadTestConfig(t, tt.yaml)
+			srv := NewService(cfg)
+
+			got := srv.Process(context.Background(), tt.input)
+
+			if got != tt.want {
+				t.Errorf("Process() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func TestProcessGitLabTokenMasking(t *testing.T) {
 	t.Parallel()
 
@@ -498,6 +668,7 @@ mask:
 	input := `User email: john@example.com
 GitHub token: ghp_` + repeatChar('x', 36) + `
 GitLab token: glpat-` + repeatChar('x', 20) + `
+AWS Access Key: AKIAIOSFODNN7EXAMPLE
 Normal text here`
 
 	output := srv.Process(context.Background(), input)
@@ -511,6 +682,9 @@ Normal text here`
 	}
 	if contains(output, "glpat-"+repeatChar('x', 20)) {
 		t.Error("gitlab token was not masked")
+	}
+	if contains(output, "AKIAIOSFODNN7EXAMPLE") {
+		t.Error("aws access key was not masked")
 	}
 	// Verify non-sensitive text is preserved
 	if !contains(output, "Normal text here") {
