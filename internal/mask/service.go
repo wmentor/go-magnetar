@@ -87,6 +87,7 @@ func NewService(cfg *config.Config) *Service {
 	srv.register("github_token", `\b(?:gh[pousr]_[a-zA-Z0-9]{36,255}|github_pat_[a-zA-Z0-9]{22}_[a-zA-Z0-9]{59})\b`, "[MASKED_TOKEN]")
 	srv.register("gitlab_token", `\bgl(?:pat|dt|ft|oas|rt|ptt|imt|cbt|agent)-[a-zA-Z0-9._-]{20,64}\b`, "[MASKED_TOKEN]")
 	srv.register("aws_access_key", `\b(?:AKIA|ASIA)[0-9A-Z]{16}\b`, "[MASKED_TOKEN]")
+	srv.register("google_api_key", googleAPIKeyRe.String(), "[MASKED_TOKEN]")
 
 	// Russian personal documents
 	// Passport: 1234 567890 or 1234-567890 or 11 22 666666 (various space-separated formats)
@@ -112,6 +113,16 @@ func (srv *Service) Process(_ context.Context, input string) string {
 		}
 	}
 	return input
+}
+
+var googleAPIKeyRe = regexp.MustCompile(
+	`(?s)\{[^{}]*"type"\s*:\s*"service_account"[^{}]*\}|` +
+		`\b(?:AIza[0-9A-Za-z_-]{35}|ya29\.[0-9A-Za-z_-]{10,})\b`,
+)
+
+// MaskGoogleAPIKey masks Google Cloud API keys, OAuth 2.0 access tokens, and service account JSON keys.
+func MaskGoogleAPIKey(input string) string {
+	return googleAPIKeyRe.ReplaceAllString(input, "[MASKED_TOKEN]")
 }
 
 func (srv *Service) register(name string, pattern string, replaceText string) {
