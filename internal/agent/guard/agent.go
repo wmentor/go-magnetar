@@ -10,13 +10,12 @@ import (
 
 	"github.com/sashabaranov/go-openai"
 
-	"github.com/wmentor/go-magnetar/internal/config"
-	"github.com/wmentor/go-magnetar/internal/http/requester"
+	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 )
 
 const (
-	guardTimeout = 30 * time.Second
+	guardTimeout = 2 * time.Minute
 )
 
 const guardPrompt = `You are a security guard that analyzes shell commands for safety.
@@ -57,7 +56,7 @@ Command to analyze:
 `
 
 type Guard struct {
-	cfg *config.Config
+	cfg plugin.Config
 	llm *openai.Client
 }
 
@@ -66,10 +65,10 @@ type Response struct {
 	Reason  string `json:"reason"`
 }
 
-func New(cfg *config.Config) *Guard {
+func New(cfg plugin.Config, factory plugin.ClientFactory) *Guard {
 	llmCfg := openai.DefaultConfig(cfg.ProfileParamString("llm.api_key"))
 	llmCfg.BaseURL = cfg.ProfileParamString("llm.base_url")
-	llmCfg.HTTPClient = requester.NewFactory(cfg).Get()
+	llmCfg.HTTPClient = factory.Get()
 	return &Guard{
 		cfg: cfg,
 		llm: openai.NewClientWithConfig(llmCfg),

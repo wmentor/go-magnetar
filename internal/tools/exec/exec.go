@@ -57,7 +57,6 @@ type Tool struct {
 	cfg         *config.Config
 	printer     printer.Printer
 	state       *plugin.State
-	guard       *guard.Guard
 	interceptor *interceptor.Interceptor
 }
 
@@ -66,7 +65,6 @@ func New(cfg *config.Config, p printer.Printer, state *plugin.State) *Tool {
 		cfg:         cfg,
 		printer:     p,
 		state:       state,
-		guard:       guard.New(cfg),
 		interceptor: interceptor.New(),
 	}
 }
@@ -141,7 +139,8 @@ func (t *Tool) checkSecurity(command string) (bool, string) {
 	}
 
 	if t.cfg.Bool("guard.enable") {
-		allowed, reason, err := t.guard.CheckSecurity(command, t.state.ReadOnly)
+		agent := guard.New(t.state.Config, t.state.RequesterFactory)
+		allowed, reason, err := agent.CheckSecurity(command, t.state.ReadOnly)
 		if err != nil {
 			return false, fmt.Sprintf("security check failed: %v", err)
 		}
