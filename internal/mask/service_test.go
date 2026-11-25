@@ -58,9 +58,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 12 records: email, phone, iban, jwt_token, ip, github_token, gitlab_token, aws_access_key, passport, snils, ssn, card
-	if len(srv.records) != 12 {
-		t.Errorf("expected 12 records when mask is enabled, got %d", len(srv.records))
+	// Service should have 13 records (including google_api_key)
+	if len(srv.records) != 13 {
+		t.Errorf("expected 13 records when mask is enabled, got %d", len(srv.records))
 	}
 }
 
@@ -79,9 +79,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 11 records: phone, iban, jwt_token, ip, github_token, gitlab_token, aws_access_key, passport, snils, ssn, card (no email)
-	if len(srv.records) != 11 {
-		t.Errorf("expected 11 records when email is skipped, got %d", len(srv.records))
+	// Service should have 12 records (no email)
+	if len(srv.records) != 12 {
+		t.Errorf("expected 12 records when email is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -100,9 +100,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 11 records: email, iban, jwt_token, ip, github_token, gitlab_token, aws_access_key, passport, snils, ssn, card (no phone)
-	if len(srv.records) != 11 {
-		t.Errorf("expected 11 records when phone is skipped, got %d", len(srv.records))
+	// Service should have 12 records (no phone)
+	if len(srv.records) != 12 {
+		t.Errorf("expected 12 records when phone is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -121,9 +121,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 11 records: email, phone, jwt_token, ip, github_token, gitlab_token, aws_access_key, passport, snils, ssn, card (no iban)
-	if len(srv.records) != 11 {
-		t.Errorf("expected 11 records when iban is skipped, got %d", len(srv.records))
+	// Service should have 12 records (no iban)
+	if len(srv.records) != 12 {
+		t.Errorf("expected 12 records when iban is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -142,9 +142,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 11 records: email, phone, iban, ip, github_token, gitlab_token, aws_access_key, passport, snils, ssn, card (no jwt)
-	if len(srv.records) != 11 {
-		t.Errorf("expected 11 records when jwt is skipped, got %d", len(srv.records))
+	// Service should have 12 records (no jwt)
+	if len(srv.records) != 12 {
+		t.Errorf("expected 12 records when jwt is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -163,9 +163,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 11 records: email, phone, iban, jwt_token, github_token, gitlab_token, aws_access_key, passport, snils, ssn, card (no ip)
-	if len(srv.records) != 11 {
-		t.Errorf("expected 11 records when ip is skipped, got %d", len(srv.records))
+	// Service should have 12 records (no ip)
+	if len(srv.records) != 12 {
+		t.Errorf("expected 12 records when ip is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -185,9 +185,68 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 10 records: iban, jwt_token, ip, github_token, gitlab_token, aws_access_key, passport, snils, ssn, card (no email, no phone)
-	if len(srv.records) != 10 {
-		t.Errorf("expected 10 records when email and phone are skipped, got %d", len(srv.records))
+	// Service should have 11 records (no email, no phone)
+	if len(srv.records) != 11 {
+		t.Errorf("expected 11 records when email and phone are skipped, got %d", len(srv.records))
+	}
+}
+
+func TestProcessGoogleAPIKeyMasking(t *testing.T) {
+	t.Parallel()
+
+	yaml := `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`
+	cfg := loadTestConfig(t, yaml)
+	srv := NewService(cfg)
+
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "google cloud api key",
+			input: "API key: AIzaSyA1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q",
+			want:  "API key: [MASKED_TOKEN]",
+		},
+		{
+			name:  "google oauth2 access token",
+			input: "Token: ya29.a0AfH6SMC1234567890",
+			want:  "Token: [MASKED_TOKEN]",
+		},
+		{
+			name:  "google service account json",
+			input: `Credentials: {"type": "service_account", "project_id": "demo", "private_key_id": "abc123"}`,
+			want:  "Credentials: [MASKED_TOKEN]",
+		},
+		{
+			name:  "short AIza string not masked",
+			input: "Not a key: AIza12345",
+			want:  "Not a key: AIza12345",
+		},
+		{
+			name:  "non service account json not masked",
+			input: `{"type": "authorized_user", "client_id": "123"}`,
+			want:  `{"type": "authorized_user", "client_id": "123"}`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got := srv.Process(context.Background(), tt.input)
+			if got != tt.want {
+				t.Errorf("Process(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+			gotFn := MaskGoogleAPIKey(tt.input)
+			if gotFn != tt.want {
+				t.Errorf("MaskGoogleAPIKey(%q) = %q, want %q", tt.input, gotFn, tt.want)
+			}
+		})
 	}
 }
 

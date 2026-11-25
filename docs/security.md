@@ -90,10 +90,24 @@ The mask service automatically detects and replaces the following patterns:
 | GitHub tokens | `[MASKED_TOKEN]` |
 | GitLab tokens | `[MASKED_TOKEN]` |
 | AWS tokens | `[MASKED_TOKEN]` |
+| Google API keys, OAuth 2.0 tokens (`ya29.*`), and service account JSON | `[MASKED_TOKEN]` |
 | Russian passport | `[MASKED_PASSPORT]` |
 | Russian SNILS | `[MASKED_SNILS]` |
 | US Social Security Number (SSN) | `[MASK_SSN]` |
 | Credit card number (16 digits in groups of 4, separated by spaces or dashes) | `[MASK_CARD]` |
+
+#### Google API Key Masking
+
+The mask service detects and redacts Google credentials across all masked outputs:
+- **Google Cloud API keys** (`AIza...`, 39 characters) -> `[MASKED_TOKEN]`
+- **Google OAuth 2.0 access tokens** (`ya29....`) -> `[MASKED_TOKEN]`
+- **Google service account JSON** (JSON objects containing `"type": "service_account"`) -> `[MASKED_TOKEN]`
+
+Example:
+```text
+API key: AIzaSyA1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q  ->  API key: [MASKED_TOKEN]
+Token: ya29.a0AfH6SMC1234567890                ->  Token: [MASKED_TOKEN]
+```
 
 ### Configuration
 
