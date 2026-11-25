@@ -25,7 +25,37 @@ func (p *Plugin) Init(state *plugin.State, hub plugin.Hub) error {
 		Help:    "List available subagents or switch by name. Usage: /agent [agent_name] [request]",
 		Execute: p.execute,
 	})
+
+	if state.AgentStore == nil {
+		return nil
+	}
+
+	for _, agent := range state.AgentStore.List() {
+		if agent == nil || agent.Disable {
+			continue
+		}
+
+		hub.RegisterChatCommand(plugin.ChatCommand{
+			Name:    agent.Name,
+			Aliases: []string{},
+			Help:    fmt.Sprintf("Run subagent `%s` (%s)", agent.Name, shortDescription(agent.Description)),
+			Execute: func(ctx context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
+				return p.execAgent(ctx, agent.Name, params.Args)
+			},
+		})
+	}
+
 	return nil
+}
+
+func shortDescription(description string) string {
+	runes := []rune(description)
+
+	if len(runes) > 61 {
+		description = string(runes[:36]) + "..."
+	}
+
+	return description
 }
 
 func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
@@ -52,6 +82,10 @@ func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (
 		request = parts[1]
 	}
 
+	return p.execAgent(ctx, agentName, request)
+}
+
+func (p *Plugin) execAgent(_ context.Context, agentName string, request string) (*plugin.ChatCommandResponse, error) {
 	// Create subagent
 	sa, err := subagent.New(agentName, p.state)
 	if err != nil {
@@ -61,18 +95,12 @@ func (p *Plugin) execute(ctx context.Context, params *plugin.ChatCommandInput) (
 		}, nil
 	}
 
-	// Execute request if provided
-	var response string
-	if request != "" {
-		response, err = sa.Ask(request)
-		if err != nil {
-			return &plugin.ChatCommandResponse{
-				Stdout: fmt.Sprintf("Error asking subagent %q: %v\n", agentName, err),
-				NoLog:  true,
-			}, nil
-		}
-	} else {
-		response = fmt.Sprintf("Subagent %q initialized. You can now interact with it.\n", agentName)
+	response, err := sa.Ask(request)
+	if err != nil {
+		return &plugin.ChatCommandResponse{
+			Stdout: fmt.Sprintf("Error asking subagent %q: %v\n", agentName, err),
+			NoLog:  true,
+		}, nil
 	}
 
 	return &plugin.ChatCommandResponse{
