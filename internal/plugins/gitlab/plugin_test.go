@@ -942,3 +942,190 @@ func TestFetchGitLabFile(t *testing.T) {
 		})
 	}
 }
+
+func TestFetchGitLabTree(t *testing.T) {
+	t.Parallel()
+
+	const baseURL = "https://gitlab.example.com"
+
+	tests := []struct {
+		name         string
+		projectPath  string
+		branch       string
+		path         string
+		baseURL      string
+		doRequest    bool
+		wantAPIKey   bool
+		wantURLParts []string
+		response     *http.Response
+		requestErr   error
+		wantContain  []string
+		wantErr      string
+	}{
+		{
+			name:        "successful request to root directory",
+			projectPath: "group/subgroup/project",
+			branch:      "main",
+			path:        "",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fsubgroup%2Fproject/repository/tree?ref=main",
+			},
+			response: newGitLabFileResponse(t, http.StatusOK, `[
+				{"name":"cmd","path":"cmd","type":"tree","mode":"040000"},
+				{"name":"README.md","path":"README.md","type":"blob","mode":"100644"}
+			]`),
+			wantContain: []string{"cmd/", "README.md"},
+		},
+		{
+			name:        "successful request to subdirectory",
+			projectPath: "namespace/repo",
+			branch:      "develop",
+			path:        "internal/pkg",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/namespace%2Frepo/repository/tree?ref=develop",
+				"path=internal%2Fpkg",
+			},
+			response: newGitLabFileResponse(t, http.StatusOK, `[
+				{"name":"service.go","path":"internal/pkg/service.go","type":"blob","mode":"100644"}
+			]`),
+			wantContain: []string{"internal/pkg", "service.go"},
+		},
+		{
+			name:        "empty branch defaults to main",
+			projectPath: "user/repo",
+			branch:      "",
+			path:        "",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/user%2Frepo/repository/tree?ref=main",
+			},
+			response: newGitLabFileResponse(t, http.StatusOK, `[
+				{"name":"go.mod","path":"go.mod","type":"blob","mode":"100644"}
+			]`),
+			wantContain: []string{"go.mod"},
+		},
+		{
+			name:        "HTTP transport error",
+			projectPath: "group/proj",
+			branch:      "main",
+			path:        "src",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fproj/repository/tree?ref=main",
+			},
+			requestErr: errors.New("connection refused"),
+			wantErr:    "failed to fetch directory",
+		},
+		{
+			name:        "HTTP 404 error",
+			projectPath: "group/proj",
+			branch:      "main",
+			path:        "missing",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fproj/repository/tree?ref=main",
+			},
+			response: newGitLabFileResponse(t, http.StatusNotFound, `{"message":"404 Tree Not Found"}`),
+			wantErr:  "returned status 404",
+		},
+		{
+			name:        "HTTP 500 error",
+			projectPath: "group/proj",
+			branch:      "main",
+			path:        "",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fproj/repository/tree?ref=main",
+			},
+			response: newGitLabFileResponse(t, http.StatusInternalServerError, `{"message":"Internal Server Error"}`),
+			wantErr:  "returned status 500",
+		},
+		{
+			name:        "invalid JSON response",
+			projectPath: "group/proj",
+			branch:      "main",
+			path:        "",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fproj/repository/tree?ref=main",
+			},
+			response: newGitLabFileResponse(t, http.StatusOK, `{invalid json`),
+			wantErr:  "failed to parse response",
+		},
+		{
+			name:        "malformed base URL",
+			projectPath: "group/proj",
+			branch:      "main",
+			path:        "",
+			baseURL:     "https://[::1",
+			doRequest:   false,
+			wantErr:     "failed to create request",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := testdata.NewConfig(t)
+			cfg.EXPECT().String("gitlab.base_url").Return(tt.baseURL).Once()
+			if tt.wantAPIKey {
+				cfg.EXPECT().String("gitlab.api_key").Return("test-token").Once()
+			}
+
+			factory := testdata.NewClientFactory(t)
+			client := testdata.NewClient(t)
+			factory.EXPECT().Get().Return(client).Once()
+			factory.EXPECT().Put(client).Once()
+
+			if tt.doRequest {
+				client.EXPECT().Do(mock.AnythingOfType("*http.Request")).
+					RunAndReturn(func(req *http.Request) (*http.Response, error) {
+						require.Equal(t, http.MethodGet, req.Method)
+						require.Equal(t, "Bearer test-token", req.Header.Get("Authorization"))
+						require.Equal(t, "application/json", req.Header.Get("Content-Type"))
+						for _, part := range tt.wantURLParts {
+							require.Contains(t, req.URL.String(), part)
+						}
+						return tt.response, tt.requestErr
+					}).Once()
+			}
+
+			pluginInstance := &Plugin{
+				state: &plugin.State{
+					Config:           cfg,
+					Printer:          printer.New(io.Discard, false),
+					RequesterFactory: factory,
+				},
+			}
+
+			got, err := pluginInstance.fetchGitLabTree(context.Background(), tt.projectPath, tt.branch, tt.path)
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+				require.Empty(t, got)
+				return
+			}
+
+			require.NoError(t, err)
+			for _, want := range tt.wantContain {
+				require.Contains(t, got, want)
+			}
+		})
+	}
+}
