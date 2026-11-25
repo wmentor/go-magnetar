@@ -977,7 +977,7 @@ func TestFetchGitLabTree(t *testing.T) {
 				{"name":"cmd","path":"cmd","type":"tree","mode":"040000"},
 				{"name":"README.md","path":"README.md","type":"blob","mode":"100644"}
 			]`),
-			wantContain: []string{"cmd/", "README.md"},
+			wantContain: []string{"| cmd | tree | dir |", "README.md"},
 		},
 		{
 			name:        "successful request to subdirectory",
@@ -1024,7 +1024,7 @@ func TestFetchGitLabTree(t *testing.T) {
 				"/api/v4/projects/group%2Fproj/repository/tree?ref=main",
 			},
 			requestErr: errors.New("connection refused"),
-			wantErr:    "failed to fetch directory",
+			wantErr:    "failed to fetch tree",
 		},
 		{
 			name:        "HTTP 404 error",
