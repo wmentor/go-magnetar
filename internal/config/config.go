@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/x/exp/slice"
 	"github.com/knadh/koanf/parsers/yaml"
@@ -74,6 +75,8 @@ func defaultValues() map[string]any {
 		"mcp.server.key":             "",      // path to TLS private key (empty for HTTP, required for HTTPS)
 		"mcp.server.tls":             false,   // enable TLS encryption (default: false)
 		"mcp.server.endpoint":        "/mcp",  // HTTP endpoint path (default: /mcp)
+		"beep.enable":                false,  // enable beep notification on long response times (default: false)
+		"beep.timeout":               "30s",  // duration threshold for beep trigger (default: 30s)
 	}
 
 	if currentUser, err := user.Current(); err == nil {
@@ -247,4 +250,12 @@ func (c *Config) Copy() *Config {
 		profile:   c.profile,
 		configDir: c.configDir,
 	}
+}
+
+func (c *Config) Duration(key string) time.Duration {
+	return c.cfg.Duration(key)
+}
+
+func (c *Config) ProfileParamDuration(key string) time.Duration {
+	return c.Duration(c.makeProfileKey(key))
 }

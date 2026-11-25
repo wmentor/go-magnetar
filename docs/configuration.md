@@ -50,6 +50,7 @@ go-magnetar -p production
 | `profile` | string | Default profile name to use |
 | `profiles` | object | Profile definitions for multi-environment support |
 | `mcp` | object | MCP server configuration (stdio or HTTP mode) |
+| `beep` | object | Interactive chat beep configuration (notification on long response times) |
 
 **Note:** Plugin configuration files are automatically loaded from `<config_dir>/plugins/*.yml`. The `include` directive is no longer supported.
 
@@ -269,6 +270,36 @@ mcp:
 ```
 
 See [mcp_mode.md](./mcp_mode.md) for detailed information about MCP mode and client connection examples.
+
+### Beep Configuration
+
+The `beep` block enables an audio notification when interactive chat message processing exceeds a specified timeout. This is useful for receiving an audible alert when waiting for long-running responses in the interactive REPL.
+
+| Key | Type | Description |
+|---|---|---|
+| `enable` | boolean | Enable/disable beep notification (default: `false`) |
+| `timeout` | string | Duration threshold for beep trigger (default: `30s`). Format: duration string (e.g., `15s`, `1m`, `2m30s`). |
+
+**How it works:**
+- During interactive chat (`agent` command), the system monitors response time for each user message
+- If processing time exceeds the configured `timeout`, a beep signal (`\a`) is played upon completion
+- The beep is only triggered once per message processing cycle
+- The feature requires `beep.enable: true` to be active
+
+**Example:**
+```yaml
+beep:
+  enable: true
+  timeout: "30s"  # Play beep if response takes longer than 30 seconds
+```
+
+**Duration format examples:**
+- `15s` — 15 seconds
+- `1m` — 1 minute
+- `2m30s` — 2 minutes and 30 seconds
+- `500ms` — 500 milliseconds
+
+**Note:** The beep is triggered after message processing completes, not during. It serves as a notification that a long-running response has finished.
 
 ### Compact Configuration
 
