@@ -23,6 +23,10 @@ profiles:
         https: ""  # HTTPS proxy URL (e.g., https://proxy.example.com:8080)
         noproxy: ""  # Comma-separated list of hosts to bypass proxy (e.g., localhost,127.0.0.1,.internal.example.com)
 
+beep:
+  enable: false  # Enable beep notification when response time exceeds timeout (default: false)
+  timeout: "30s"  # Duration threshold for beep trigger. Format: duration string (e.g., "15s", "1m", "2m30s"). Default: 30s
+
 compact:
   mode: soft      # compacting strategy: soft (preserve save_tail messages) or compact (summarize entire history into a single message)
   threshold: 0    # token count at which history summarization is triggered. If not set (or 0), defaults to 80 % of llm.context.

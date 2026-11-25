@@ -5,6 +5,8 @@
 package testdata
 
 import (
+	"time"
+
 	mock "github.com/stretchr/testify/mock"
 	"github.com/wmentor/go-magnetar/internal/config"
 )
@@ -138,6 +140,57 @@ func (_c *Config_Copy_Call) Return(config1 *config.Config) *Config_Copy_Call {
 }
 
 func (_c *Config_Copy_Call) RunAndReturn(run func() *config.Config) *Config_Copy_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Duration provides a mock function for the type Config
+func (_mock *Config) Duration(key string) time.Duration {
+	ret := _mock.Called(key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Duration")
+	}
+
+	var r0 time.Duration
+	if returnFunc, ok := ret.Get(0).(func(string) time.Duration); ok {
+		r0 = returnFunc(key)
+	} else {
+		r0 = ret.Get(0).(time.Duration)
+	}
+	return r0
+}
+
+// Config_Duration_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Duration'
+type Config_Duration_Call struct {
+	*mock.Call
+}
+
+// Duration is a helper method to define mock.On call
+//   - key string
+func (_e *Config_Expecter) Duration(key any) *Config_Duration_Call {
+	return &Config_Duration_Call{Call: _e.mock.On("Duration", key)}
+}
+
+func (_c *Config_Duration_Call) Run(run func(key string)) *Config_Duration_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *Config_Duration_Call) Return(duration time.Duration) *Config_Duration_Call {
+	_c.Call.Return(duration)
+	return _c
+}
+
+func (_c *Config_Duration_Call) RunAndReturn(run func(key string) time.Duration) *Config_Duration_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -335,6 +388,57 @@ func (_c *Config_ProfileParamBool_Call) Return(b bool) *Config_ProfileParamBool_
 }
 
 func (_c *Config_ProfileParamBool_Call) RunAndReturn(run func(key string) bool) *Config_ProfileParamBool_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// ProfileParamDuration provides a mock function for the type Config
+func (_mock *Config) ProfileParamDuration(key string) time.Duration {
+	ret := _mock.Called(key)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ProfileParamDuration")
+	}
+
+	var r0 time.Duration
+	if returnFunc, ok := ret.Get(0).(func(string) time.Duration); ok {
+		r0 = returnFunc(key)
+	} else {
+		r0 = ret.Get(0).(time.Duration)
+	}
+	return r0
+}
+
+// Config_ProfileParamDuration_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ProfileParamDuration'
+type Config_ProfileParamDuration_Call struct {
+	*mock.Call
+}
+
+// ProfileParamDuration is a helper method to define mock.On call
+//   - key string
+func (_e *Config_Expecter) ProfileParamDuration(key any) *Config_ProfileParamDuration_Call {
+	return &Config_ProfileParamDuration_Call{Call: _e.mock.On("ProfileParamDuration", key)}
+}
+
+func (_c *Config_ProfileParamDuration_Call) Run(run func(key string)) *Config_ProfileParamDuration_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		run(
+			arg0,
+		)
+	})
+	return _c
+}
+
+func (_c *Config_ProfileParamDuration_Call) Return(duration time.Duration) *Config_ProfileParamDuration_Call {
+	_c.Call.Return(duration)
+	return _c
+}
+
+func (_c *Config_ProfileParamDuration_Call) RunAndReturn(run func(key string) time.Duration) *Config_ProfileParamDuration_Call {
 	_c.Call.Return(run)
 	return _c
 }

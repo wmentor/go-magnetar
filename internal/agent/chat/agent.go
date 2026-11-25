@@ -1125,10 +1125,17 @@ func matchCommand(name string, cmd plugin.ChatCommand) bool {
 // Run starts the interactive REPL loop.
 func (a *ChatAgent) Run(state *plugin.State, skillName string) error {
 	loadHistory()
+
+	lastActivity := time.Now()
+
 	for {
 		var line string
 		var quit bool
 		var err error
+
+		if state.Config.Bool("beep.enable") && time.Since(lastActivity) >= state.Config.Duration("beep.timeout") {
+			os.Stdout.Write([]byte{'\a'})
+		}
 
 		if skillName != "" {
 			line = "/skill " + skillName
@@ -1152,6 +1159,8 @@ func (a *ChatAgent) Run(state *plugin.State, skillName string) error {
 
 		fmt.Fprintln(os.Stdout, questionStyle.Render(line))
 		fmt.Fprintln(os.Stdout)
+
+		lastActivity = time.Now()
 
 		for _, preprocessor := range plugin.Preprocessors() {
 			if str, err := preprocessor(context.Background(), line); err == nil {
