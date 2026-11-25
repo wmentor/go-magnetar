@@ -2,6 +2,8 @@
 name: commit-message
 description: Create GitHub commit message
 disable: false
+tools:
+    - local_changes
 ---
 
 # Commit Message Skill

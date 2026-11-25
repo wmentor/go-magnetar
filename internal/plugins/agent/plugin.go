@@ -19,6 +19,10 @@ func (p *Plugin) Init(state *plugin.State, hub plugin.Hub) error {
 	p.state = state
 	p.tools = make([]*agent.Tool, 0)
 
+	if state.AgentStore == nil {
+		return nil
+	}
+
 	// Register a tool for each available agent
 	for _, agentDef := range state.AgentStore.List() {
 		if agentDef.Disable {
