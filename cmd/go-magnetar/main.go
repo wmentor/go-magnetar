@@ -9,6 +9,7 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/cmd"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/agent"
+	_ "github.com/wmentor/go-magnetar/internal/plugins/archive"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/agent"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/compact"
 	_ "github.com/wmentor/go-magnetar/internal/plugins/chatcmd/copy"
