@@ -219,6 +219,19 @@ The SMTP plugin enables sending emails with Markdown content (automatically conv
 
 See [plugin_smtp.md](./plugin_smtp.md) for detailed information about SMTP configuration and usage examples.
 
+#### Slack (`slack`)
+
+| Key | Type | Description |
+|---|---|---|
+| `enable` | boolean | Enable/disable Slack integration (default: `false`) |
+| `token` | string | Slack bot token with `chat:write` scope |
+| `default_channel_id` | string | Default channel ID or name to use when no channel is specified |
+| `allowed_channel_ids` | array of strings | List of allowed channel IDs/names; if set, only these channels can receive messages |
+
+The Slack plugin enables sending messages to Slack channels using the `slack` tool. Messages support Slack's own markdown formatting (`*bold*`, `_italic_`, `` `code` ``, `<https://example.com|link>`).
+
+See [plugin_slack.md](./plugin_slack.md) for detailed information about Slack configuration and usage examples.
+
 #### MCP (`mcp`)
 
 The MCP plugin configures the Model Context Protocol server. It supports two transport modes: `stdio` (default) and `http`.
@@ -325,6 +338,10 @@ MAGNETAR_{SECTION}_{PARAM} -> {section}.{param}
 
 For example:
 - `MAGNETAR_CONFLUENCE_READONLY` → `confluence.readonly`
+- `MAGNETAR_SLACK_ENABLE` → `slack.enable`
+- `MAGNETAR_SLACK_TOKEN` → `slack.token`
+- `MAGNETAR_SLACK_DEFAULT_CHANNEL_ID` → `slack.default_channel_id`
+- `MAGNETAR_SLACK_ALLOWED_CHANNEL_IDS` → `slack.allowed_channel_ids`
 - `MAGNETAR_MCP_MODE` → `mcp.mode`
 - `MAGNETAR_MCP_SERVER_PORT` → `mcp.server.port`
 
@@ -336,7 +353,9 @@ Environment variables can be set directly or referenced in config files using `$
 
 ```bash
 export MAGNETAR_CONFLUENCE_READONLY=true
-export MAGNETAR_JIRA_API_KEY="your-api-key"
+export MAGNETAR_SLACK_ENABLE=true
+export MAGNETAR_SLACK_TOKEN="xoxb-..."
+export MAGNETAR_SLACK_DEFAULT_CHANNEL_ID="C01234567"
 export MAGNETAR_MCP_MODE="http"
 export MAGNETAR_MCP_SERVER_PORT="9000"
 ```
@@ -347,6 +366,11 @@ jira:
   base_url: $env:MAGNETAR_JIRA_BASE_URL
   api_key: $env:MAGNETAR_JIRA_API_KEY
   readonly: $env:MAGNETAR_JIRA_READONLY
+
+slack:
+  enable: $env:MAGNETAR_SLACK_ENABLE
+  token: $env:MAGNETAR_SLACK_TOKEN
+  default_channel_id: $env:MAGNETAR_SLACK_DEFAULT_CHANNEL_ID
 
 mcp:
   mode: $env:MAGNETAR_MCP_MODE
@@ -418,6 +442,7 @@ All YAML files matching the pattern `<config_dir>/plugins/*.yml` are automatical
 - `plugins/smtp.yml` — SMTP email sending
 - `plugins/ssh.yml` — SSH execution
 - `plugins/web.yml` — Web proxy settings
+- `plugins/slack.yml` — Slack integration
 
 ### Example Directory Structure
 
@@ -435,7 +460,8 @@ All YAML files matching the pattern `<config_dir>/plugins/*.yml` are automatical
     ├── guard.yml       # Guard settings
     ├── smtp.yml        # SMTP settings
     ├── ssh.yml         # SSH settings
-    └── web.yml         # Web proxy settings
+    ├── web.yml         # Web proxy settings
+    └── slack.yml       # Slack settings
 ```
 
 ### Config Loading Order

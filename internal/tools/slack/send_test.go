@@ -122,7 +122,7 @@ func TestExec_SendsSlackShape(t *testing.T) {
 	s.def = "C42"
 	tool := newTool(t, s, client)
 
-	result, err := tool.Exec(context.Background(), &Params{Text: "*hello*", ThreadTS: "1.2", UnfurlLinks: boolPtr(false)})
+	result, err := tool.Exec(context.Background(), &Params{Text: "*hello*", ThreadTS: "1.2", UnfurlLinks: new(false)})
 	require.NoError(t, err)
 
 	require.Equal(t, "https://slack.com/api/chat.postMessage", client.seen.URL.String())
@@ -173,4 +173,5 @@ func TestExec_RejectsOverlongText(t *testing.T) {
 	require.Nil(t, client.seen)
 }
 
-func boolPtr(v bool) *bool { return &v }
+//go:fix inline
+func boolPtr(v bool) *bool { return new(v) }
