@@ -97,11 +97,15 @@ func (p *Plugin) execAgent(_ context.Context, agentName string, request string) 
 
 	response, err := sa.Ask(request)
 	if err != nil {
+		response = fmt.Sprintf("Error asking subagent %q: %v\n", agentName, err)
+		p.state.ResponseStore.Push(response)
 		return &plugin.ChatCommandResponse{
-			Stdout: fmt.Sprintf("Error asking subagent %q: %v\n", agentName, err),
+			Stdout: response,
 			NoLog:  true,
 		}, nil
 	}
+
+	p.state.ResponseStore.Push(response)
 
 	return &plugin.ChatCommandResponse{
 		Stdout: response,
