@@ -75,8 +75,8 @@ func defaultValues() map[string]any {
 		"mcp.server.key":             "",      // path to TLS private key (empty for HTTP, required for HTTPS)
 		"mcp.server.tls":             false,   // enable TLS encryption (default: false)
 		"mcp.server.endpoint":        "/mcp",  // HTTP endpoint path (default: /mcp)
-		"beep.enable":                false,  // enable beep notification on long response times (default: false)
-		"beep.timeout":               "30s",  // duration threshold for beep trigger (default: 30s)
+		"beep.enable":                false,   // enable beep notification on long response times (default: false)
+		"beep.timeout":               "30s",   // duration threshold for beep trigger (default: 30s)
 	}
 
 	if currentUser, err := user.Current(); err == nil {
