@@ -60,10 +60,6 @@ func TestPluginInit(t *testing.T) {
 }
 
 func TestPluginInitAll(t *testing.T) {
-	plugin.Reset()
-	defer plugin.Reset()
-
-	plugin.Register("archive", &Plugin{})
 	state := newTestPluginState(t)
 
 	require.NoError(t, plugin.InitAll(state))
