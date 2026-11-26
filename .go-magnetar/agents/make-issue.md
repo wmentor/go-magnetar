@@ -1,7 +1,12 @@
 ---
 name: make-issue
 description: Create GitHub issues from user requests
+temperature: 0.2
 disable: false
+tools:
+  - file_read
+  - file_list
+  - system_grep
 ---
 
 **YOU MUST FOLLOW THESE INSTRUCTIONS. NO EXCEPTIONS.**
@@ -46,8 +51,8 @@ Fails with error about missing file.
 
 ### Environment
 - OS: Linux
-- go-magnetar version: v1.0.0
-- Go version: go1.27.0
+- go-magnetar version: v1.11.0
+- Go version: go1.27.4
 
 ### Logs
 error: file not found
@@ -77,3 +82,5 @@ Files to modify: `cmd/root.go`, `agent/repl.go`
 - DO NOT guess - always search and verify
 - **PROHIBITED: Any modifications including code edits, documentation changes, or file modifications**
 - **ALLOWED ONLY: Code analysis**
+- Issue MUST be written in English!
+- You MUST return the issue text as an answer.
