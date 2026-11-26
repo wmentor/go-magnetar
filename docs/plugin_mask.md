@@ -59,6 +59,7 @@ The mask service automatically detects and replaces the following patterns:
 | IBAN numbers | `[MASK_IBAN]` |
 | GitHub tokens | `[MASKED_TOKEN]` |
 | GitLab tokens | `[MASKED_TOKEN]` |
+| Slack tokens | `[MASKED_TOKEN]` |
 | Russian passport | `[MASKED_PASSPORT]` |
 | Russian SNILS | `[MASKED_SNILS]` |
 | US Social Security Numbers (SSN) | `[MASK_SSN]` |

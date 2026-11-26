@@ -58,9 +58,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 13 records (including google_api_key)
-	if len(srv.records) != 13 {
-		t.Errorf("expected 13 records when mask is enabled, got %d", len(srv.records))
+	// Service should have 14 records (including google_api_key and slack_token)
+	if len(srv.records) != 14 {
+		t.Errorf("expected 14 records when mask is enabled, got %d", len(srv.records))
 	}
 }
 
@@ -79,9 +79,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 12 records (no email)
-	if len(srv.records) != 12 {
-		t.Errorf("expected 12 records when email is skipped, got %d", len(srv.records))
+	// Service should have 13 records (no email)
+	if len(srv.records) != 13 {
+		t.Errorf("expected 13 records when email is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -100,9 +100,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 12 records (no phone)
-	if len(srv.records) != 12 {
-		t.Errorf("expected 12 records when phone is skipped, got %d", len(srv.records))
+	// Service should have 13 records (no phone)
+	if len(srv.records) != 13 {
+		t.Errorf("expected 13 records when phone is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -121,9 +121,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 12 records (no iban)
-	if len(srv.records) != 12 {
-		t.Errorf("expected 12 records when iban is skipped, got %d", len(srv.records))
+	// Service should have 13 records (no iban)
+	if len(srv.records) != 13 {
+		t.Errorf("expected 13 records when iban is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -142,9 +142,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 12 records (no jwt)
-	if len(srv.records) != 12 {
-		t.Errorf("expected 12 records when jwt is skipped, got %d", len(srv.records))
+	// Service should have 13 records (no jwt)
+	if len(srv.records) != 13 {
+		t.Errorf("expected 13 records when jwt is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -163,9 +163,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 12 records (no ip)
-	if len(srv.records) != 12 {
-		t.Errorf("expected 12 records when ip is skipped, got %d", len(srv.records))
+	// Service should have 13 records (no ip)
+	if len(srv.records) != 13 {
+		t.Errorf("expected 13 records when ip is skipped, got %d", len(srv.records))
 	}
 }
 
@@ -185,9 +185,9 @@ mask:
 	cfg := loadTestConfig(t, yaml)
 	srv := NewService(cfg)
 
-	// Service should have 11 records (no email, no phone)
-	if len(srv.records) != 11 {
-		t.Errorf("expected 11 records when email and phone are skipped, got %d", len(srv.records))
+	// Service should have 12 records (no email, no phone)
+	if len(srv.records) != 12 {
+		t.Errorf("expected 12 records when email and phone are skipped, got %d", len(srv.records))
 	}
 }
 
@@ -703,6 +703,132 @@ mask:
 			got := srv.Process(context.Background(), tt.input)
 
 			if got != tt.want {
+				t.Errorf("Process() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMaskSlackTokens(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "single bot token",
+			input: "Token: xoxb-" + repeatChar('x', 20),
+			want:  "Token: [MASKED_TOKEN]",
+		},
+		{
+			name:  "multiple tokens",
+			input: "xoxp-" + repeatChar('a', 12) + " and xoxa-" + repeatChar('b', 30),
+			want:  "[MASKED_TOKEN] and [MASKED_TOKEN]",
+		},
+		{
+			name:  "mixed text with token",
+			input: "Set SLACK_TOKEN=xoxr-1234567890-abcdefghij in the environment.",
+			want:  "Set SLACK_TOKEN=[MASKED_TOKEN] in the environment.",
+		},
+		{
+			name:  "every known prefix",
+			input: "xoxs-" + repeatChar('1', 10) + " xoxe-" + repeatChar('2', 10) + " xoxc-" + repeatChar('3', 10) + " xoxd-" + repeatChar('4', 10) + " xoxo-" + repeatChar('5', 10) + " xoxw-" + repeatChar('6', 10),
+			want:  "[MASKED_TOKEN] [MASKED_TOKEN] [MASKED_TOKEN] [MASKED_TOKEN] [MASKED_TOKEN] [MASKED_TOKEN]",
+		},
+		{
+			name:  "token at the lower length bound",
+			input: "xoxb-" + repeatChar('x', 10),
+			want:  "[MASKED_TOKEN]",
+		},
+		{
+			name:  "token at the upper length bound",
+			input: "xoxb-" + repeatChar('x', 200),
+			want:  "[MASKED_TOKEN]",
+		},
+		{
+			name:  "too short is not a token",
+			input: "xoxb-" + repeatChar('x', 9),
+			want:  "xoxb-" + repeatChar('x', 9),
+		},
+		{
+			name:  "invalid prefix letter",
+			input: "xoxz-" + repeatChar('x', 20),
+			want:  "xoxz-" + repeatChar('x', 20),
+		},
+		{
+			name:  "missing dash",
+			input: "xoxb" + repeatChar('x', 20),
+			want:  "xoxb" + repeatChar('x', 20),
+		},
+		{
+			name:  "prefix inside a word",
+			input: "abcxoxb-" + repeatChar('x', 20),
+			want:  "abcxoxb-" + repeatChar('x', 20),
+		},
+		{
+			name:  "empty input",
+			input: "",
+			want:  "",
+		},
+		{
+			name:  "text without tokens",
+			input: "No secrets here, just a message.",
+			want:  "No secrets here, just a message.",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			if got := MaskSlackTokens(tt.input); got != tt.want {
+				t.Errorf("MaskSlackTokens() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestProcessSlackTokenMasking(t *testing.T) {
+	t.Parallel()
+
+	yaml := `version: "1.0"
+profile: test
+
+mask:
+  enable: true
+`
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "bot token in a message",
+			input: "Bot token: xoxb-" + repeatChar('x', 24),
+			want:  "Bot token: [MASKED_TOKEN]",
+		},
+		{
+			name:  "user token next to an email",
+			input: "user@example.com uses xoxp-" + repeatChar('y', 40),
+			want:  "[MASKED_EMAIL] uses [MASKED_TOKEN]",
+		},
+		{
+			name:  "no token",
+			input: "plain text",
+			want:  "plain text",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := loadTestConfig(t, yaml)
+			srv := NewService(cfg)
+
+			if got := srv.Process(context.Background(), tt.input); got != tt.want {
 				t.Errorf("Process() = %q, want %q", got, tt.want)
 			}
 		})
