@@ -1129,3 +1129,200 @@ func TestFetchGitLabTree(t *testing.T) {
 		})
 	}
 }
+
+func TestFetchGitLabRepository(t *testing.T) {
+	t.Parallel()
+
+	const baseURL = "https://gitlab.example.com"
+
+	tests := []struct {
+		name           string
+		projectPath    string
+		baseURL        string
+		doRequest      bool
+		wantAPIKey     bool
+		wantURLParts   []string
+		response       *http.Response
+		requestErr     error
+		wantContain    []string
+		wantNotContain []string
+		wantErr        string
+	}{
+		{
+			name:        "successful request with full metadata",
+			projectPath: "group/proj",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fproj",
+			},
+			response: newGitLabFileResponse(t, http.StatusOK, `{
+				"id": 101,
+				"name": "My Project",
+				"path_with_namespace": "group/proj",
+				"description": "Sample repository",
+				"web_url": "https://gitlab.example.com/group/proj",
+				"star_count": 42,
+				"forks_count": 5,
+				"open_issues_count": 3,
+				"default_branch": "main",
+				"visibility": "public",
+				"ssh_url_to_repo": "git@gitlab.example.com:group/proj.git",
+				"http_url_to_repo": "https://gitlab.example.com/group/proj.git",
+				"last_activity_at": "2026-11-26T10:00:00Z"
+			}`),
+			wantContain: []string{
+				"# My Project",
+				"**Project Path:** group/proj",
+				"**Default Branch:** main",
+				"**Visibility:** public",
+				"**Forks:** 5 | **Stars:** 42 | **Open Issues:** 3",
+				"**Description:**\nSample repository",
+				"**Web URL:** https://gitlab.example.com/group/proj",
+				"**SSH URL:** git@gitlab.example.com:group/proj.git",
+				"**HTTP URL:** https://gitlab.example.com/group/proj.git",
+				"**Last Activity:** 2026-11-26T10:00:00Z",
+			},
+		},
+		{
+			name:        "successful request with subgroup and minimal fields",
+			projectPath: "group/subgroup/proj",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fsubgroup%2Fproj",
+			},
+			response: newGitLabFileResponse(t, http.StatusOK, `{
+				"id": 102,
+				"name": "Sub Project",
+				"path_with_namespace": "group/subgroup/proj",
+				"default_branch": "develop",
+				"visibility": "private",
+				"web_url": "https://gitlab.example.com/group/subgroup/proj",
+				"ssh_url_to_repo": "git@gitlab.example.com:group/subgroup/proj.git",
+				"http_url_to_repo": "https://gitlab.example.com/group/subgroup/proj.git"
+			}`),
+			wantContain: []string{
+				"# Sub Project",
+				"**Project Path:** group/subgroup/proj",
+				"**Default Branch:** develop",
+				"**Visibility:** private",
+			},
+			wantNotContain: []string{
+				"**Description:**",
+				"**Last Activity:**",
+			},
+		},
+		{
+			name:        "HTTP transport error",
+			projectPath: "group/proj",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fproj",
+			},
+			requestErr: errors.New("connection refused"),
+			wantErr:    "failed to fetch project",
+		},
+		{
+			name:        "HTTP 404 error",
+			projectPath: "group/missing",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fmissing",
+			},
+			response: newGitLabFileResponse(t, http.StatusNotFound, `{"message":"404 Project Not Found"}`),
+			wantErr:  "returned status 404",
+		},
+		{
+			name:        "HTTP 500 error",
+			projectPath: "group/proj",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fproj",
+			},
+			response: newGitLabFileResponse(t, http.StatusInternalServerError, `{"message":"Internal Server Error"}`),
+			wantErr:  "returned status 500",
+		},
+		{
+			name:        "invalid JSON response",
+			projectPath: "group/proj",
+			baseURL:     baseURL,
+			doRequest:   true,
+			wantAPIKey:  true,
+			wantURLParts: []string{
+				"/api/v4/projects/group%2Fproj",
+			},
+			response: newGitLabFileResponse(t, http.StatusOK, `{invalid json`),
+			wantErr:  "failed to parse response",
+		},
+		{
+			name:        "malformed base URL",
+			projectPath: "group/proj",
+			baseURL:     "https://[::1",
+			doRequest:   false,
+			wantAPIKey:  false,
+			wantErr:     "failed to create request",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cfg := testdata.NewConfig(t)
+			cfg.EXPECT().String("gitlab.base_url").Return(tt.baseURL).Once()
+			if tt.wantAPIKey {
+				cfg.EXPECT().String("gitlab.api_key").Return("test-token").Once()
+			}
+
+			factory := testdata.NewClientFactory(t)
+			client := testdata.NewClient(t)
+			factory.EXPECT().Get().Return(client).Once()
+			factory.EXPECT().Put(client).Once()
+
+			if tt.doRequest {
+				client.EXPECT().Do(mock.AnythingOfType("*http.Request")).
+					RunAndReturn(func(req *http.Request) (*http.Response, error) {
+						require.Equal(t, http.MethodGet, req.Method)
+						require.Equal(t, "Bearer test-token", req.Header.Get("Authorization"))
+						require.Equal(t, "application/json", req.Header.Get("Content-Type"))
+						for _, part := range tt.wantURLParts {
+							require.Contains(t, req.URL.String(), part)
+						}
+						return tt.response, tt.requestErr
+					}).Once()
+			}
+
+			pluginInstance := &Plugin{
+				state: &plugin.State{
+					Config:           cfg,
+					Printer:          printer.New(io.Discard, false),
+					RequesterFactory: factory,
+				},
+			}
+
+			got, err := pluginInstance.fetchGitLabRepository(context.Background(), tt.projectPath)
+			if tt.wantErr != "" {
+				require.ErrorContains(t, err, tt.wantErr)
+				require.Empty(t, got)
+				return
+			}
+
+			require.NoError(t, err)
+			for _, want := range tt.wantContain {
+				require.Contains(t, got, want)
+			}
+			for _, unwanted := range tt.wantNotContain {
+				require.NotContains(t, got, unwanted)
+			}
+		})
+	}
+}
