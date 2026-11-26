@@ -16,7 +16,6 @@ import (
 
 	"github.com/wmentor/go-magnetar/internal/codec"
 	"github.com/wmentor/go-magnetar/internal/codec/html"
-	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
 	"github.com/wmentor/go-magnetar/internal/tools"
@@ -31,14 +30,14 @@ const (
 
 // Tool provides web_fetch operation as LLM tool.
 type Tool struct {
-	cfg           *config.Config
+	cfg           plugin.Config
 	printer       printer.Printer
 	clientFactory plugin.ClientFactory
 	state         *plugin.State
 }
 
 // NewTool creates a new Tool instance.
-func NewTool(cfg *config.Config, p printer.Printer, clientFactory plugin.ClientFactory, state *plugin.State) *Tool {
+func NewTool(cfg plugin.Config, p printer.Printer, clientFactory plugin.ClientFactory, state *plugin.State) *Tool {
 	return &Tool{
 		cfg:           cfg,
 		printer:       p,
