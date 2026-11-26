@@ -40,8 +40,9 @@ func NewService(cfg *config.Config) *Service {
 
 	if !cfg.Bool("mask.skip.phone") {
 		// Phone numbers: international (+X...), national formats (e.g. US (XXX) XXX-XXXX, Russian 8-XXX-XXX-XX-XX)
-		phonePattern := `(?:\+\d{1,3}[-.\s]?)?(?:\(\d{3}\)|\b\d{3})[-.\s]?\d{3}[-.\s]?(?:\d{4}|\d{2}[-.\s]?\d{2})\b|` +
-			`\b8[-.\s]?(?:\(\d{3}\)|\d{3})[-.\s]?\d{3}[-.\s]?\d{2}[-.\s]?\d{2}\b|` +
+		// Must have separators between digit groups or be in format +XX XXX XXX XXX or similar
+		phonePattern := `(?:\+\d{1,3}[-.\s]?)?(?:\(\d{3}\)|\b\d{3})[-.\s]\d{3}[-.\s](?:\d{4}|\d{2}[-.\s]\d{2})\b|` +
+			`\b8[-.\s]?(?:\(\d{3}\)|\d{3})[-.\s]\d{3}[-.\s]\d{2}[-.\s]\d{2}\b|` +
 			`\+\d{1,4}[-.\s]?(?:\(?\d{1,4}\)?[-.\s]?){2,4}\d{2,4}\b`
 		srv.register("phone", phonePattern, "[MASKED_PHONE]")
 	}
