@@ -89,6 +89,7 @@ func NewService(cfg *config.Config) *Service {
 	srv.register("gitlab_token", `\bgl(?:pat|dt|ft|oas|rt|ptt|imt|cbt|agent)-[a-zA-Z0-9._-]{20,64}\b`, "[MASKED_TOKEN]")
 	srv.register("aws_access_key", `\b(?:AKIA|ASIA)[0-9A-Z]{16}\b`, "[MASKED_TOKEN]")
 	srv.register("google_api_key", googleAPIKeyRe.String(), "[MASKED_TOKEN]")
+	srv.register("slack_token", slackTokenRe.String(), "[MASKED_TOKEN]")
 
 	// Russian personal documents
 	// Passport: 1234 567890 or 1234-567890 or 11 22 666666 (various space-separated formats)
@@ -181,4 +182,13 @@ func decodeBase64URL(s string) ([]byte, error) {
 		return b, nil
 	}
 	return base64.URLEncoding.DecodeString(s)
+}
+
+// Slack tokens: bot (xoxb), user (xoxp), app (xoxa), refresh (xoxr), and the
+// other xox? families, followed by a dash and 10 to 200 token characters.
+var slackTokenRe = regexp.MustCompile(`\bxox(?:b|p|a|r|s|e|c|d|o|w)-[a-zA-Z0-9-]{10,200}\b`)
+
+// MaskSlackTokens masks Slack API tokens.
+func MaskSlackTokens(input string) string {
+	return slackTokenRe.ReplaceAllString(input, "[MASKED_TOKEN]")
 }
