@@ -97,6 +97,7 @@ You are a security expert. Always use search tools first, then delegate to subag
 | `tools` | []string | List of available tools |
 | `disable` | bool | Disable the agent |
 | `subagents` | []string | List of subagents this agent can delegate to |
+| `temperature` | float64 | LLM temperature for response generation (overrides profile default) |
 
 ### Loading Process
 

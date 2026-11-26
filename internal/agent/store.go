@@ -74,6 +74,7 @@ func (st *Store) loadAgent(filename string) {
 		Tools       []string `yaml:"tools"`
 		Disable     bool     `yaml:"disable"`
 		Subagents   []string `yaml:"subagents"`
+		Temperature *float64 `yaml:"temperature"`
 	}
 
 	if err := yaml.Unmarshal([]byte(texts[1]), &metadata); err != nil {
@@ -90,6 +91,7 @@ func (st *Store) loadAgent(filename string) {
 			AvailableTools: metadata.Tools,
 			Disable:        metadata.Disable,
 			Subagents:      metadata.Subagents,
+			Temperature:    metadata.Temperature,
 		}
 	}
 }

@@ -39,9 +39,8 @@ import (
 var systemPrompt []byte
 
 const (
-	maxSearchToolCalls  = 20
 	noProgressCountMax  = 4
-	maxAskLoopIteration = 50
+	maxAskLoopIteration = 75
 
 	// charsPerToken is a rough approximation used for context-window budget estimation.
 	// OpenAI models average ~4 UTF-8 characters per token.
