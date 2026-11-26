@@ -220,3 +220,94 @@ func TestSystemGrepInvalidParams(t *testing.T) {
 		t.Errorf("Exec() expected nil result for invalid params, got %v", result)
 	}
 }
+
+func TestSystemGrepInvalidRegex(t *testing.T) {
+	t.Parallel()
+
+	ensureRgAvailable(t)
+	g, rootFS := newTestTools(t, false)
+
+	// Create a test file inside rootFS
+	filename := "test.txt"
+	content := "Hello, World!"
+	if err := rootFS.WriteFile(filename, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Invalid regex pattern (unclosed character class)
+	params := &SystemGrepParams{Filename: filename, Pattern: "[invalid"}
+
+	result, err := g.Exec(t.Context(), params)
+	if err != nil {
+		t.Fatalf("Exec() should not return error for invalid regex, got: %v", err)
+	}
+
+	resp := parseResult(t, result)
+
+	if resp.Status != tools.StatusOK {
+		t.Errorf("Exec() status = %q, want %q", resp.Status, tools.StatusOK)
+	}
+
+	// Should contain error message about exit code 2
+	if !strings.Contains(resp.Result, "Error (exit code 2)") {
+		t.Errorf("Exec() result = %q, want to contain 'Error (exit code 2)'", resp.Result)
+	}
+}
+
+func TestSystemGrepFileNotFound(t *testing.T) {
+	t.Parallel()
+
+	ensureRgAvailable(t)
+	g, _ := newTestTools(t, false)
+
+	params := &SystemGrepParams{Filename: "nonexistent_file.txt", Pattern: "test"}
+
+	result, err := g.Exec(t.Context(), params)
+	if err != nil {
+		t.Fatalf("Exec() should not return error for file not found, got: %v", err)
+	}
+
+	resp := parseResult(t, result)
+
+	if resp.Status != tools.StatusOK {
+		t.Errorf("Exec() status = %q, want %q", resp.Status, tools.StatusOK)
+	}
+
+	// Should contain error message about exit code 2
+	if !strings.Contains(resp.Result, "Error (exit code 2)") {
+		t.Errorf("Exec() result = %q, want to contain 'Error (exit code 2)'", resp.Result)
+	}
+}
+
+func TestSystemGrepWithLookahead(t *testing.T) {
+	t.Parallel()
+
+	ensureRgAvailable(t)
+	g, rootFS := newTestTools(t, false)
+
+	// Create a test file inside rootFS
+	filename := "test.txt"
+	content := "func NewService() {}\nfunc Process() {}\ntype MaskService struct{}"
+	if err := rootFS.WriteFile(filename, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Use lookahead pattern (requires --pcre2)
+	params := &SystemGrepParams{Filename: filename, Pattern: `func\s+\w+(?=\(\))`}
+
+	result, err := g.Exec(t.Context(), params)
+	if err != nil {
+		t.Fatalf("Exec() failed: %v", err)
+	}
+
+	resp := parseResult(t, result)
+
+	if resp.Status != tools.StatusOK {
+		t.Errorf("Exec() status = %q, want %q", resp.Status, tools.StatusOK)
+	}
+
+	// Should find both functions
+	if !strings.Contains(resp.Result, "NewService") || !strings.Contains(resp.Result, "Process") {
+		t.Errorf("Exec() result = %q, want to contain 'NewService' and 'Process'", resp.Result)
+	}
+}
