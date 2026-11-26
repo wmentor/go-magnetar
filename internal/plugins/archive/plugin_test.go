@@ -93,11 +93,11 @@ func TestPluginToolsExecuteOnZip(t *testing.T) {
 
 	listTool, err := state.ToolStore.GetTool("archive_list")
 	require.NoError(t, err)
-	listRes := listTool.Execute(context.Background(), []byte(`{"path":"`+filepath.ToSlash(zipPath)+`"}`))
+	listRes := listTool.Execute(context.Background(), []byte(`{"filename":"`+filepath.ToSlash(zipPath)+`"}`))
 	assert.Contains(t, listRes, "hello.txt")
 
 	readTool, err := state.ToolStore.GetTool("archive_read")
 	require.NoError(t, err)
-	readRes := readTool.Execute(context.Background(), []byte(`{"path":"`+filepath.ToSlash(zipPath)+`","entry":"hello.txt"}`))
+	readRes := readTool.Execute(context.Background(), []byte(`{"archive_path":"`+filepath.ToSlash(zipPath)+`","file_path":"hello.txt"}`))
 	assert.Contains(t, readRes, "hello archive")
 }
