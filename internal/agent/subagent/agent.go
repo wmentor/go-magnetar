@@ -23,7 +23,7 @@ import (
 const (
 	maxSearchToolCalls  = 20
 	noProgressCountMax  = 4
-	maxAskLoopIteration = 50
+	maxAskLoopIteration = 75
 
 	// charsPerToken is a rough approximation used for context-window budget estimation.
 	// OpenAI models average ~4 UTF-8 characters per token.
@@ -41,6 +41,7 @@ type Agent struct {
 	messages    []openai.ChatCompletionMessage
 	root        *os.Root
 	toolStore   *tools.Store
+	Temperature *float64
 	printer     printer.Printer
 	maskService plugin.MaskService
 }
@@ -98,6 +99,7 @@ func New(agentName string, state *plugin.State) (*Agent, error) {
 		toolStore:   toolStore,
 		printer:     state.Printer,
 		maskService: state.MaskService,
+		Temperature: a.Temperature,
 	}, nil
 }
 
@@ -188,6 +190,11 @@ func (a *Agent) Ask(input string) (string, error) {
 
 	var agentCounter atomic.Int64
 
+	temperature := float32(a.cfg.ProfileParamFloat64("llm.temperature"))
+	if a.Temperature != nil && *a.Temperature > 0 {
+		temperature = float32(*a.Temperature)
+	}
+
 	for range maxAskLoopIteration {
 		reserved := 0
 		if a.cfg.ProfileParamInt("llm.context") > 0 {
@@ -204,7 +211,7 @@ func (a *Agent) Ask(input string) (string, error) {
 			Model:           a.cfg.ProfileParamString("llm.model"),
 			Messages:        trimmed,
 			Tools:           activeTools,
-			Temperature:     float32(a.cfg.ProfileParamFloat64("llm.temperature")),
+			Temperature:     temperature,
 			TopP:            float32(a.cfg.ProfileParamFloat64("llm.top_p")),
 			ReasoningEffort: a.cfg.ProfileParamString("llm.reasoning_effort"),
 		})

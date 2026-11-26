@@ -19,6 +19,7 @@ type Agent struct {
 	AvailableTools []string
 	Disable        bool
 	Subagents      []string
+	Temperature    *float64
 }
 
 // Copy creates a deep copy of the Agent.
@@ -35,6 +36,7 @@ func (a *Agent) Copy() *Agent {
 		AvailableTools: slices.Clone(a.AvailableTools),
 		Disable:        a.Disable,
 		Subagents:      slices.Clone(a.Subagents),
+		Temperature:    a.Temperature,
 	}
 }
 
