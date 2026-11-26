@@ -29,9 +29,9 @@ var apiURL = "https://slack.com/api/chat.postMessage"
 type Params struct {
 	Channel     string `json:"channel,omitempty" jsonschema_description:"Slack channel ID or name (#general or C01234567). If not provided, uses default_channel_id from config."` //nolint:lll // ok.
 	Text        string `json:"text" jsonschema_description:"Message text in Slack markdown (*bold*, _italic_, <https://example.com|link>, 'code')."`
-	ThreadTS    string `json:"thread_ts,omitempty" jsonschema_description:"Reply in this thread (the ts of the parent message)."` //nolint:lll // ok.
-	UnfurlLinks *bool  `json:"unfurl_links,omitempty" jsonschema_description:"Let Slack expand link previews for this message."`  //nolint:lll // ok.
-	UnfurlMedia *bool  `json:"unfurl_media,omitempty" jsonschema_description:"Let Slack expand media previews for this message."` //nolint:lll // ok.
+	ThreadTS    string `json:"thread_ts,omitempty" jsonschema_description:"Reply in this thread (the ts of the parent message)."`
+	UnfurlLinks *bool  `json:"unfurl_links,omitempty" jsonschema_description:"Let Slack expand link previews for this message."`
+	UnfurlMedia *bool  `json:"unfurl_media,omitempty" jsonschema_description:"Let Slack expand media previews for this message."`
 }
 
 // Tool provides slack send operation as LLM tool.
