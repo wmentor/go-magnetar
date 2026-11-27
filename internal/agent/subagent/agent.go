@@ -184,7 +184,7 @@ func (a *Agent) Ask(input string) (string, error) {
 	noProgressCount := 0
 
 	alreadyDoneToolCalls := map[toolRecord]struct{}{}
-	allToolCallStat := map[string]int{}
+	allToolCallStat := map[toolRecord]int{}
 
 	var agentCounter atomic.Int64
 
@@ -306,8 +306,14 @@ func (a *Agent) Ask(input string) (string, error) {
 					alreadyDoneToolCalls[toolKey] = struct{}{}
 				}
 
-				allToolCallStat[tool.Name]++
-				if tool.RateLimit > 0 && tool.RateLimit < allToolCallStat[tool.Name] {
+				// Determine the rate limit key: use ToolKey if UseToolKey is true, otherwise use Name
+				rateLimitKey := toolRecord{Name: toolCall.Function.Name}
+				if tool.UseToolKey {
+					rateLimitKey = toolKey
+				}
+
+				allToolCallStat[rateLimitKey]++
+				if tool.RateLimit > 0 && tool.RateLimit < allToolCallStat[rateLimitKey] {
 					a.messages = append(a.messages, openai.ChatCompletionMessage{
 						Role:       openai.ChatMessageRoleTool,
 						Content:    "error: tool call limit reached",

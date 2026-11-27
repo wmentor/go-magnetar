@@ -23,6 +23,9 @@ type Tool struct {
 	RateLimit int
 	// IsAgent indicates that this tool launches an agent.
 	IsAgent bool
+	// UseToolKey determines whether to use ToolKey instead of Name for rate limiting.
+	// When true and ToolKey is non-empty, ToolKey is used for rate limiting.
+	UseToolKey bool
 }
 
 type ToolOption func(*Tool)
@@ -55,6 +58,15 @@ func OptionAgent() ToolOption {
 	return func(t *Tool) {
 		if t != nil {
 			t.IsAgent = true
+		}
+	}
+}
+
+// OptionUseToolKey sets whether to use ToolKey instead of Name for rate limiting.
+func OptionUseToolKey(use bool) ToolOption {
+	return func(t *Tool) {
+		if t != nil {
+			t.UseToolKey = use
 		}
 	}
 }
