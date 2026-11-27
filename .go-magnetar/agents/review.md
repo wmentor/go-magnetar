@@ -1,6 +1,7 @@
 ---
 name: review
 description: Fast read-only codebase reconnaissance, pattern matching, and architecture mapping
+temperature: 0.1
 disable: false
 tools:
     - local_changes
