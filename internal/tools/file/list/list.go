@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/bmatcuk/doublestar/v4"
+
 	"github.com/wmentor/go-magnetar/internal/config"
 	"github.com/wmentor/go-magnetar/internal/plugin"
 	"github.com/wmentor/go-magnetar/internal/printer"
@@ -16,7 +18,7 @@ import (
 
 // FileListParams represents parameters for the file_list tool.
 type FileListParams struct {
-	Filter string `json:"filter,omitempty" jsonschema_description:"Glob pattern to match file names (e.g., '*.go', 'test_*.py')"`
+	Filter string `json:"filter,omitempty" jsonschema_description:"Glob pattern to match file paths (e.g., '*.go', 'internal/**/*.go', 'src/*.py'). Pattern is matched against relative path from root."` //nolint:lll // ok.
 }
 
 // Tool provides file_list operation as LLM tool.
@@ -90,7 +92,9 @@ func (t *Tool) Exec(ctx context.Context, params *FileListParams) (any, error) {
 		}
 
 		if params != nil && params.Filter != "" {
-			matched, err := filepath.Match(params.Filter, base)
+			// Normalize path separators for cross-platform compatibility
+			normalizedPath := filepath.ToSlash(relPath)
+			matched, err := doublestar.Match(params.Filter, normalizedPath)
 			if err != nil {
 				t.printer.Error("file_list: invalid filter pattern", "pattern", params.Filter, "err", err)
 				return nil
