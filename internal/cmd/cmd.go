@@ -41,6 +41,7 @@ type Globals struct {
 	ReadOnly  bool     `long:"read-only" help:"Run in read-only mode"`
 	Timing    bool     `name:"enable-timing" help:"Show the execution time of every answer"`
 	MCP       bool     `help:"launch in MCP server mode"`
+	Server    bool     `help:"launch in HTTP server mode"`
 	Daemon    bool     `long:"daemon" short:"d" help:"Run as daemon"`
 	Prompt    []string `arg:"" optional:"" help:"Prompt to execute directly"`
 }
@@ -87,7 +88,7 @@ func Execute() error {
 	}
 
 	if root.Daemon {
-		if !root.MCP && cfg.String("mcp.mode") != "http" {
+		if !root.MCP && !root.Server && cfg.String("mcp.mode") != "http" {
 			return errors.New("Daemon mode is only available for MCP servers running over HTTP/HTTPS.")
 		}
 		fork.Fork()
@@ -97,13 +98,13 @@ func Execute() error {
 		_ = cfg.SetProfile(root.Profile)
 	}
 
-	if root.MCP || isPipe || prompt.Len() > 0 {
+	if root.MCP || root.Server || isPipe || prompt.Len() > 0 {
 		printer.SetDefault(printer.New(io.Discard, false))
 	} else {
 		printer.SetDefault(printer.New(os.Stderr, false))
 	}
 
-	if root.File == "" && !root.MCP && prompt.Len() == 0 && !isPipe {
+	if root.File == "" && !root.MCP && !root.Server && prompt.Len() == 0 && !isPipe {
 		version.PrintVersion(cfg.ProfileParamString("llm.model"))
 		printEnabledModules(printer.GetDefault(), cfg)
 	}
@@ -143,7 +144,7 @@ func Execute() error {
 	state := &plugin.State{
 		Config:           cfg,
 		ReadOnly:         root.ReadOnly,
-		ModeMCP:          root.MCP,
+		ModeServer:       root.MCP || root.Server,
 		SkillStore:       skillStore,
 		ResponseStore:    responseStore,
 		ToolStore:        toolStore,
@@ -170,6 +171,10 @@ func Execute() error {
 	}
 
 	defer plugin.Stop()
+
+	if root.Server {
+		return serverFlow(state)
+	}
 
 	if root.MCP {
 		mcpFlow(state)

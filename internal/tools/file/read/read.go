@@ -184,7 +184,7 @@ func (t *Tool) Exec(ctx context.Context, params *FileReadParams) (any, error) {
 		return nil, errors.New("invalid params")
 	}
 
-	if t.state.ModeMCP {
+	if t.state.ModeServer {
 		if !filepath.IsAbs(params.Filename) {
 			return nil, errors.New("supported only absolute paths")
 		}
@@ -223,7 +223,7 @@ func (t *Tool) Exec(ctx context.Context, params *FileReadParams) (any, error) {
 	var f *os.File
 	var err error
 
-	if t.root == nil || t.state.ModeMCP {
+	if t.root == nil || t.state.ModeServer {
 		f, err = os.Open(params.Filename)
 	} else {
 		f, err = t.root.Open(params.Filename)
