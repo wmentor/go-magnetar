@@ -355,7 +355,6 @@ func (a *Agent) Ask(input string) (string, error) {
 				})
 			}
 
-
 			if noProgressCount >= noProgressCountMax {
 				a.printer.Warn("broke potential infinite loop")
 				if beginIndex < len(a.messages) {
