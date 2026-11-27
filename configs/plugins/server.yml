@@ -1,0 +1,8 @@
+server:
+  host: localhost  # host for HTTP server (default: localhost)
+  port: 8080  # port for HTTP server (default: 8080)
+  cert: ""  # path to TLS certificate (empty for HTTP, required for HTTPS)
+  key: ""  # path to TLS private key (empty for HTTP, required for HTTPS)
+  tls: false  # enable TLS encryption (default: false)
+  path:
+    allowed: [$env:HOME]  # allowed paths for access

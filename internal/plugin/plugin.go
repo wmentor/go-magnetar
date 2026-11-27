@@ -56,7 +56,7 @@ type State struct {
 	Root             *os.Root          // sandboxed filesystem; nil in the indexer context.
 	Printer          printer.Printer   // output printer.
 	ReadOnly         bool              // if true, disable file write operations.
-	ModeMCP          bool              // work in MCP mode.
+	ModeServer       bool              // work in MCP mode or HTTP server mode.
 	SkillStore       SkillStore        // skill storage interface.
 	ResponseStore    ResponseStore     // response storage interface (circular buffer with capacity DefaultResponseStoreSize).
 	TimingEnabled    atomic.Bool       // if true, the chat REPL prints how long each answer took (/timing, --enable-timing).
