@@ -183,8 +183,6 @@ func (a *Agent) Ask(input string) (string, error) {
 
 	noProgressCount := 0
 
-	lastAnswerContent := ""
-
 	alreadyDoneToolCalls := map[toolRecord]struct{}{}
 	allToolCallStat := map[string]int{}
 
@@ -351,14 +349,13 @@ func (a *Agent) Ask(input string) (string, error) {
 				})
 			}
 
-			lastAnswerContent = choice.Message.Content
 
 			if noProgressCount >= noProgressCountMax {
 				a.printer.Warn("broke potential infinite loop")
 				if beginIndex < len(a.messages) {
 					a.messages = a.messages[:beginIndex]
 				}
-				return lastAnswerContent, nil
+				return "", agent.ErrInfiniteLoop
 			}
 
 			continue
@@ -371,5 +368,5 @@ func (a *Agent) Ask(input string) (string, error) {
 	if beginIndex < len(a.messages) {
 		a.messages = a.messages[:beginIndex]
 	}
-	return lastAnswerContent, nil
+	return "", agent.ErrInfiniteLoop
 }

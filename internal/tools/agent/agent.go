@@ -2,9 +2,8 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"fmt"
-
-	"github.com/pkg/errors"
 
 	agentcore "github.com/wmentor/go-magnetar/internal/agent"
 	"github.com/wmentor/go-magnetar/internal/agent/subagent"
@@ -72,6 +71,10 @@ func (t *Tool) Exec(ctx context.Context, params *AgentParams) (any, error) {
 	// Execute request
 	response, err := sa.Ask(params.Message)
 	if err != nil {
+		if errors.Is(err, agentcore.ErrInfiniteLoop) {
+			t.state.Printer.Error("agent: infinite loop detected", "agent", t.agentName)
+			return nil, fmt.Errorf("infinite loop detected in subagent %q: %w", t.agentName, err)
+		}
 		t.state.Printer.Error("agent: failed to ask subagent", "agent", t.agentName, "err", err)
 		return nil, fmt.Errorf("failed to ask subagent %q: %w", t.agentName, err)
 	}
