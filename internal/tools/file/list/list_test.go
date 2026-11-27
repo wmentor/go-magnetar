@@ -266,3 +266,94 @@ func TestFileListEmptyRoot(t *testing.T) {
 		t.Errorf("Exec() result = %q, want empty or error", resp.Result)
 	}
 }
+
+func TestFileListWithPathBasedFilter(t *testing.T) {
+	t.Parallel()
+
+	g := newTestTools(t, "")
+
+	// Create directory structure
+	rootDir := g.root.Name()
+	subdir := filepath.Join(rootDir, "internal", "plugins")
+	if err := os.MkdirAll(subdir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(subdir, "plugin.go"), []byte("content"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(rootDir, "main.go"), []byte("content"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Test path-based filter
+	params := &FileListParams{Filter: "internal/plugins/*.go"}
+	result, err := g.Exec(t.Context(), params)
+	if err != nil {
+		t.Fatalf("Exec() failed: %v", err)
+	}
+
+	resp := parseResult(t, result)
+
+	if resp.Status != tools.StatusOK {
+		t.Errorf("Exec() status = %q, want %q", resp.Status, tools.StatusOK)
+	}
+
+	if !strings.Contains(resp.Result, "internal/plugins/plugin.go") {
+		t.Errorf("Exec() result should contain internal/plugins/plugin.go: %s", resp.Result)
+	}
+
+	if strings.Contains(resp.Result, "main.go") {
+		t.Errorf("Exec() result should not contain main.go: %s", resp.Result)
+	}
+}
+
+func TestFileListWithDoubleStarPattern(t *testing.T) {
+	t.Parallel()
+
+	g := newTestTools(t, "")
+
+	// Create nested directory structure
+	rootDir := g.root.Name()
+	subdir1 := filepath.Join(rootDir, "internal", "plugins", "gitlab")
+	subdir2 := filepath.Join(rootDir, "internal", "tools")
+	if err := os.MkdirAll(subdir1, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(subdir2, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(subdir1, "plugin.go"), []byte("content"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(subdir2, "tool.go"), []byte("content"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(rootDir, "main.go"), []byte("content"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	// Test ** pattern for recursive matching
+	params := &FileListParams{Filter: "internal/**/*.go"}
+	result, err := g.Exec(t.Context(), params)
+	if err != nil {
+		t.Fatalf("Exec() failed: %v", err)
+	}
+
+	resp := parseResult(t, result)
+
+	if resp.Status != tools.StatusOK {
+		t.Errorf("Exec() status = %q, want %q", resp.Status, tools.StatusOK)
+	}
+
+	if !strings.Contains(resp.Result, "internal/plugins/gitlab/plugin.go") {
+		t.Errorf("Exec() result should contain internal/plugins/gitlab/plugin.go: %s", resp.Result)
+	}
+
+	if !strings.Contains(resp.Result, "internal/tools/tool.go") {
+		t.Errorf("Exec() result should contain internal/tools/tool.go: %s", resp.Result)
+	}
+
+	if strings.Contains(resp.Result, "main.go") {
+		t.Errorf("Exec() result should not contain main.go: %s", resp.Result)
+	}
+}

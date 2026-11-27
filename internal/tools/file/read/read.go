@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"compress/gzip"
 	"context"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -232,6 +233,18 @@ func (t *Tool) Exec(ctx context.Context, params *FileReadParams) (any, error) {
 		return nil, err
 	}
 	defer f.Close()
+
+	// Check if the path is a directory and provide a helpful error
+	stat, err := f.Stat()
+	if err != nil {
+		t.printer.Error("file_read: failed to stat file", "file", params.Filename, "err", err)
+		return nil, err
+	}
+	if stat.IsDir() {
+		errMsg := fmt.Sprintf("path is a directory: %s. Use file_list tool to list files in a directory", params.Filename)
+		t.printer.Error("file_read: cannot read directory", "file", params.Filename)
+		return nil, errors.New(errMsg)
+	}
 
 	br := bufio.NewReader(f)
 	if isGzip(params.Filename, br) {

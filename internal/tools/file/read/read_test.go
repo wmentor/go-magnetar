@@ -353,6 +353,12 @@ func TestFileReadErrors(t *testing.T) {
 	if err == nil {
 		t.Errorf("Exec(somedir) expected failure")
 	}
+	if !strings.Contains(err.Error(), "path is a directory") {
+		t.Errorf("Exec(somedir) error should mention directory: %v", err)
+	}
+	if !strings.Contains(err.Error(), "file_list") {
+		t.Errorf("Exec(somedir) error should suggest file_list tool: %v", err)
+	}
 }
 
 func newTestToolsWithRoot(t *testing.T) (*Tool, *os.Root) {
