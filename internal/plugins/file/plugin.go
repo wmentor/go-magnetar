@@ -22,7 +22,7 @@ func (p *Plugin) Init(s *plugin.State, hub plugin.Hub) error {
 	p.state = s
 	cfg := s.ConcreteConfig()
 	p.tool = read.New(cfg, s.Printer, plugin.GetRoot(), s)
-	s.ToolStore.Register(p.tool.Name(), p.tool.Description(), p.tool.Exec)
+	s.ToolStore.Register(p.tool.Name(), p.tool.Description(), p.tool.Exec, tools.OptionRateLimit(10), tools.OptionUseToolKey(true))
 	s.ToolStore.RegisterOurToolMCP(p.tool.NameMCP(), p.tool.Description(), p.tool.Exec)
 
 	// Register file_list tool
