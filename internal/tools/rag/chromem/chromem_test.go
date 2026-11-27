@@ -37,12 +37,13 @@ func TestParseDataDir(t *testing.T) {
 
 	t.Run("absolute path", func(t *testing.T) {
 		t.Parallel()
-		result, err := chromem.ParseDataDir("/tmp/chromem-data")
+		expected := filepath.Join(t.TempDir(), "chromem-data")
+		result, err := chromem.ParseDataDir(expected)
 		if err != nil {
 			t.Errorf("ParseDataDir() error = %v", err)
 		}
-		if result != "/tmp/chromem-data" {
-			t.Errorf("ParseDataDir() = %q, want %q", result, "/tmp/chromem-data")
+		if result != expected {
+			t.Errorf("ParseDataDir() = %q, want %q", result, expected)
 		}
 	})
 }

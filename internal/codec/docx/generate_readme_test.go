@@ -2,6 +2,7 @@ package docx
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 )
 
@@ -15,7 +16,7 @@ func TestGenerateReadmeDocx(t *testing.T) {
 	}
 
 	// Write to docx
-	outputPath := "/tmp/readme_final.docx"
+	outputPath := filepath.Join(t.TempDir(), "readme_final.docx")
 	err = codec.WriteFile(outputPath, string(readmeContent))
 	if err != nil {
 		t.Fatalf("Error writing docx: %v", err)
