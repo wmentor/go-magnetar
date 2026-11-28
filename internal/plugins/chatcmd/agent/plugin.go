@@ -15,6 +15,7 @@ func init() {
 
 type Plugin struct {
 	state *plugin.State
+	agent *subagent.Agent
 }
 
 func (p *Plugin) Init(state *plugin.State, hub plugin.Hub) error {
@@ -24,6 +25,13 @@ func (p *Plugin) Init(state *plugin.State, hub plugin.Hub) error {
 		Aliases: []string{},
 		Help:    "List available subagents or switch by name. Usage: /agent [agent_name] [request]",
 		Execute: p.execute,
+	})
+
+	hub.RegisterChatCommand(plugin.ChatCommand{
+		Name:    "continue",
+		Aliases: []string{},
+		Help:    "Continue conversation with the last used agent. Usage: /continue <message>",
+		Execute: p.continueAgent,
 	})
 
 	if state.AgentStore == nil {
@@ -95,6 +103,9 @@ func (p *Plugin) execAgent(_ context.Context, agentName string, request string) 
 		}, nil
 	}
 
+	// Store the subagent instance
+	p.agent = sa
+
 	response, err := sa.Ask(request)
 	if err != nil {
 		response = fmt.Sprintf("Error asking subagent %q: %v\n", agentName, err)
@@ -103,6 +114,35 @@ func (p *Plugin) execAgent(_ context.Context, agentName string, request string) 
 			Stdout: response,
 			NoLog:  true,
 		}, nil
+	}
+
+	p.state.ResponseStore.Push(response)
+
+	return &plugin.ChatCommandResponse{
+		Stdout: response,
+		NoLog:  true,
+	}, nil
+}
+
+func (p *Plugin) continueAgent(_ context.Context, params *plugin.ChatCommandInput) (*plugin.ChatCommandResponse, error) {
+	if p.agent == nil {
+		return &plugin.ChatCommandResponse{
+			Stdout: "Error: no agent available to continue the conversation\n",
+			NoLog:  true,
+		}, nil
+	}
+
+	request := strings.TrimSpace(params.Args)
+	if request == "" {
+		return &plugin.ChatCommandResponse{
+			Stdout: "Error: message is required\n",
+			NoLog:  true,
+		}, nil
+	}
+
+	response, err := p.agent.Ask(request)
+	if err != nil {
+		response = fmt.Sprintf("Error continuing conversation: %v\n", err)
 	}
 
 	p.state.ResponseStore.Push(response)

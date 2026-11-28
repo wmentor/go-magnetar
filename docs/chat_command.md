@@ -6,27 +6,28 @@ go-magnetar provides several built-in chat commands accessible from the interact
 
 | Command | Aliases | Description |
 |---|---|---|
-| `/help` | `/h` | Show the list of available chat commands |
-| `/exit` | `/quit` | End the session and exit the program |
+| `/agent [agent_name] [request]` | — | List available subagents or switch to a named subagent |
 | `/compact [soft\|full]` | — | Immediately compress conversation history via the summarizer |
-| `/new` | — | Start a new session and clear conversation history |
-| `/stat` | — | Print context statistics: messages, tokens, bytes, LLM model, RAG model, vector size |
-| `/index` | `/i` | Index a file, URL, or directory into RAG knowledge base (use `-r` for directories) |
-| `/idxtab` | — | Index multiple files/URLs from a JSON lines file (one per line, format: `{"source":"path\|url","message":"text"}`) |
-| `/write` | `/w` | Write content to a file |
-| `/copy [index]` | `/c` | Copy an assistant answer to clipboard (default: the last one) |
-| `/revert` | `/r` | Revert to the previous assistant answer and display it again |
-| `/readonly` | — | Toggle read-only mode (blocks all modification operations) |
-| `/fetch` | `/f` | Fetch content from a URL, optionally save to file |
-| `/exec` | `/e` | Execute a shell command, redirect stdout/stderr, print exit code on failure |
 | `/confluence.edit` | — | Edit a Confluence page using Markdown content from a file |
-| `/session.save` | — | Save current conversation session to a file |
+| `/continue <message>` | — | Continue conversation with the last used subagent |
+| `/copy [index]` | `/c` | Copy an assistant answer to clipboard (default: the last one) |
+| `/exec` | `/e` | Execute a shell command, redirect stdout/stderr, print exit code on failure |
+| `/exit` | `/quit` | End the session and exit the program |
+| `/fetch` | `/f` | Fetch content from a URL, optionally save to file |
+| `/help` | `/h` | Show the list of available chat commands |
+| `/idxtab` | — | Index multiple files/URLs from a JSON lines file (one per line, format: `{"source":"path\|url","message":"text"}`) |
+| `/index` | `/i` | Index a file, URL, or directory into RAG knowledge base (use `-r` for directories) |
+| `/init` | — | Initialize project documentation (AGENTS.md) by analyzing codebase structure |
+| `/new` | — | Start a new session and clear conversation history |
 | `/profile` | — | Show current profile or switch to a different profile |
+| `/readonly` | — | Toggle read-only mode (blocks all modification operations) |
+| `/revert` | `/r` | Revert to the previous assistant answer and display it again |
+| `/session.save` | — | Save current conversation session to a file |
+| `/skill` | `/sk` | List available skills or load/activate a skill |
+| `/stat` | — | Print context statistics: messages, tokens, bytes, LLM model, RAG model, vector size |
 | `/timing` | — | Toggle execution time display (on\|off) |
 | `/tools` | `/t` | List all available tools and their descriptions |
-| `/init` | — | Initialize project documentation (AGENTS.md) by analyzing codebase structure |
-| `/skill` | `/sk` | List available skills or load/activate a skill |
-| `/agent [agent_name] [request]` | — | List available subagents or switch to a named subagent |
+| `/write` | `/w` | Write content to a file |
 
 ## Shell Command Direct Execution
 
@@ -60,6 +61,49 @@ Available agents:
 
 To initialize a named subagent, use `/agent <agent_name>`. Add a request after
 the name to send it to that subagent: `/agent <agent_name> <request>`.
+
+## /continue Command
+
+Continue conversation with the last used subagent:
+
+```
+> /agent research What is Go?
+Go is a statically typed, compiled programming language...
+> /continue Can you explain its concurrency model?
+Go's concurrency model is based on CSP (Communicating Sequential Processes)...
+```
+
+The `/continue` command allows you to resume interaction with the last active subagent without re-specifying the agent name. This is useful when you need to ask follow-up questions or provide additional context to the same subagent.
+
+**Usage:**
+```
+/continue <message>
+```
+
+**Parameters:**
+- `message` — Your message or question for the subagent
+
+**Behavior:**
+- Stores the subagent instance when `/agent` command is executed
+- Preserves conversation context with the selected subagent
+- Allows seamless continuation of dialogue without re-specifying agent name
+- Returns error if no agent is available (no previous `/agent` command was executed)
+
+**Examples:**
+
+Continue with the last subagent:
+```
+> /agent coding How to implement a binary tree in Go?
+// Code example for binary tree implementation...
+> /continue Can you add unit tests for this implementation?
+// Unit tests for binary tree...
+```
+
+Error when no agent is available:
+```
+> /continue What is Go?
+Error: no agent available to continue the conversation
+```
 
 ## /compact Command
 
@@ -293,7 +337,7 @@ Display available profiles and their status:
 ```
 > /profile
 Available profiles:
- *> default
+ * > default
     production
     development
 
@@ -317,6 +361,7 @@ Display or toggle execution time measurement:
 > /timing on
 Execution time measurement enabled.
 — Execution time: 0s
+```
 
 > What is Go?
 Go is a statically typed, compiled programming language designed for simplicity, reliability, and efficiency.
@@ -477,4 +522,3 @@ In this mode, text preprocessors are applied but chat commands (e.g., `/readonly
 ## Text Preprocessing
 
 See [docs/preprocessor.md](./preprocessor.md) for a complete reference on text preprocessors and available placeholders.
-
