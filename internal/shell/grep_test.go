@@ -17,6 +17,10 @@ func TestGrepCommand(t *testing.T) {
 	}
 
 	for _, tt := range tests {
+		// Skip tests for commands that don't exist on this platform
+		if tt.expected && !CheckCommandExists(t, tt.input) {
+			continue
+		}
 		result := CheckCommand(tt.input)
 		status := "✓"
 		if result != tt.expected {

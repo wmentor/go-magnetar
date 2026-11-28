@@ -409,6 +409,10 @@ func TestCheckCommand(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
+			// Skip tests for commands that don't exist on this platform
+			if tt.expected && !CheckCommandExists(t, tt.input) {
+				return
+			}
 			result := CheckCommand(tt.input)
 			if result != tt.expected {
 				t.Errorf("CheckCommand(%q) = %v, want %v", tt.input, result, tt.expected)
