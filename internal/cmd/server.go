@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -32,6 +33,35 @@ func serverFlow(state *plugin.State) error {
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("OK"))
+	})
+
+	setupUnixTime := time.Now().Unix()
+
+	// Add models endpoint
+	mux.HandleFunc("/v1/models", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+
+		modelID := state.Config.ProfileParamString("llm.model")
+		maxModelLen := state.Config.ProfileParamInt("llm.context")
+
+		response := map[string]any{
+			"object": "list",
+			"data": []map[string]any{
+				{
+					"id":            modelID,
+					"object":        "model",
+					"created":       setupUnixTime,
+					"owned_by":      "go-magnetar",
+					"model_type":    "llm",
+					"max_model_len": maxModelLen,
+				},
+			},
+		}
+
+		if err := json.NewEncoder(w).Encode(response); err != nil {
+			state.Printer.Error("Failed to encode models response: %v", err)
+		}
 	})
 
 	// Create server
