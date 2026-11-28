@@ -26,6 +26,7 @@ go-magnetar provides several built-in chat commands accessible from the interact
 | `/skill` | `/sk` | List available skills or load/activate a skill |
 | `/stat` | — | Print context statistics: messages, tokens, bytes, LLM model, RAG model, vector size |
 | `/timing` | — | Toggle execution time display (on\|off) |
+| `/tool` | — | Execute a registered tool directly with JSON parameters |
 | `/tools` | `/t` | List all available tools and their descriptions |
 | `/write` | `/w` | Write content to a file |
 
@@ -397,6 +398,47 @@ Timing is displayed after each response as a single line:
 Duration is Go's `time.Duration` text:
 - rounded to the millisecond below 10 seconds (`850ms`, `1.234s`)
 - rounded to the second from 10 seconds up (`12s`, `1m16s`)
+
+## /tool Command
+
+Execute any registered plugin tool directly from the REPL by passing its name and optional JSON parameters:
+
+```
+/tool <tool_name> [json_params]
+```
+
+**Parameters:**
+- `tool_name` — Registered tool name (run `/tools` to list available tools)
+- `json_params` — Optional JSON object matching the tool's parameter schema (defaults to `{}` if omitted)
+
+**Behavior:**
+- Validates that `json_params` is a single valid JSON object (rejects malformed JSON, trailing tokens, and non-object values such as `null`, arrays, strings, or numbers)
+- Resolves the tool from the registered tool store and respects session settings such as `--read-only` (`/readonly`) and sensitive data masking
+- Displays the tool's output directly in the terminal without sending a prompt to the LLM
+- Saves successful tool outputs to the response history so they can be copied with `/copy` or viewed with `/less`
+- Displays clear error messages for missing tools, invalid JSON, schema validation failures, or tool execution errors
+
+**Examples:**
+
+Run a tool that takes no parameters (defaults to `{}`):
+```
+> /tool system_date
+Mon Nov 28 14:00:00 UTC 2026
+```
+
+Run a tool with JSON parameters:
+```
+> /tool file_read {"filename": "README.md", "start_line": 1, "end_line": 20}
+```
+
+Unknown tool or malformed JSON:
+```
+> /tool unknown_tool {}
+Error: tool "unknown_tool" not found. Use /tools to list available tools.
+
+> /tool file_read {invalid}
+Error: invalid JSON parameters: ...
+```
 
 ## /tools Command
 
