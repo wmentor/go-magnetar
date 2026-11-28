@@ -172,9 +172,17 @@ func (t *Tool) readGzip(filename string, br *bufio.Reader, limit int, offset int
 		return "", errors.New("decompressed content exceeds size limit")
 	}
 
+	result := sb.String()
+	if result == "" {
+		return &tools.Response{
+			Status: tools.StatusOK,
+			Result: "End of file reached.",
+		}, nil
+	}
+
 	return &tools.Response{
 		Status: tools.StatusOK,
-		Result: sb.String(),
+		Result: result,
 	}, nil
 }
 
@@ -305,8 +313,16 @@ func (t *Tool) Exec(ctx context.Context, params *FileReadParams) (any, error) {
 		return nil, err
 	}
 
+	result := sb.String()
+	if result == "" {
+		return &tools.Response{
+			Status: tools.StatusOK,
+			Result: "End of file reached.",
+		}, nil
+	}
+
 	return &tools.Response{
 		Status: tools.StatusOK,
-		Result: sb.String(),
+		Result: result,
 	}, nil
 }
