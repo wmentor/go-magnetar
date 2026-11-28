@@ -88,16 +88,24 @@ func TestAgentPlugin_Init(t *testing.T) {
 		t.Fatalf("Init() error = %v", err)
 	}
 
-	if len(hub.commands) != 1 {
-		t.Errorf("expected 1 command registered, got %d", len(hub.commands))
+	if len(hub.commands) != 2 {
+		t.Errorf("expected 2 commands registered, got %d", len(hub.commands))
 	}
 
 	if hub.commands[0].Name != "agent" {
-		t.Errorf("expected command name 'agent', got '%s'", hub.commands[0].Name)
+		t.Errorf("expected first command name 'agent', got '%s'", hub.commands[0].Name)
+	}
+
+	if hub.commands[1].Name != "continue" {
+		t.Errorf("expected second command name 'continue', got '%s'", hub.commands[1].Name)
 	}
 
 	if len(hub.commands[0].Aliases) != 0 {
-		t.Errorf("expected no aliases, got %v", hub.commands[0].Aliases)
+		t.Errorf("expected no aliases for 'agent', got %v", hub.commands[0].Aliases)
+	}
+
+	if len(hub.commands[1].Aliases) != 0 {
+		t.Errorf("expected no aliases for 'continue', got %v", hub.commands[1].Aliases)
 	}
 }
 
